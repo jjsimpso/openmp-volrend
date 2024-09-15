@@ -5,17 +5,6 @@
 #include "ndarray.h"
 
 
-inline uint8_t *calc_dataptr(int n, intptr_t *start_idx, intptr_t *strides, uint8_t *start)
-{
-    uint8_t *cursor = start;
-    for(int i = 0; i < n; i++)
-    {
-	cursor += start_idx[i] * strides[i];
-    }
-
-    return cursor;
-}
-
 NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes)
 {
     if(n > MAX_DIMS || n <= 0)
@@ -174,8 +163,8 @@ bool ndarray_iter_next(NDArrayIter *it)
 	it->index++;
     }
 
-    //return ndarray_iter_more(it);
-    return (it->index < it->length);
+    return ndarray_iter_more(it);
+    //return (it->index < it->length);
 }
 
 void ndarray_iter_reset(NDArrayIter *it)
