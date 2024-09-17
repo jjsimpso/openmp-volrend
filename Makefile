@@ -6,8 +6,8 @@ BUILD		:= src
 SRCDIR		:= src
 INCDIR		:= include
 
-LIB_SOURCES	:= ndarray.c
-LIB_INCLUDES	:= ndarray.h
+LIB_SOURCES	:= ndarray.c ppm.c
+LIB_INCLUDES	:= ndarray.h ppm.h
 
 
 #---------------------------------------------------------------------------------
@@ -15,7 +15,7 @@ LIB_INCLUDES	:= ndarray.h
 #---------------------------------------------------------------------------------
 CC = gcc
 COMPILERFLAGS = -Wall -std=gnu11 -O3
-#DEBUG_FLAGS = -g -O0
+DEBUG_FLAGS = -g -O0
 #MYFLAGS = -DVGA_DEBUG
 INCLUDE  = -I$(CURDIR)/$(INCDIR) -I$(CURDIR)/$(SRCDIR)
 CFLAGS = $(COMPILERFLAGS) $(MYFLAGS) $(DEBUG_FLAGS) $(INCLUDE)

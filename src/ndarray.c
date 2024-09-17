@@ -131,6 +131,44 @@ NDArrayIter *ndarray_iter_new(NDArray *nda, Slice *slices)
     return iter;
 }
 
+void ndarray_iter_free(NDArrayIter *it)
+{
+    free(it);
+}
+
+// dim is a pointer to the dimension/axis to skip over in the iterator. first dimension is 0
+// if dim points to -1, use the last dimension and set dim's value to it
+NDArrayIter *ndarray_iter_new_all_but_axis(NDArray *nda, Slice *slices, int *dim)
+{
+    if(!nda)
+    {
+	return NULL;
+    }
+
+    NDArrayIter *iter = ndarray_iter_new(nda, slices);
+
+    if(!iter)
+    {
+	return NULL;
+    }
+
+    if(*dim == -1)
+    {
+	*dim = iter->nd_m1;
+    }
+
+    int skip_dim = *dim;
+    iter->length = iter->length / (iter->dims_m1[skip_dim] + 1);
+    iter->dims_m1[skip_dim] = 0;
+    iter->backstrides[skip_dim] = 0;
+    iter->contiguous = 0;
+
+    return iter;
+}
+
+// specify the always_inline attribute so this gets inlined even at -O0
+// prevents linker errors when debugging at -O0
+inline bool ndarray_iter_more(NDArrayIter *it) __attribute__((always_inline));
 inline bool ndarray_iter_more(NDArrayIter *it)
 {
     return (it->index < it->length);

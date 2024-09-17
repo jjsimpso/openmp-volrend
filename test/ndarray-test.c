@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include "ndarray.h"
+#include "ppm.h"
 
 void print_iter(NDArrayIter *it)
 {
     int i = 0;
     do
     {
-	printf("it[%d]=%d\n", i++, *(it->cursor));
+	printf("it[%d]=%d\n", i++, (int)ITER_DATA(it));
     } while(ndarray_iter_next(it));
 }
 
@@ -25,7 +26,7 @@ void test_simple_iterator()
            10 11 12 13 14
 	   ...
 	*/
-	*(it->cursor) = ((i / nda->dims[1]) * 10) + (i % nda->dims[1]);
+	ITER_LVAL(it) = ((i / NDARRAY_DIM_SIZE(nda, 1)) * 10) + (i % NDARRAY_DIM_SIZE(nda, 1));
 	i++;
     } while(ndarray_iter_next(it));
 
@@ -33,16 +34,26 @@ void test_simple_iterator()
     print_iter(it);
 
     printf("---- showing slice of ndarray ----\n");
-    NDArrayIter *it2 = ndarray_iter_new(nda, (Slice []){ {1,7,3}, {1,3,2} } );
+    NDArrayIter *it2 = ndarray_iter_new(nda, (Slice []){ {1,8,3}, {0,2,2} } );
     print_iter(it2);
     
     ndarray_free(nda);
+}
+
+void test_ppm()
+{
+    int w, h;
+    uint8_t *rgb = read_ppm("image-01.ppm", &w, &h);
+
+    write_ppm("out.ppm", w, h, rgb);
 }
 
 int main(int argc, char **argv)
 {
 
     test_simple_iterator();
+
+    test_ppm();
     
     return 0;
 }

@@ -35,9 +35,20 @@ typedef struct {
     intptr_t start, end, stride; // specified in elements, not bytes
 } Slice;
 
+/* macro API */
+#define NDARRAY_N(nda) (nda->ndim)
+#define NDARRAY_DIM_SIZE(nda, dim) (nda->dims[dim])
+#define NDARRAY_DATAPTR(nda) (nda->dataptr)
+
+#define ITER_DATAPTR(it) (it->cursor)
+#define ITER_DATA(it) (*(it->cursor))
+#define ITER_LVAL(it) *(it->cursor)
+
 /* function API */
 NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_size);
 void ndarray_free(NDArray *nda);
 NDArrayIter *ndarray_iter_new(NDArray *nda, Slice *slices);
+NDArrayIter *ndarray_iter_new_all_but_axis(NDArray *nda, Slice *slices, int *dim);
+void ndarray_iter_free(NDArrayIter *it);
 bool ndarray_iter_next(NDArrayIter *it);
 void ndarray_iter_reset(NDArrayIter *it);
