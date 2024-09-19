@@ -13,7 +13,7 @@ void print_iter(NDArrayIter *it)
 
 void test_simple_iterator()
 {
-    NDArray *nda = ndarray_new(2, (intptr_t []){10, 5}, sizeof(int));
+    NDArray *nda = ndarray_new(2, (intptr_t []){10, 5}, sizeof(int), NULL);
 
     printf("created ndarray with dimensions %ldx%ld, %ld elements\n", nda->dims[0], nda->dims[1], nda->num_elems);
 
@@ -45,7 +45,23 @@ void test_ppm()
     int w, h;
     uint8_t *rgb = read_ppm("image-01.ppm", &w, &h);
 
-    write_ppm("out.ppm", w, h, rgb);
+    NDArray *nda = ndarray_new(3, (intptr_t []){h, w, 3}, 1, rgb);
+
+    NDArrayIter *it = ndarray_iter_new(nda, NULL);
+
+    //write_ppm("out.ppm", w, h, rgb);
+    ndarray_iter_write_ppm(it, "out.ppm", w, h);
+    ndarray_iter_free(it);
+    
+    int skip_dim = -1;
+    NDArrayIter *it2 = ndarray_iter_new_all_but_axis(nda, NULL, &skip_dim);
+    ndarray_iter_write_ppm(it2, "out2.ppm", w, h);
+    ndarray_iter_free(it2);
+
+    // create an iterator that decimates by 2 in x and y dimensions
+    NDArrayIter *it_dec = ndarray_iter_new(nda, (Slice []){{0, (h-1), 2}, {0, (w-1), 2}, {0, 2, 1} });
+    ndarray_iter_write_ppm(it_dec, "out3.ppm", w/2, h/2);
+    ndarray_iter_free(it_dec);
 }
 
 int main(int argc, char **argv)

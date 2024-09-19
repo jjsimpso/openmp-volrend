@@ -5,7 +5,7 @@
 #include "ndarray.h"
 
 
-NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes)
+NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes, uint8_t *ptr)
 {
     if(n > MAX_DIMS || n <= 0)
     {
@@ -30,17 +30,24 @@ NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes)
     nda->elem_bytes = elem_bytes;
     nda->size = num_elems * elem_bytes;
 
-    nda->dataptr = (uint8_t *) malloc(nda->size);
-    if(!(nda->dataptr))
+    if(ptr)
     {
-	free(nda);
-	return NULL;
+	nda->dataptr = ptr;
     }
-
+    else
+    {
+	nda->dataptr = (uint8_t *) malloc(nda->size);
+	if(!(nda->dataptr))
+	{
+	    free(nda);
+	    return NULL;
+	}
+    }
+    
     nda->dims = malloc(n * sizeof(intptr_t));
     if(!(nda->dims))
     {
-	free(nda->dataptr);
+	if(!ptr) free(nda->dataptr);
 	free(nda);
 	return NULL;
     }
@@ -50,6 +57,7 @@ NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes)
     return nda;
 }
 
+// Note: frees the dataptr, which could have been passed into ndarray_new and not allocated by it
 void ndarray_free(NDArray *nda)
 {
     if(nda)
@@ -91,13 +99,19 @@ NDArrayIter *ndarray_iter_new(NDArray *nda, Slice *slices)
 	memset(iter->backstrides, 0, sizeof(iter->backstrides));
 	memset(iter->slicestarts, 0, sizeof(iter->slicestarts));
 
-	for(int i = 0; i < nda->ndim; i++)
+	for(int i = iter->nd_m1; i >= 0; i--)
 	{
 	    iter->dims_m1[i] = nda->dims[i] - 1;
+	    if(i == iter->nd_m1)
+	    {
+		iter->strides[i] = nda->elem_bytes;
+	    }
+	    else
+	    {
+		iter->strides[i] = nda->dims[i+1] * iter->strides[i+1];
+	    }
+	    iter->backstrides[i] = iter->dims_m1[i] * iter->strides[i];
 	}
-	// for contiguous arrays we only need to set strides[0]
-	// it can always be used to iterate to the next element
-	iter->strides[0] = nda->elem_bytes;
     }
     else
     {
@@ -158,6 +172,7 @@ NDArrayIter *ndarray_iter_new_all_but_axis(NDArray *nda, Slice *slices, int *dim
     }
 
     int skip_dim = *dim;
+    iter->nd_m1--;;
     iter->length = iter->length / (iter->dims_m1[skip_dim] + 1);
     iter->dims_m1[skip_dim] = 0;
     iter->backstrides[skip_dim] = 0;
@@ -179,7 +194,7 @@ bool ndarray_iter_next(NDArrayIter *it)
 {
     if(it->contiguous)
     {
-	it->cursor += it->strides[0];
+	it->cursor += it->nda->elem_bytes;
 	it->index++;
     }
     else
@@ -225,4 +240,46 @@ void ndarray_iter_reset(NDArrayIter *it)
 	    it->cursor += it->slicestarts[i] * nda_strides[i];
 	}
     }
+}
+
+int ndarray_iter_write_file(NDArrayIter *it, FILE *out)
+{
+    int err = 0;
+    int cnt = 0;
+    
+    if(out)
+    {
+	if(it->contiguous)
+	{
+	    int num_bytes = it->nda->elem_bytes;
+	    do
+	    {
+		cnt = fwrite(it->cursor, 1, num_bytes, out);
+		if(cnt != num_bytes)
+		{
+		    err = -2;
+		    break;
+		}
+	    } while(ndarray_iter_next(it));
+	}
+	else
+	{
+	    int num_bytes = it->strides[it->nd_m1];
+	    do
+	    {
+		cnt = fwrite(it->cursor, 1, num_bytes, out);
+		if(cnt != num_bytes)
+		{
+		    err = -2;
+		    break;
+		}
+	    } while(ndarray_iter_next(it));
+	}
+    }
+    else
+    {
+	err = -1;
+    }
+    
+    return err;
 }

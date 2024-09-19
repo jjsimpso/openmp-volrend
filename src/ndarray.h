@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #define MAX_DIMS 32
 
@@ -45,10 +46,11 @@ typedef struct {
 #define ITER_LVAL(it) *(it->cursor)
 
 /* function API */
-NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_size);
+NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes, uint8_t *ptr);
 void ndarray_free(NDArray *nda);
 NDArrayIter *ndarray_iter_new(NDArray *nda, Slice *slices);
 NDArrayIter *ndarray_iter_new_all_but_axis(NDArray *nda, Slice *slices, int *dim);
 void ndarray_iter_free(NDArrayIter *it);
 bool ndarray_iter_next(NDArrayIter *it);
 void ndarray_iter_reset(NDArrayIter *it);
+int ndarray_iter_write_file(NDArrayIter *it, FILE *out);

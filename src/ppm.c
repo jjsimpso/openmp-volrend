@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "ndarray.h"
+
 void skip_comment(FILE *in)
 {
     /* todo */
@@ -104,10 +106,28 @@ int write_ppm(char *path, int width, int height, uint8_t *data)
 	{
 	    err = -2;
 	}
+
+	fclose(out);
     }
     else
     {
 	err = -1;
+    }
+
+    return err;
+}
+
+int ndarray_iter_write_ppm(NDArrayIter *it, char *path, int width, int height)
+{
+    int err = 0;
+    FILE *out = fopen(path, "w");
+
+    if(out)
+    {
+	fprintf(out, "P6\n%d %d\n255\n", width, height);
+	err = ndarray_iter_write_file(it, out);
+	
+	fclose(out);
     }
 
     return err;
