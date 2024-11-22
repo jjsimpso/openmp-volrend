@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -33,6 +34,13 @@ typedef struct {
 } NDArrayIter;
 
 typedef struct {
+    int nd_m1;
+    intptr_t dims_m1[MAX_DIMS];
+    NDArray **nda;
+    NDArrayIter **iter;
+} NDArrayMultiIter;
+
+typedef struct {
     intptr_t start, end, stride; // specified in elements, not bytes
 } Slice;
 
@@ -54,3 +62,4 @@ void ndarray_iter_free(NDArrayIter *it);
 bool ndarray_iter_next(NDArrayIter *it);
 void ndarray_iter_reset(NDArrayIter *it);
 int ndarray_iter_write_file(NDArrayIter *it, FILE *out);
+NDArrayMultiIter *ndarray_iter_multi_new(int num, ...);

@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdarg.h>
 #include <malloc.h>
 #include <string.h>
 
@@ -68,6 +69,10 @@ void ndarray_free(NDArray *nda)
     }
 }
 
+/* 
+   Create a new iterator. If slices is NULL, the iterator will iterate over the whole array.
+   
+*/
 NDArrayIter *ndarray_iter_new(NDArray *nda, Slice *slices)
 {
     if(!nda)
@@ -282,4 +287,111 @@ int ndarray_iter_write_file(NDArrayIter *it, FILE *out)
     }
     
     return err;
+}
+
+NDArrayMultiIter *ndarray_iter_multi_new(int num, ...)
+{
+    va_list ap;
+
+    NDArrayMultiIter *multi_iter = (NDArrayMultiIter *) malloc(sizeof(NDArrayMultiIter));
+
+    if(!multi_iter)
+    {
+	return NULL;
+    }
+
+    multi_iter->nda = (NDArray **) malloc(sizeof(NDArray*) * num);
+    if(!multi_iter->nda)
+    {
+	free(multi_iter);
+	return NULL;
+    }
+    
+    multi_iter->iter = (NDArrayIter **) malloc(sizeof(NDArrayIter*) * num);
+    if(!multi_iter->iter)
+    {
+	free(multi_iter->nda);
+	free(multi_iter);
+	return NULL;
+    }
+
+    multi_iter->nd_m1 = 0;
+    memset(multi_iter->dims_m1, 0, sizeof(multi_iter->dims_m1));
+    
+    NDArray **nda = multi_iter->nda;
+    NDArrayIter **iter = multi_iter->iter;
+
+    va_start(ap, num);
+    for(int i = 0; i < num; i++)
+    {
+	nda[i] = va_arg(ap, NDArray *);
+	iter[i] = ndarray_iter_new(nda[i], NULL);
+
+	if(iter[i] == NULL)
+	{
+	    va_end(ap);
+	    free(multi_iter->nda);
+	    free(multi_iter->iter);
+	    free(multi_iter);	    
+	    return NULL;
+	}
+	
+	// set iterator to non-contiguous so that it will use strides and backstrides we calculate here
+	iter[i]->contiguous = false;
+	
+	// determine the multi iterator's output dimension
+	if(iter[i]->nd_m1 > multi_iter->nd_m1)
+	{
+	    multi_iter->nd_m1 = iter[i]->nd_m1;
+	}
+    }
+    va_end(ap);
+
+    // walk through the iterators to figure out the output array's shape
+    for(int i = 0; i < num; i++)
+    {
+	if(iter[i]->nd_m1 < multi_iter->nd_m1)
+	{
+	    // missing dimensions will be at the beginning and array's data will occupy the the final dimensions.
+	    intptr_t diff = multi_iter->nd_m1 - iter[i]->nd_m1;
+	    bcopy(&(iter[i]->dims_m1[0]), &(iter[i]->dims_m1[iter[i]->nd_m1 + 1]), sizeof(intptr_t) * diff);
+	    bcopy(&(iter[i]->strides[0]), &(iter[i]->strides[iter[i]->nd_m1 + 1]), sizeof(intptr_t) * diff);
+	    bcopy(&(iter[i]->backstrides[0]), &(iter[i]->backstrides[iter[i]->nd_m1 + 1]), sizeof(intptr_t) * diff);
+
+	    // fill in missing dimensions with broadcast dimensions and 0 strides
+	    for(int j = 0; j <= iter[i]->nd_m1; j++)
+	    {
+		iter[i]->dims_m1[j] = 0; //mult_iter->dims_m1[j];
+		iter[i]->strides[j] = 0;
+		iter[i]->backstrides[j] = 0;
+	    }
+
+	    iter[i]->nd_m1 = multi_iter->nd_m1;
+	}
+
+	for(int j = 0; j <= multi_iter->nd_m1; j++)
+	{
+	    if(iter[i]->dims_m1[j] != 0)
+	    {
+		if(iter[i]->dims_m1[j] != multi_iter->dims_m1[j])
+		{
+		    // size of each dimension must match or be equal to 1
+		    if(multi_iter->dims_m1[j] == 0)
+		    {
+			// set the output dimension size
+			multi_iter->dims_m1[j] = iter[i]->dims_m1[j];
+		    }
+		    else
+		    {
+			free(multi_iter->nda);
+			free(multi_iter->iter);
+			free(multi_iter);
+			return NULL;
+		    }
+		}
+	    }
+	}
+    }
+
+    return multi_iter;
 }
