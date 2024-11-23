@@ -7,7 +7,16 @@ void print_iter(NDArrayIter *it)
     int i = 0;
     do
     {
-	printf("it[%d]=%d\n", i++, (int)ITER_DATA(it));
+	printf("it[%d]=%d\n", i++, ITER_DATA(it, int *));
+    } while(ndarray_iter_next(it));
+}
+
+void print_iter_double(NDArrayIter *it)
+{
+    int i = 0;
+    do
+    {
+	printf("it[%d]=%.2f\n", i++, (double)ITER_DATA(it, double *));
     } while(ndarray_iter_next(it));
 }
 
@@ -64,12 +73,35 @@ void test_ppm()
     ndarray_iter_free(it_dec);
 }
 
+void test_multi_iterator()
+{
+    double a[4][3] = { {  0.0,  0.0,  0.0 },
+		       { 10.0, 10.0, 10.0 },
+		       { 20.0, 20.0, 20.0 },
+		       { 30.0, 30.0, 30.0 } };		       
+    double b[3] = {1.0, 2.0, 3.0};
+    NDArray *nda_a = ndarray_new(2, (intptr_t []){4, 3}, sizeof(double), (uint8_t *)a);
+    NDArray *nda_b = ndarray_new(1, (intptr_t []){3}, sizeof(double), (uint8_t *)b);
+    NDArrayIter *it_a = ndarray_iter_new(nda_a, NULL);
+    NDArrayIter *it_b = ndarray_iter_new(nda_b, NULL);
+    
+    printf("Multi Iteration Tests\n");
+    printf("---------------------\n");
+    print_iter_double(it_a);
+    print_iter_double(it_b);
+    
+    NDArrayMultiIter *mit = ndarray_multi_iter_new(2, nda_a, nda_b);
+    
+}
+
 int main(int argc, char **argv)
 {
 
     test_simple_iterator();
 
     test_ppm();
+
+    test_multi_iterator();
     
     return 0;
 }

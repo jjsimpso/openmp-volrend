@@ -289,7 +289,7 @@ int ndarray_iter_write_file(NDArrayIter *it, FILE *out)
     return err;
 }
 
-NDArrayMultiIter *ndarray_iter_multi_new(int num, ...)
+NDArrayMultiIter *ndarray_multi_iter_new(int num, ...)
 {
     va_list ap;
 
@@ -315,7 +315,10 @@ NDArrayMultiIter *ndarray_iter_multi_new(int num, ...)
 	return NULL;
     }
 
+    multi_iter->num = num;
     multi_iter->nd_m1 = 0;
+    multi_iter->index = 0;
+    multi_iter->length = 1;
     memset(multi_iter->dims_m1, 0, sizeof(multi_iter->dims_m1));
     
     NDArray **nda = multi_iter->nda;
@@ -380,6 +383,7 @@ NDArrayMultiIter *ndarray_iter_multi_new(int num, ...)
 		    {
 			// set the output dimension size
 			multi_iter->dims_m1[j] = iter[i]->dims_m1[j];
+			multi_iter->length *= iter[i]->dims_m1[j] + 1;
 		    }
 		    else
 		    {
@@ -394,4 +398,31 @@ NDArrayMultiIter *ndarray_iter_multi_new(int num, ...)
     }
 
     return multi_iter;
+}
+
+bool ndarray_multi_iter_next(NDArrayMultiIter *mit)
+{
+    
+    for(int i = 0; i < mit->num; i++)
+    {
+	NDArrayIter *it = mit->iter[i];
+	
+	for(int i = it->nd_m1; i >= 0; i--)
+	{
+	    if(it->coords[i] < it->dims_m1[i])
+	    {
+		it->coords[i]++;
+		it->cursor += it->strides[i];
+		break;
+	    }
+	    else
+	    {
+		it->coords[i] = 0;
+		it->cursor -= it->backstrides[i];
+	    }
+	}
+	it->index++;
+    }
+
+    return (mit->index < mit->length);
 }
