@@ -6,8 +6,8 @@ BUILD		:= src
 SRCDIR		:= src
 INCDIR		:= include
 
-LIB_SOURCES	:= ndarray.c ppm.c
-LIB_INCLUDES	:= ndarray.h ppm.h
+LIB_SOURCES	:= ndarray.c ppm.c nda_ops.c
+LIB_INCLUDES	:= ndarray.h ppm.h nda_ops.h
 
 
 #---------------------------------------------------------------------------------

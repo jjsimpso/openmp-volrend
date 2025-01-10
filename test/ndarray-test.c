@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "ndarray.h"
+#include "nda_ops.h"
 #include "ppm.h"
 
 void print_iter(NDArrayIter *it)
@@ -7,7 +8,7 @@ void print_iter(NDArrayIter *it)
     int i = 0;
     do
     {
-	printf("it[%d]=%d\n", i++, ITER_DATA(it, int *));
+	printf("it[%d]=%d\n", i++, ITER_DATA(it, int));
     } while(ndarray_iter_next(it));
 }
 
@@ -16,7 +17,7 @@ void print_iter_double(NDArrayIter *it)
     int i = 0;
     do
     {
-	printf("it[%d]=%.2f\n", i++, (double)ITER_DATA(it, double *));
+	printf("it[%d]=%.2f\n", i++, (double)ITER_DATA(it, double));
     } while(ndarray_iter_next(it));
 }
 
@@ -87,11 +88,16 @@ void test_multi_iterator()
     
     printf("Multi Iteration Tests\n");
     printf("---------------------\n");
+    printf("A\n");
     print_iter_double(it_a);
+    printf("B\n");
     print_iter_double(it_b);
     
-    NDArrayMultiIter *mit = ndarray_multi_iter_new(2, nda_a, nda_b);
-    
+    //NDArrayMultiIter *mit = ndarray_multi_iter_new(2, nda_a, nda_b);
+    NDArray *nda_c = ndarray_mul(nda_a, nda_b);
+    NDArrayIter *it_c = ndarray_iter_new(nda_c, NULL);
+    printf("A*B\n");
+    print_iter_double(it_c);
 }
 
 int main(int argc, char **argv)

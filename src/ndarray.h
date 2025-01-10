@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#pragma once
+
 #define MAX_DIMS 32
 
 typedef struct {
@@ -21,12 +23,18 @@ typedef struct {
 } NDArray;
 
 typedef struct {
+    // number of dimensions minus one
     int nd_m1;
+    // current index of the iterator and total number of indices in iterator
     intptr_t index, length;
+    // coordinates of current index/position in iterator
     intptr_t coords[MAX_DIMS];
+    // number of elements of each dimension minus one 
     intptr_t dims_m1[MAX_DIMS];
+    // stride and backstride of each dimension
     intptr_t strides[MAX_DIMS];
     intptr_t backstrides[MAX_DIMS];
+    // starting index in nda of each dimension
     intptr_t slicestarts[MAX_DIMS];
     NDArray *nda;
     uint8_t *cursor;
@@ -38,7 +46,9 @@ typedef struct {
     int nd_m1;
     intptr_t index, length;
     intptr_t dims_m1[MAX_DIMS];
+    // pointers to the nd arrays used to initialize the multi iterator
     NDArray **nda;
+    // pointers to the iterators
     NDArrayIter **iter;
 } NDArrayMultiIter;
 
@@ -52,8 +62,11 @@ typedef struct {
 #define NDARRAY_DATAPTR(nda) (nda->dataptr)
 
 #define ITER_DATAPTR(it) (it->cursor)
-#define ITER_DATA(it, type) (*((type)it->cursor))
+#define ITER_DATA(it, type) (*((type *)it->cursor))
 #define ITER_LVAL(it) *(it->cursor)
+
+#define MULTI_ITER_DATAPTR(mit, n) (mit->iter[n]->cursor)
+#define MULTI_ITER_DATA(mit, n, type) (*((type *)mit->iter[n]->cursor))
 
 /* function API */
 NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes, uint8_t *ptr);
@@ -65,4 +78,5 @@ bool ndarray_iter_next(NDArrayIter *it);
 void ndarray_iter_reset(NDArrayIter *it);
 int ndarray_iter_write_file(NDArrayIter *it, FILE *out);
 NDArrayMultiIter *ndarray_multi_iter_new(int num, ...);
+void ndarray_multi_iter_free(NDArrayMultiIter *mit);
 bool ndarray_multi_iter_next(NDArrayMultiIter *mit);

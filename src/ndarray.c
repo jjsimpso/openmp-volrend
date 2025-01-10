@@ -400,29 +400,37 @@ NDArrayMultiIter *ndarray_multi_iter_new(int num, ...)
     return multi_iter;
 }
 
+void ndarray_multi_iter_free(NDArrayMultiIter *mit)
+{
+    free(mit);
+}
+
 bool ndarray_multi_iter_next(NDArrayMultiIter *mit)
 {
     
     for(int i = 0; i < mit->num; i++)
     {
 	NDArrayIter *it = mit->iter[i];
-	
-	for(int i = it->nd_m1; i >= 0; i--)
+
+	// advance iterator to next element by looping through the dimensions of the iterator
+	for(int j = it->nd_m1; j >= 0; j--)
 	{
-	    if(it->coords[i] < it->dims_m1[i])
+	    if(it->coords[j] < it->dims_m1[j])
 	    {
-		it->coords[i]++;
-		it->cursor += it->strides[i];
+		it->coords[j]++;
+		it->cursor += it->strides[j];
 		break;
 	    }
 	    else
 	    {
-		it->coords[i] = 0;
-		it->cursor -= it->backstrides[i];
+		it->coords[j] = 0;
+		it->cursor -= it->backstrides[j];
 	    }
 	}
 	it->index++;
     }
 
+    mit->index++;
+    
     return (mit->index < mit->length);
 }
