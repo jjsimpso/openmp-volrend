@@ -5,7 +5,10 @@
 
 #include "ndarray.h"
 
-// assume arrays contain doubles
+// assume arrays contain doubles for now
+/* 
+   allocates an NDArray to store the result and returns a pointer to it
+*/
 NDArray *ndarray_mul(NDArray *a, NDArray *b)
 {
     NDArrayMultiIter *mit = ndarray_multi_iter_new(2, a, b);
@@ -43,6 +46,8 @@ NDArray *ndarray_mul(NDArray *a, NDArray *b)
 	//*result = MULTI_ITER_DATA(mit, 0, double) * MULTI_ITER_DATA(mit, 1, double);
 	result += 1;
     } while(ndarray_multi_iter_next(mit));
+
+    ndarray_multi_iter_free(mit);
     
     return c;
 }

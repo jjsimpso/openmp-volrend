@@ -402,6 +402,13 @@ NDArrayMultiIter *ndarray_multi_iter_new(int num, ...)
 
 void ndarray_multi_iter_free(NDArrayMultiIter *mit)
 {
+    for(int i = 0; i < mit->num; i++)
+    {
+	ndarray_iter_free(mit->iter[i]);
+    }
+    
+    free(mit->nda);
+    free(mit->iter);
     free(mit);
 }
 
