@@ -55,3 +55,36 @@ NDArray *ndarray_mul(NDArray *a, NDArray *b)
     
     return c;
 }
+
+/* 
+   allocates an NDArray to store the result and returns a pointer to it
+*/
+NDArray *ndarray_iter_mul(NDArrayIter *a, NDArrayIter *b)
+{
+    NDArrayMultiIter *mit = ndarray_multi_iter_new_from_iter(2, a, b);
+    
+    if(!mit)
+    {
+	return NULL;
+    }
+
+    // todo: add assert to check A and B elem_bytes are equal to sizeof(double)
+    
+    // allocate result array
+    NDArray *c = ndarray_new_result(mit, sizeof(double));
+    if(!c)
+    {
+	ndarray_multi_iter_free(mit);
+	return NULL;
+    }
+
+    double *result = (double *) NDARRAY_DATAPTR(c);
+    do
+    {
+	*result++ = MULTI_ITER_DATA(mit, 0, double) * MULTI_ITER_DATA(mit, 1, double);
+    } while(ndarray_multi_iter_next(mit));
+
+    ndarray_multi_iter_free(mit);
+    
+    return c;
+}

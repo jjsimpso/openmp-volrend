@@ -98,6 +98,23 @@ void test_multi_iterator()
     NDArrayIter *it_c = ndarray_iter_new(nda_c, NULL);
     printf("A*B\n");
     print_iter_double(it_c);
+
+    // test scalar broadcasting
+    double scalar = 1.5;
+    NDArray *nda_scalar = ndarray_new(1, (intptr_t []){1}, sizeof(double), (uint8_t *)&scalar);
+    NDArray *nda_d = ndarray_mul(nda_a, nda_scalar);
+    NDArrayIter *it_d = ndarray_iter_new(nda_d, NULL);
+    printf("A*1.5\n");
+    print_iter_double(it_d);
+
+    // test scalar broadcasting via slice (slice is one element: A[1][0] )
+    NDArrayIter *it_scalar = ndarray_iter_new(nda_a, (Slice []){{1, 1, 1}, {0, 0, 1} });
+    ndarray_iter_reset(it_a);
+    NDArray *nda_e = ndarray_iter_mul(it_a, it_scalar);
+    NDArrayIter *it_e = ndarray_iter_new(nda_e, NULL);
+    printf("A*10\n");
+    print_iter_double(it_e);
+
 }
 
 int main(int argc, char **argv)

@@ -78,5 +78,6 @@ bool ndarray_iter_next(NDArrayIter *it);
 void ndarray_iter_reset(NDArrayIter *it);
 int ndarray_iter_write_file(NDArrayIter *it, FILE *out);
 NDArrayMultiIter *ndarray_multi_iter_new(int num, ...);
+NDArrayMultiIter *ndarray_multi_iter_new_from_iter(int num, ...);
 void ndarray_multi_iter_free(NDArrayMultiIter *mit);
 bool ndarray_multi_iter_next(NDArrayMultiIter *mit);

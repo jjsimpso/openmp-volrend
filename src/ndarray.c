@@ -400,6 +400,112 @@ NDArrayMultiIter *ndarray_multi_iter_new(int num, ...)
     return multi_iter;
 }
 
+NDArrayMultiIter *ndarray_multi_iter_new_from_iter(int num, ...)
+{
+    va_list ap;
+
+    NDArrayMultiIter *multi_iter = (NDArrayMultiIter *) malloc(sizeof(NDArrayMultiIter));
+
+    if(!multi_iter)
+    {
+	return NULL;
+    }
+
+    multi_iter->nda = (NDArray **) malloc(sizeof(NDArray*) * num);
+    if(!multi_iter->nda)
+    {
+	free(multi_iter);
+	return NULL;
+    }
+    
+    multi_iter->iter = (NDArrayIter **) malloc(sizeof(NDArrayIter*) * num);
+    if(!multi_iter->iter)
+    {
+	free(multi_iter->nda);
+	free(multi_iter);
+	return NULL;
+    }
+
+    multi_iter->num = num;
+    multi_iter->nd_m1 = 0;
+    multi_iter->index = 0;
+    multi_iter->length = 1;
+    memset(multi_iter->dims_m1, 0, sizeof(multi_iter->dims_m1));
+    
+    NDArray **nda = multi_iter->nda;
+    NDArrayIter **iter = multi_iter->iter;
+
+    va_start(ap, num);
+    for(int i = 0; i < num; i++)
+    {
+	iter[i] = va_arg(ap, NDArrayIter *);
+	nda[i] = iter[i]->nda;
+
+	// set iterator to non-contiguous so that it will use strides and backstrides we calculate here
+	iter[i]->contiguous = false;
+	
+	// determine the multi iterator's output dimension
+	if(iter[i]->nd_m1 > multi_iter->nd_m1)
+	{
+	    multi_iter->nd_m1 = iter[i]->nd_m1;
+	}
+    }
+    va_end(ap);
+
+    // walk through the iterators to figure out the output array's shape
+    for(int i = 0; i < num; i++)
+    {
+	if(iter[i]->nd_m1 < multi_iter->nd_m1)
+	{
+	    // missing dimensions will be at the beginning and array's data will occupy the the final dimensions.
+	    intptr_t diff = multi_iter->nd_m1 - iter[i]->nd_m1;
+	    bcopy(&(iter[i]->dims_m1[0]), &(iter[i]->dims_m1[iter[i]->nd_m1 + 1]), sizeof(intptr_t) * diff);
+	    bcopy(&(iter[i]->strides[0]), &(iter[i]->strides[iter[i]->nd_m1 + 1]), sizeof(intptr_t) * diff);
+	    bcopy(&(iter[i]->backstrides[0]), &(iter[i]->backstrides[iter[i]->nd_m1 + 1]), sizeof(intptr_t) * diff);
+
+	    // fill in missing dimensions with broadcast dimensions and 0 strides
+	    for(int j = 0; j <= iter[i]->nd_m1; j++)
+	    {
+		iter[i]->dims_m1[j] = 0; //mult_iter->dims_m1[j];
+		iter[i]->strides[j] = 0;
+		iter[i]->backstrides[j] = 0;
+	    }
+
+	    iter[i]->nd_m1 = multi_iter->nd_m1;
+	}
+
+	for(int j = 0; j <= multi_iter->nd_m1; j++)
+	{
+	    if(iter[i]->dims_m1[j] != 0)
+	    {
+		if(iter[i]->dims_m1[j] != multi_iter->dims_m1[j])
+		{
+		    // size of each dimension must match or be equal to 1
+		    if(multi_iter->dims_m1[j] == 0)
+		    {
+			// set the output dimension size
+			multi_iter->dims_m1[j] = iter[i]->dims_m1[j];
+			multi_iter->length *= iter[i]->dims_m1[j] + 1;
+		    }
+		    else
+		    {
+			free(multi_iter->nda);
+			free(multi_iter->iter);
+			free(multi_iter);
+			return NULL;
+		    }
+		}
+	    }
+	}
+    }
+
+    return multi_iter;
+}
+
+/* 
+
+   Warning: this will also free any iterators passed into ndarray_multi_iter_new_from_iter
+*/
 void ndarray_multi_iter_free(NDArrayMultiIter *mit)
 {
     for(int i = 0; i < mit->num; i++)
