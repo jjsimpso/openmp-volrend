@@ -22,6 +22,18 @@ NDArray *ndarray_new_result(NDArrayMultiIter *mit, intptr_t elem_bytes)
     return ndarray_new(mit->nd_m1 + 1, dims, elem_bytes, c_data);
 }
 
+/*
+  Just test with doubles for now
+*/
+void ndarray_fill(NDArray *a, double val)
+{
+    double *cursor = (double *)a->dataptr;
+    for(int i = 0; i < a->num_elems; i++)
+    {
+	*cursor++ = val;
+    }
+}
+
 // assume arrays contain doubles for now
 /* 
    allocates an NDArray to store the result and returns a pointer to it
