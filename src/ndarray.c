@@ -459,12 +459,12 @@ NDArrayMultiIter *ndarray_multi_iter_new_from_iter(int num, ...)
 	{
 	    // missing dimensions will be at the beginning and array's data will occupy the the final dimensions.
 	    intptr_t diff = multi_iter->nd_m1 - iter[i]->nd_m1;
-	    bcopy(&(iter[i]->dims_m1[0]), &(iter[i]->dims_m1[iter[i]->nd_m1 + 1]), sizeof(intptr_t) * diff);
-	    bcopy(&(iter[i]->strides[0]), &(iter[i]->strides[iter[i]->nd_m1 + 1]), sizeof(intptr_t) * diff);
-	    bcopy(&(iter[i]->backstrides[0]), &(iter[i]->backstrides[iter[i]->nd_m1 + 1]), sizeof(intptr_t) * diff);
-
+	    bcopy(&(iter[i]->dims_m1[0]), &(iter[i]->dims_m1[diff]), sizeof(intptr_t) * (iter[i]->nd_m1 + 1));
+	    bcopy(&(iter[i]->strides[0]), &(iter[i]->strides[diff]), sizeof(intptr_t) * (iter[i]->nd_m1 + 1));
+	    bcopy(&(iter[i]->backstrides[0]), &(iter[i]->backstrides[diff]), sizeof(intptr_t) * (iter[i]->nd_m1 + 1));
+	    
 	    // fill in missing dimensions with broadcast dimensions and 0 strides
-	    for(int j = 0; j <= iter[i]->nd_m1; j++)
+	    for(int j = 0; j < diff; j++)
 	    {
 		iter[i]->dims_m1[j] = 0; //mult_iter->dims_m1[j];
 		iter[i]->strides[j] = 0;
