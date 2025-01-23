@@ -23,22 +23,65 @@ NDArray *ndarray_new_result(NDArrayMultiIter *mit, intptr_t elem_bytes)
 }
 
 /*
-  Just test with doubles for now
+
 */
-void ndarray_fill(NDArray *a, double val)
-{
-    double *cursor = (double *)a->dataptr;
-    for(int i = 0; i < a->num_elems; i++)
-    {
-	*cursor++ = val;
-    }
+#define MAKE_NDARRAY_FILL_FUNC(type)	             \
+void ndarray_fill_##type(NDArray *a, type val)       \
+{                                                    \
+    type *cursor = (type *)NDARRAY_DATAPTR(a);       \
+    for(int i = 0; i < a->num_elems; i++)            \
+    {                                                \
+	*cursor++ = val;                             \
+    }                                                \
 }
 
-// assume arrays contain doubles for now
+MAKE_NDARRAY_FILL_FUNC(float)
+MAKE_NDARRAY_FILL_FUNC(double)
+MAKE_NDARRAY_FILL_FUNC(int8_t)
+MAKE_NDARRAY_FILL_FUNC(int16_t)
+MAKE_NDARRAY_FILL_FUNC(int32_t)
+MAKE_NDARRAY_FILL_FUNC(int64_t)
+MAKE_NDARRAY_FILL_FUNC(uint8_t)
+MAKE_NDARRAY_FILL_FUNC(uint16_t)
+MAKE_NDARRAY_FILL_FUNC(uint32_t)
+MAKE_NDARRAY_FILL_FUNC(uint64_t)
+
 /* 
    allocates an NDArray to store the result and returns a pointer to it
 */
-NDArray *ndarray_mul(NDArray *a, NDArray *b)
+#define MAKE_NDARRAY_OP_FUNC(name, op, type)	                                                 \
+NDArray *ndarray_##name##_##type(NDArray *a, NDArray *b)                                         \
+{                                                                                                \
+    NDArrayMultiIter *mit = ndarray_multi_iter_new(2, a, b);                                     \
+                                                                                                 \
+    if(!mit)                                                                                     \
+    {                                                                                            \
+	return NULL;                                                                             \
+    }                                                                                            \
+                                                                                                 \
+    /* todo: add assert to check A and B elem_bytes are equal to sizeof(type) */                 \
+                                                                                                 \
+    /* allocate result array */			                                 	         \
+    NDArray *c = ndarray_new_result(mit, sizeof(type));                                          \
+    if(!c)                                                                                       \
+    {                                                                                            \
+	ndarray_multi_iter_free(mit);                                                            \
+	return NULL;                                                                             \
+    }                                                                                            \
+                                                                                                 \
+    type *result = (type *) NDARRAY_DATAPTR(c);                                                  \
+    do                                                                                           \
+    {                                                                                            \
+	*result++ = MULTI_ITER_DATA(mit, 0, type) op MULTI_ITER_DATA(mit, 1, type);              \
+    } while(ndarray_multi_iter_next(mit));                                                       \
+                                                                                                 \
+    ndarray_multi_iter_free(mit);                                                                \
+                                                                                                 \
+    return c;                                                                                    \
+}
+
+/* sample expansion
+NDArray *ndarray_mul_double(NDArray *a, NDArray *b)
 {
     NDArrayMultiIter *mit = ndarray_multi_iter_new(2, a, b);
 
@@ -67,10 +110,67 @@ NDArray *ndarray_mul(NDArray *a, NDArray *b)
     
     return c;
 }
+*/
+
+MAKE_NDARRAY_OP_FUNC(mul, *, float)
+MAKE_NDARRAY_OP_FUNC(mul, *, double)
+MAKE_NDARRAY_OP_FUNC(mul, *, int8_t)
+MAKE_NDARRAY_OP_FUNC(mul, *, int16_t)
+MAKE_NDARRAY_OP_FUNC(mul, *, int32_t)
+MAKE_NDARRAY_OP_FUNC(mul, *, int64_t)
+MAKE_NDARRAY_OP_FUNC(mul, *, uint8_t)
+MAKE_NDARRAY_OP_FUNC(mul, *, uint16_t)
+MAKE_NDARRAY_OP_FUNC(mul, *, uint32_t)
+MAKE_NDARRAY_OP_FUNC(mul, *, uint64_t)
+
+MAKE_NDARRAY_OP_FUNC(add, +, float)
+MAKE_NDARRAY_OP_FUNC(add, +, double)
+MAKE_NDARRAY_OP_FUNC(add, +, int8_t)
+MAKE_NDARRAY_OP_FUNC(add, +, int16_t)
+MAKE_NDARRAY_OP_FUNC(add, +, int32_t)
+MAKE_NDARRAY_OP_FUNC(add, +, int64_t)
+MAKE_NDARRAY_OP_FUNC(add, +, uint8_t)
+MAKE_NDARRAY_OP_FUNC(add, +, uint16_t)
+MAKE_NDARRAY_OP_FUNC(add, +, uint32_t)
+MAKE_NDARRAY_OP_FUNC(add, +, uint64_t)
+
 
 /* 
    allocates an NDArray to store the result and returns a pointer to it
 */
+#define MAKE_NDARRAY_ITER_OP_FUNC(name, op, type)	                                         \
+NDArray *ndarray_iter_##name##_##type(NDArrayIter *a, NDArrayIter *b)                            \
+{                                                                                                \
+    NDArrayMultiIter *mit = ndarray_multi_iter_new_from_iter(2, a, b);                           \
+                                                                                                 \
+    if(!mit)                                                                                     \
+    {                                                                                            \
+	return NULL;                                                                             \
+    }                                                                                            \
+                                                                                                 \
+    /* todo: add assert to check A and B elem_bytes are equal to sizeof(type) */                 \
+                                                                                                 \
+    /* allocate result array */                                                                  \
+    NDArray *c = ndarray_new_result(mit, sizeof(type));                                          \
+    if(!c)                                                                                       \
+    {                                                                                            \
+	ndarray_multi_iter_free(mit);                                                            \
+	return NULL;                                                                             \
+    }                                                                                            \
+                                                                                                 \
+    type *result = (type *) NDARRAY_DATAPTR(c);                                                  \
+    do                                                                                           \
+    {                                                                                            \
+	*result++ = MULTI_ITER_DATA(mit, 0, type) op MULTI_ITER_DATA(mit, 1, type);              \
+    } while(ndarray_multi_iter_next(mit));                                                       \
+                                                                                                 \
+    ndarray_multi_iter_free(mit);                                                                \
+                                                                                                 \
+    return c;                                                                                    \
+}
+
+
+/* sample expansion
 NDArray *ndarray_iter_mul(NDArrayIter *a, NDArrayIter *b)
 {
     NDArrayMultiIter *mit = ndarray_multi_iter_new_from_iter(2, a, b);
@@ -100,3 +200,26 @@ NDArray *ndarray_iter_mul(NDArrayIter *a, NDArrayIter *b)
     
     return c;
 }
+*/
+
+MAKE_NDARRAY_ITER_OP_FUNC(mul, *, float)
+MAKE_NDARRAY_ITER_OP_FUNC(mul, *, double)
+MAKE_NDARRAY_ITER_OP_FUNC(mul, *, int8_t)
+MAKE_NDARRAY_ITER_OP_FUNC(mul, *, int16_t)
+MAKE_NDARRAY_ITER_OP_FUNC(mul, *, int32_t)
+MAKE_NDARRAY_ITER_OP_FUNC(mul, *, int64_t)
+MAKE_NDARRAY_ITER_OP_FUNC(mul, *, uint8_t)
+MAKE_NDARRAY_ITER_OP_FUNC(mul, *, uint16_t)
+MAKE_NDARRAY_ITER_OP_FUNC(mul, *, uint32_t)
+MAKE_NDARRAY_ITER_OP_FUNC(mul, *, uint64_t)
+
+MAKE_NDARRAY_ITER_OP_FUNC(add, +, float)
+MAKE_NDARRAY_ITER_OP_FUNC(add, +, double)
+MAKE_NDARRAY_ITER_OP_FUNC(add, +, int8_t)
+MAKE_NDARRAY_ITER_OP_FUNC(add, +, int16_t)
+MAKE_NDARRAY_ITER_OP_FUNC(add, +, int32_t)
+MAKE_NDARRAY_ITER_OP_FUNC(add, +, int64_t)
+MAKE_NDARRAY_ITER_OP_FUNC(add, +, uint8_t)
+MAKE_NDARRAY_ITER_OP_FUNC(add, +, uint16_t)
+MAKE_NDARRAY_ITER_OP_FUNC(add, +, uint32_t)
+MAKE_NDARRAY_ITER_OP_FUNC(add, +, uint64_t)

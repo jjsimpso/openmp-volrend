@@ -94,7 +94,7 @@ void test_multi_iterator()
     print_iter_double(it_b);
     
     //NDArrayMultiIter *mit = ndarray_multi_iter_new(2, nda_a, nda_b);
-    NDArray *nda_c = ndarray_mul(nda_a, nda_b);
+    NDArray *nda_c = ndarray_mul_double(nda_a, nda_b);
     NDArrayIter *it_c = ndarray_iter_new(nda_c, NULL);
     printf("A*B\n");
     print_iter_double(it_c);
@@ -102,7 +102,7 @@ void test_multi_iterator()
     // test scalar broadcasting
     double scalar = 1.5;
     NDArray *nda_scalar = ndarray_new(1, (intptr_t []){1}, sizeof(double), (uint8_t *)&scalar);
-    NDArray *nda_d = ndarray_mul(nda_a, nda_scalar);
+    NDArray *nda_d = ndarray_mul_double(nda_a, nda_scalar);
     NDArrayIter *it_d = ndarray_iter_new(nda_d, NULL);
     printf("A*1.5\n");
     print_iter_double(it_d);
@@ -110,17 +110,17 @@ void test_multi_iterator()
     // test scalar broadcasting via slice (slice is one element: A[1][0] )
     NDArrayIter *it_scalar = ndarray_iter_new(nda_a, (Slice []){{1, 1, 1}, {0, 0, 1} });
     ndarray_iter_reset(it_a);
-    NDArray *nda_e = ndarray_iter_mul(it_a, it_scalar);
+    NDArray *nda_e = ndarray_iter_mul_double(it_a, it_scalar);
     NDArrayIter *it_e = ndarray_iter_new(nda_e, NULL);
     printf("A*10\n");
     print_iter_double(it_e);
 
     NDArray *nda_3d = ndarray_new(3, (intptr_t []){2, 2, 2}, sizeof(double), NULL);
-    ndarray_fill(nda_3d, 1.0);
+    ndarray_fill_double(nda_3d, 1.0);
     double two_d[2][2] = { { 1.0, 2.0 },
 			   { 3.0, 4.0 } };
     NDArray *nda_2d = ndarray_new(2, (intptr_t []){2, 2}, sizeof(double), (uint8_t *)two_d);
-    NDArray *nda_f = ndarray_mul(nda_3d, nda_2d);
+    NDArray *nda_f = ndarray_mul_double(nda_3d, nda_2d);
     NDArrayIter *it_f = ndarray_iter_new(nda_f, NULL);
     printf("2x2x2 matrix * 2x2\n");
     print_iter_double(it_f);
