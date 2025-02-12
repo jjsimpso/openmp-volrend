@@ -154,7 +154,7 @@ NDArray *ndarray_iter_##name##_##type(NDArrayIter *a, NDArrayIter *b)           
     NDArray *c = ndarray_new_result(mit, sizeof(type));                                          \
     if(!c)                                                                                       \
     {                                                                                            \
-	ndarray_multi_iter_free(mit);                                                            \
+	ndarray_multi_iter_free_except_iter(mit);                                                \
 	return NULL;                                                                             \
     }                                                                                            \
                                                                                                  \
@@ -164,7 +164,8 @@ NDArray *ndarray_iter_##name##_##type(NDArrayIter *a, NDArrayIter *b)           
 	*result++ = MULTI_ITER_DATA(mit, 0, type) op MULTI_ITER_DATA(mit, 1, type);              \
     } while(ndarray_multi_iter_next(mit));                                                       \
                                                                                                  \
-    ndarray_multi_iter_free(mit);                                                                \
+    /* don't free the iterators that were passed in */                                           \
+    ndarray_multi_iter_free_except_iter(mit);                  					 \
                                                                                                  \
     return c;                                                                                    \
 }
@@ -186,7 +187,7 @@ NDArray *ndarray_iter_mul(NDArrayIter *a, NDArrayIter *b)
     NDArray *c = ndarray_new_result(mit, sizeof(double));
     if(!c)
     {
-	ndarray_multi_iter_free(mit);
+	ndarray_multi_iter_free_except_iter(mit);
 	return NULL;
     }
 
@@ -196,7 +197,8 @@ NDArray *ndarray_iter_mul(NDArrayIter *a, NDArrayIter *b)
 	*result++ = MULTI_ITER_DATA(mit, 0, double) * MULTI_ITER_DATA(mit, 1, double);
     } while(ndarray_multi_iter_next(mit));
 
-    ndarray_multi_iter_free(mit);
+    // don't free the iterators that were passed in
+    ndarray_multi_iter_free_except_iter(mit);
     
     return c;
 }

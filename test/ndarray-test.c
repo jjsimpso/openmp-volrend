@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <malloc.h>
+#include <string.h>
 #include "ndarray.h"
 #include "nda_ops.h"
 #include "ppm.h"
@@ -36,7 +38,7 @@ void test_simple_iterator()
            10 11 12 13 14
 	   ...
 	*/
-	ITER_LVAL(it) = ((i / NDARRAY_DIM_SIZE(nda, 1)) * 10) + (i % NDARRAY_DIM_SIZE(nda, 1));
+	ITER_LVAL(it, int) = ((i / NDARRAY_DIM_SIZE(nda, 1)) * 10) + (i % NDARRAY_DIM_SIZE(nda, 1));
 	i++;
     } while(ndarray_iter_next(it));
 
@@ -48,6 +50,8 @@ void test_simple_iterator()
     print_iter(it2);
     
     ndarray_free(nda);
+    ndarray_iter_free(it);
+    ndarray_iter_free(it2);
 }
 
 void test_ppm()
@@ -72,15 +76,21 @@ void test_ppm()
     NDArrayIter *it_dec = ndarray_iter_new(nda, (Slice []){{0, (h-1), 2}, {0, (w-1), 2}, {0, 2, 1} });
     ndarray_iter_write_ppm(it_dec, "out3.ppm", w/2, h/2);
     ndarray_iter_free(it_dec);
+
+    ndarray_free(nda);
 }
 
 void test_multi_iterator()
 {
-    double a[4][3] = { {  0.0,  0.0,  0.0 },
+    double adat[4][3] = { {  0.0,  0.0,  0.0 },
 		       { 10.0, 10.0, 10.0 },
 		       { 20.0, 20.0, 20.0 },
 		       { 30.0, 30.0, 30.0 } };		       
-    double b[3] = {1.0, 2.0, 3.0};
+    double bdat[3] = {1.0, 2.0, 3.0};
+    double *a = malloc(sizeof(adat));
+    double *b = malloc(sizeof(bdat));
+    memcpy(a, adat, sizeof(adat));
+    memcpy(b, bdat, sizeof(bdat));
     NDArray *nda_a = ndarray_new(2, (intptr_t []){4, 3}, sizeof(double), (uint8_t *)a);
     NDArray *nda_b = ndarray_new(1, (intptr_t []){3}, sizeof(double), (uint8_t *)b);
     NDArrayIter *it_a = ndarray_iter_new(nda_a, NULL);
@@ -100,8 +110,9 @@ void test_multi_iterator()
     print_iter_double(it_c);
 
     // test scalar broadcasting
-    double scalar = 1.5;
-    NDArray *nda_scalar = ndarray_new(1, (intptr_t []){1}, sizeof(double), (uint8_t *)&scalar);
+    double *scalar = malloc(sizeof(double));
+    *scalar = 1.5;
+    NDArray *nda_scalar = ndarray_new(1, (intptr_t []){1}, sizeof(double), (uint8_t *)scalar);
     NDArray *nda_d = ndarray_mul_double(nda_a, nda_scalar);
     NDArrayIter *it_d = ndarray_iter_new(nda_d, NULL);
     printf("A*1.5\n");
@@ -117,13 +128,33 @@ void test_multi_iterator()
 
     NDArray *nda_3d = ndarray_new(3, (intptr_t []){2, 2, 2}, sizeof(double), NULL);
     ndarray_fill_double(nda_3d, 1.0);
-    double two_d[2][2] = { { 1.0, 2.0 },
-			   { 3.0, 4.0 } };
+    double two_d_data[2][2] = { { 1.0, 2.0 },
+				{ 3.0, 4.0 } };
+    double *two_d = malloc(sizeof(two_d_data));
+    memcpy(two_d, two_d_data, sizeof(two_d_data));
     NDArray *nda_2d = ndarray_new(2, (intptr_t []){2, 2}, sizeof(double), (uint8_t *)two_d);
     NDArray *nda_f = ndarray_mul_double(nda_3d, nda_2d);
     NDArrayIter *it_f = ndarray_iter_new(nda_f, NULL);
     printf("2x2x2 matrix * 2x2\n");
     print_iter_double(it_f);
+
+    ndarray_iter_free(it_a);
+    ndarray_iter_free(it_b);
+    ndarray_iter_free(it_c);
+    ndarray_iter_free(it_scalar);
+    ndarray_iter_free(it_d);
+    ndarray_iter_free(it_e);
+    ndarray_iter_free(it_f);
+    
+    ndarray_free(nda_a);
+    ndarray_free(nda_b);
+    ndarray_free(nda_c);
+    ndarray_free(nda_scalar);
+    ndarray_free(nda_d);
+    ndarray_free(nda_e);
+    ndarray_free(nda_3d);
+    ndarray_free(nda_2d);
+    ndarray_free(nda_f);
 }
 
 int main(int argc, char **argv)

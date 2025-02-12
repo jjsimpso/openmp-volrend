@@ -63,7 +63,7 @@ typedef struct {
 
 #define ITER_DATAPTR(it) (it->cursor)
 #define ITER_DATA(it, type) (*((type *)it->cursor))
-#define ITER_LVAL(it) *(it->cursor)
+#define ITER_LVAL(it, type) *((type *)it->cursor)
 
 #define MULTI_ITER_DATAPTR(mit, n) (mit->iter[n]->cursor)
 #define MULTI_ITER_DATA(mit, n, type) (*((type *)mit->iter[n]->cursor))
@@ -80,4 +80,5 @@ int ndarray_iter_write_file(NDArrayIter *it, FILE *out);
 NDArrayMultiIter *ndarray_multi_iter_new(int num, ...);
 NDArrayMultiIter *ndarray_multi_iter_new_from_iter(int num, ...);
 void ndarray_multi_iter_free(NDArrayMultiIter *mit);
+void ndarray_multi_iter_free_except_iter(NDArrayMultiIter *mit);
 bool ndarray_multi_iter_next(NDArrayMultiIter *mit);

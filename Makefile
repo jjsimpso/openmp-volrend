@@ -16,9 +16,12 @@ LIB_INCLUDES	:= ndarray.h ppm.h nda_ops.h
 CC = gcc
 COMPILERFLAGS = -Wall -std=gnu11 -O3
 DEBUG_FLAGS = -g -O0
+SAN_FLAGS = -fsanitize=address -fno-omit-frame-pointer
 #MYFLAGS = -DVGA_DEBUG
 INCLUDE  = -I$(CURDIR)/$(INCDIR) -I$(CURDIR)/$(SRCDIR)
-CFLAGS = $(COMPILERFLAGS) $(MYFLAGS) $(DEBUG_FLAGS) $(INCLUDE)
+CFLAGS = $(COMPILERFLAGS) $(MYFLAGS) $(DEBUG_FLAGS) $(SAN_FLAGS) $(INCLUDE)
+
+LDFLAGS = -fsanitize=address -static-libasan
 
 LIBDIRS  = -L$(CURDIR)/$(BUILD) -L$(CURDIR)
 LIBS     =  

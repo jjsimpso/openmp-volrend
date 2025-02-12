@@ -518,6 +518,16 @@ void ndarray_multi_iter_free(NDArrayMultiIter *mit)
     free(mit);
 }
 
+/* 
+   Frees the multi iterator struct but doesn't free the iterators used by it 
+*/
+void ndarray_multi_iter_free_except_iter(NDArrayMultiIter *mit)
+{
+    free(mit->nda);
+    free(mit->iter);
+    free(mit);
+}
+
 bool ndarray_multi_iter_next(NDArrayMultiIter *mit)
 {
     
