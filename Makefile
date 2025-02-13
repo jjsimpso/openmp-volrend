@@ -8,7 +8,7 @@ INCDIR		:= include
 
 LIB_SOURCES	:= ndarray.c ppm.c nda_ops.c
 LIB_INCLUDES	:= ndarray.h ppm.h nda_ops.h
-
+LIB_NAME        := libvolrend
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -16,12 +16,13 @@ LIB_INCLUDES	:= ndarray.h ppm.h nda_ops.h
 CC = gcc
 COMPILERFLAGS = -Wall -std=gnu11 -O3
 DEBUG_FLAGS = -g -O0
-SAN_FLAGS = -fsanitize=address -fno-omit-frame-pointer
+#SAN_FLAGS = -fsanitize=address -fno-omit-frame-pointer
 #MYFLAGS = -DVGA_DEBUG
 INCLUDE  = -I$(CURDIR)/$(INCDIR) -I$(CURDIR)/$(SRCDIR)
 CFLAGS = $(COMPILERFLAGS) $(MYFLAGS) $(DEBUG_FLAGS) $(SAN_FLAGS) $(INCLUDE)
 
-LDFLAGS = -fsanitize=address -static-libasan
+#LDFLAGS = -fsanitize=address -static-libasan
+LDFLAGS = -shared -fpic
 
 LIBDIRS  = -L$(CURDIR)/$(BUILD) -L$(CURDIR)
 LIBS     =  
@@ -32,12 +33,13 @@ CFILES	:= $(LIB_SOURCES)
 OFILES	:= $(CFILES:.c=.o)
 
 OBJS = $(addprefix $(BUILD)/, $(OFILES))
+# these two are used when building the shared object
+LIB_SRC = $(addprefix $(SRCDIR)/, $(LIB_SOURCES))
+LIB_INC = $(addprefix $(SRCDIR)/, $(LIB_INCLUDES))
 
 #---------------------------------------------------------------------------------
 # basic rules
 #---------------------------------------------------------------------------------
-.SUFFIXES: .c .o
-
 %.o : %.c
 	@echo $(notdir $<)
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -45,16 +47,20 @@ OBJS = $(addprefix $(BUILD)/, $(OFILES))
 #---------------------------------------------------------------------------------
 #
 #---------------------------------------------------------------------------------
-all: libvolrend.a ndarray-test
+all: $(LIB_NAME).a $(LIB_NAME).so ndarray-test
 
-libvolrend.a : $(OBJS)
+$(LIB_NAME).a : $(OBJS)
 	ar rcs $@ $(OBJS)
 
+# don't use .o files to build shared object. compile from source.
+$(LIB_NAME).so : $(LIB_SRC) $(LIB_INC) Makefile
+	$(CC) $(LIB_SRC) $(CFLAGS) $(LDFLAGS) -o $@
+
 volrend-test : test/volrend-test.o
-	$(CC) $(CFLAGS) -o volrend-test $(LIBDIRS) test/volrend-test.o $(LIBS) -lvolrend
+	$(CC) $(CFLAGS) -o volrend-test $(LIBDIRS) test/volrend-test.o $(LIBS) -static -lvolrend
 
 ndarray-test : test/ndarray-test.c
-	$(CC) $(CFLAGS) -o test/ndarray-test $(LIBDIRS) test/ndarray-test.c $(LIBS) -lvolrend
+	$(CC) $(CFLAGS) -o test/ndarray-test $(LIBDIRS) test/ndarray-test.c $(LIBS) -static -lvolrend
 
 debug : 
 	@echo $(CFILES)
@@ -62,9 +68,11 @@ debug :
 
 install :
 	cp $(INCLUDES)/*.h /usr/local/include/libvolrend
-	cp libvolrend.a /usr/local/lib/
+	cp $(LIB_NAME).a /usr/local/lib/
+	cp $(LIB_NAME).so /usr/local/lib/
 
 clean:
 	@echo clean ...
 	rm -f $(BUILD)/*.o
-	rm -f libvolrend.a
+	rm -f $(LIB_NAME).a
+	rm -f $(LIB_NAME).so
