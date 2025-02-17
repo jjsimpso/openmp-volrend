@@ -12,6 +12,17 @@ void ndarray_fill_uint16_t(NDArray *a, uint16_t val);
 void ndarray_fill_uint32_t(NDArray *a, uint32_t val);
 void ndarray_fill_uint64_t(NDArray *a, uint64_t val);
 
+void ndarray_fill_index_float(NDArray *a);
+void ndarray_fill_index_double(NDArray *a);
+void ndarray_fill_index_int8_t(NDArray *a);
+void ndarray_fill_index_int16_t(NDArray *a);
+void ndarray_fill_index_int32_t(NDArray *a);
+void ndarray_fill_index_int64_t(NDArray *a);
+void ndarray_fill_index_uint8_t(NDArray *a);
+void ndarray_fill_index_uint16_t(NDArray *a);
+void ndarray_fill_index_uint32_t(NDArray *a);
+void ndarray_fill_index_uint64_t(NDArray *a);
+
 NDArray *ndarray_mul_float(NDArray *a, NDArray *b);
 NDArray *ndarray_mul_double(NDArray *a, NDArray *b);
 NDArray *ndarray_mul_int8_t(NDArray *a, NDArray *b);

@@ -46,6 +46,30 @@ MAKE_NDARRAY_FILL_FUNC(uint16_t)
 MAKE_NDARRAY_FILL_FUNC(uint32_t)
 MAKE_NDARRAY_FILL_FUNC(uint64_t)
 
+/*
+
+*/
+#define MAKE_NDARRAY_FILL_INDEX_FUNC(type)           \
+void ndarray_fill_index_##type(NDArray *a)           \
+{                                                    \
+    type *cursor = (type *)NDARRAY_DATAPTR(a);       \
+    for(int i = 0; i < a->num_elems; i++)            \
+    {                                                \
+	*cursor++ = (type)i;			     \
+    }                                                \
+}
+
+MAKE_NDARRAY_FILL_INDEX_FUNC(float)
+MAKE_NDARRAY_FILL_INDEX_FUNC(double)
+MAKE_NDARRAY_FILL_INDEX_FUNC(int8_t)
+MAKE_NDARRAY_FILL_INDEX_FUNC(int16_t)
+MAKE_NDARRAY_FILL_INDEX_FUNC(int32_t)
+MAKE_NDARRAY_FILL_INDEX_FUNC(int64_t)
+MAKE_NDARRAY_FILL_INDEX_FUNC(uint8_t)
+MAKE_NDARRAY_FILL_INDEX_FUNC(uint16_t)
+MAKE_NDARRAY_FILL_INDEX_FUNC(uint32_t)
+MAKE_NDARRAY_FILL_INDEX_FUNC(uint64_t)
+    
 /* 
    allocates an NDArray to store the result and returns a pointer to it
 */
