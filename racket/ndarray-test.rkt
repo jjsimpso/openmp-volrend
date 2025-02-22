@@ -32,9 +32,9 @@
   (define step-data (malloc _double 1))
   (ptr-set! step-data _double 0 (exact->inexact (/ 1 num)))
   
-  (define a-start (ndarray_new 1 (cast scalar_shape _pointer _intptr-pointer) (ctype-sizeof _double) (cast start-data _pointer _uint8-pointer)))
-  (define a-span (ndarray_new 1 (cast scalar_shape _pointer _intptr-pointer) (ctype-sizeof _double) (cast stop-data _pointer _uint8-pointer)))
-  (define a-step (ndarray_new 1 (cast scalar_shape _pointer _intptr-pointer) (ctype-sizeof _double) (cast step-data _pointer _uint8-pointer)))
+  (define a-start (ndarray_new 1 (cast scalar_shape _pointer _intptr-pointer) (ctype-sizeof _double) start-data))
+  (define a-span (ndarray_new 1 (cast scalar_shape _pointer _intptr-pointer) (ctype-sizeof _double) stop-data))
+  (define a-step (ndarray_new 1 (cast scalar_shape _pointer _intptr-pointer) (ctype-sizeof _double) step-data))
 
   ;(define result (ndarray_mul_double indexes a-step))
   #;(list

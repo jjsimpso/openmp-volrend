@@ -6,7 +6,6 @@
 
 (provide define-ndarray
          _intptr-pointer
-         _uint8-pointer
          _ndarray-pointer
          _ndarray_iter-pointer
          _slice-pointer
@@ -25,7 +24,6 @@
 (define MAX-DIMS 32)
 
 (define _intptr-pointer (_cpointer 'intptr_t))
-(define _uint8-pointer (_cpointer/null 'uint8_t))
 
 (define _ndarray-pointer (_cpointer 'NDArray))
 (define _ndarray_iter-pointer (_cpointer 'NDArray))
@@ -39,7 +37,7 @@
    [num_elems _intptr]
    [elem_bytes _intptr]
    [size _intptr]
-   [dataptr _uint8-pointer]))
+   [dataptr _pointer]))
 
 #;(define-cstruct _NDArrayIter
   ([nd_m1 _int]
@@ -51,7 +49,7 @@
    [backstrides _intptr-array-max-dims]
    [slicestarts _intptr-array-max-dims]
    [nda _ndarray-pointer]
-   [cursor _uint8-pointer]
+   [cursor __pointer]
    [contiguous _bool]))
 
 (define-cstruct _Slice
@@ -60,7 +58,7 @@
    [stride _intptr]))
 
 (define-ndarray ndarray_free (_fun _ndarray-pointer -> _void))
-(define-ndarray ndarray_new (_fun _int _intptr-pointer _intptr _uint8-pointer -> _ndarray-pointer))
+(define-ndarray ndarray_new (_fun _int _intptr-pointer _intptr _pointer -> _ndarray-pointer))
 (define-ndarray ndarray_iter_new (_fun _ndarray-pointer _slice-pointer -> _ndarray_iter-pointer))
 (define-ndarray ndarray_iter_new_all_but_axis (_fun _ndarray-pointer _slice-pointer (_cpointer 'int) -> _ndarray_iter-pointer))
 (define-ndarray ndarray_iter_free (_fun _ndarray_iter-pointer -> _void))
