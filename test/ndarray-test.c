@@ -154,6 +154,28 @@ void test_multi_iterator()
     ndarray_free(nda_f);
 }
 
+void linspace(double start, double stop, int num, bool endpoint)
+{
+    int num_points = endpoint ? (num + 1) : endpoint;
+    
+    NDArray *indexes = ndarray_new(1, (intptr_t[]){num_points}, sizeof(double), NULL);
+    ndarray_fill_index_double(indexes);
+
+    double *start_data = malloc(sizeof(double));
+    *start_data = start;
+    double *stop_data = malloc(sizeof(double));
+    *stop_data = stop - start;
+    double *step_data = malloc(sizeof(double));
+    *step_data = 1.0 / (double)num;
+
+    //NDArray *a_start = ndarray_new(1, (intptr_t []){1}, sizeof(double), (uint8_t *)start_data);
+    //NDArray *a_span = ndarray_new(1, (intptr_t []){1}, sizeof(double), (uint8_t *)stop_data);
+    NDArray *a_step = ndarray_new(1, (intptr_t []){1}, sizeof(double), (uint8_t *)step_data);
+    NDArray *result = ndarray_mul_double(a_step, indexes);
+    
+    printf("result[1] = %.3f\n", ((double *)result->dataptr)[2]);
+}
+
 int main(int argc, char **argv)
 {
 
@@ -162,6 +184,8 @@ int main(int argc, char **argv)
     test_ppm();
 
     test_multi_iterator();
+
+    linspace(0, 5000, 50, true);
     
     return 0;
 }
