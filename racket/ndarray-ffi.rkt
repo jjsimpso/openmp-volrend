@@ -57,8 +57,10 @@
    [end _intptr]
    [stride _intptr]))
 
-(define-ndarray ndarray_free (_fun _ndarray-pointer -> _void))
-(define-ndarray ndarray_new (_fun _int _intptr-pointer _intptr _pointer -> _ndarray-pointer))
+(define-ndarray ndarray_free (_fun _ndarray-pointer -> _void)
+  #:wrap (deallocator))
+(define-ndarray ndarray_new (_fun _int _intptr-pointer _intptr _pointer -> _ndarray-pointer)
+  #:wrap (allocator ndarray_free))
 (define-ndarray ndarray_iter_new (_fun _ndarray-pointer _slice-pointer -> _ndarray_iter-pointer))
 (define-ndarray ndarray_iter_new_all_but_axis (_fun _ndarray-pointer _slice-pointer (_cpointer 'int) -> _ndarray_iter-pointer))
 (define-ndarray ndarray_iter_free (_fun _ndarray_iter-pointer -> _void))
