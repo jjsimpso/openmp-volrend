@@ -57,13 +57,25 @@
    [end _intptr]
    [stride _intptr]))
 
+(define (check-null p who)
+  (if (false? p)
+      (error who "returned NULL")
+      p))
+
 (define-ndarray ndarray_free (_fun _ndarray-pointer -> _void)
   #:wrap (deallocator))
-(define-ndarray ndarray_new (_fun _int _intptr-pointer _intptr _pointer -> _ndarray-pointer)
+(define-ndarray ndarray_new (_fun _int _intptr-pointer _intptr _pointer -> (p : _ndarray-pointer)
+                                  -> (check-null p 'ndarray_new))
   #:wrap (allocator ndarray_free))
-(define-ndarray ndarray_iter_new (_fun _ndarray-pointer _slice-pointer -> _ndarray_iter-pointer))
-(define-ndarray ndarray_iter_new_all_but_axis (_fun _ndarray-pointer _slice-pointer (_cpointer 'int) -> _ndarray_iter-pointer))
-(define-ndarray ndarray_iter_free (_fun _ndarray_iter-pointer -> _void))
+
+(define-ndarray ndarray_iter_free (_fun _ndarray_iter-pointer -> _void)
+  #:wrap (deallocator))
+(define-ndarray ndarray_iter_new (_fun _ndarray-pointer _slice-pointer -> (p : _ndarray_iter-pointer)
+                                       -> (check-null p 'ndarray_iter_new))
+  #:wrap (allocator ndarray_iter_free))
+(define-ndarray ndarray_iter_new_all_but_axis (_fun _ndarray-pointer _slice-pointer (_cpointer 'int) -> (p : _ndarray_iter-pointer)
+                                                    -> (check-null p 'ndarray_new))
+  #:wrap (allocator ndarray_iter_free))
 
 #;(define (ndarray-ref p type i)
   (define nda (ptr-ref p _NDArray))
