@@ -2,6 +2,7 @@
 
 (require ffi/unsafe
          ffi/unsafe/define
+         ffi/unsafe/cvector
          racket/flonum)
 
 (require "ndarray-ffi.rkt"
@@ -19,14 +20,11 @@
 
 (define (linspace start stop [num 50] [endpoint? #t])
   (define num-points (if endpoint? (add1 num) num))
-  (define shape (malloc _intptr 1 'atomic))
-  (ptr-set! shape _intptr 0 num-points)
-  (define indexes (ndarray_new 1 (cast shape _pointer _intptr-pointer) (ctype-sizeof _double) #f))
+  (define shape (vector num-points))
+  (define indexes (ndarray_new 1 shape (ctype-sizeof _double) #f))
   (ndarray_fill_index_double indexes)
-  ;(ptr-ref shape _intptr 0)
 
-  (define scalar_shape (malloc _intptr 1 'atomic))
-  (ptr-set! scalar_shape _intptr 0 1)
+  (define scalar_shape (vector 1))
   (define start-data (malloc _double 1 'raw))
   (ptr-set! start-data _double 0 (->fl start))
   (define stop-data (malloc  _double 1 'raw))
@@ -34,9 +32,9 @@
   (define step-data (malloc _double 1 'raw))
   (ptr-set! step-data _double 0 (exact->inexact (/ 1 num)))
   
-  (define a-start (ndarray_new 1 (cast scalar_shape _pointer _intptr-pointer) (ctype-sizeof _double) start-data))
-  (define a-span (ndarray_new 1 (cast scalar_shape _pointer _intptr-pointer) (ctype-sizeof _double) stop-data))
-  (define a-step (ndarray_new 1 (cast scalar_shape _pointer _intptr-pointer) (ctype-sizeof _double) step-data))
+  (define a-start (ndarray_new 1 scalar_shape (ctype-sizeof _double) start-data))
+  (define a-span (ndarray_new 1 scalar_shape (ctype-sizeof _double) stop-data))
+  (define a-step (ndarray_new 1 scalar_shape (ctype-sizeof _double) step-data))
 
   ;(define result (ndarray_mul_double indexes a-step))
   #;(list

@@ -2,7 +2,8 @@
 
 (require ffi/unsafe
          ffi/unsafe/alloc
-         ffi/unsafe/define)
+         ffi/unsafe/define
+         ffi/unsafe/cvector)
 
 (provide define-ndarray
          _intptr-pointer
@@ -64,16 +65,19 @@
 
 (define-ndarray ndarray_free (_fun _ndarray-pointer -> _void)
   #:wrap (deallocator))
-(define-ndarray ndarray_new (_fun _int _intptr-pointer _intptr _pointer -> (p : _ndarray-pointer)
+(define-ndarray ndarray_new (_fun _int [dims : (_vector i _intptr)] _intptr _pointer
+                                  -> (p : _ndarray-pointer)
                                   -> (check-null p 'ndarray_new))
   #:wrap (allocator ndarray_free))
 
 (define-ndarray ndarray_iter_free (_fun _ndarray_iter-pointer -> _void)
   #:wrap (deallocator))
-(define-ndarray ndarray_iter_new (_fun _ndarray-pointer _slice-pointer -> (p : _ndarray_iter-pointer)
+(define-ndarray ndarray_iter_new (_fun _ndarray-pointer _slice-pointer
+                                       -> (p : _ndarray_iter-pointer)
                                        -> (check-null p 'ndarray_iter_new))
   #:wrap (allocator ndarray_iter_free))
-(define-ndarray ndarray_iter_new_all_but_axis (_fun _ndarray-pointer _slice-pointer (_cpointer 'int) -> (p : _ndarray_iter-pointer)
+(define-ndarray ndarray_iter_new_all_but_axis (_fun _ndarray-pointer _slice-pointer (_cpointer 'int)
+                                                    -> (p : _ndarray_iter-pointer)
                                                     -> (check-null p 'ndarray_new))
   #:wrap (allocator ndarray_iter_free))
 
