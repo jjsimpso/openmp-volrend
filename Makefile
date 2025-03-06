@@ -21,8 +21,8 @@ DEBUG_FLAGS = -g -O0
 INCLUDE  = -I$(CURDIR)/$(INCDIR) -I$(CURDIR)/$(SRCDIR)
 CFLAGS = $(COMPILERFLAGS) $(MYFLAGS) $(DEBUG_FLAGS) $(SAN_FLAGS) $(INCLUDE)
 
-#LDFLAGS = -fsanitize=address -static-libasan
 LDFLAGS = -shared -fpic
+#LDFLAGS += -fsanitize=address
 
 LIBDIRS  = -L$(CURDIR)/$(BUILD) -L$(CURDIR)
 LIBS     =  
@@ -57,10 +57,10 @@ $(LIB_NAME).so : $(LIB_SRC) $(LIB_INC) Makefile
 	$(CC) $(LIB_SRC) $(CFLAGS) $(LDFLAGS) -o $@
 
 volrend-test : test/volrend-test.o
-	$(CC) $(CFLAGS) -o volrend-test $(LIBDIRS) test/volrend-test.o $(LIBS) -static -lvolrend
+	$(CC) $(CFLAGS) -o volrend-test $(LIBDIRS) test/volrend-test.o $(LIBS) -lvolrend
 
 ndarray-test : test/ndarray-test.c
-	$(CC) $(CFLAGS) -o test/ndarray-test $(LIBDIRS) test/ndarray-test.c $(LIBS) -static -lvolrend
+	$(CC) $(CFLAGS) -o test/ndarray-test $(LIBDIRS) test/ndarray-test.c $(LIBS) -lvolrend
 
 debug : 
 	@echo $(CFILES)
