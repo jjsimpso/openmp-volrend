@@ -25,11 +25,11 @@
   (ndarray_fill_index_double indexes)
 
   (define scalar_shape (vector 1))
-  (define start-data (malloc _double 1 'raw))
+  (define start-data (malloc _double 1 'atomic))
   (ptr-set! start-data _double 0 (->fl start))
-  (define stop-data (malloc  _double 1 'raw))
+  (define stop-data (malloc  _double 1 'atomic))
   (ptr-set! stop-data _double 0 (->fl (- stop start)))
-  (define step-data (malloc _double 1 'raw))
+  (define step-data (malloc _double 1 'atomic))
   (ptr-set! step-data _double 0 (exact->inexact (/ 1 num)))
   
   (define a-start (ndarray_new 1 scalar_shape (ctype-sizeof _double) start-data))
@@ -54,3 +54,4 @@
   (map (lambda (i) (ndarray-ref result _double i)) '(0 1 2 3 4 5 50)))
 
 ;(run-linspace)
+;(collect-garbage 'major)

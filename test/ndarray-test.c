@@ -78,6 +78,7 @@ void test_ppm()
     ndarray_iter_free(it_dec);
 
     ndarray_free(nda);
+    free(rgb);
 }
 
 void test_multi_iterator()
@@ -152,6 +153,10 @@ void test_multi_iterator()
     ndarray_free(nda_3d);
     ndarray_free(nda_2d);
     ndarray_free(nda_f);
+
+    free(a);
+    free(b);
+    free(scalar);
 }
 
 void linspace(double start, double stop, int num, bool endpoint)
@@ -174,6 +179,14 @@ void linspace(double start, double stop, int num, bool endpoint)
     NDArray *result = ndarray_mul_double(a_step, indexes);
     
     printf("result[1] = %.3f\n", ((double *)result->dataptr)[2]);
+
+    ndarray_free(indexes);
+    ndarray_free(a_step);
+    ndarray_free(result);
+    
+    free(start_data);
+    free(stop_data);
+    free(step_data);
 }
 
 int main(int argc, char **argv)

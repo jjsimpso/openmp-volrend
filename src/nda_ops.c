@@ -11,20 +11,13 @@
 */
 NDArray *ndarray_new_result(NDArrayMultiIter *mit, intptr_t elem_bytes)
 {
-    uint8_t *c_data = (uint8_t*) malloc(mit->length * elem_bytes);
-
-    if(!c_data)
-    {
-	return NULL;
-    }
-    
     intptr_t dims[MAX_DIMS] = {0};
     for(int i = 0; i <= mit->nd_m1; i++)
     {
 	dims[i] = mit->dims_m1[i] + 1;
     }
     
-    return ndarray_new(mit->nd_m1 + 1, dims, elem_bytes, c_data);
+    return ndarray_new(mit->nd_m1 + 1, dims, elem_bytes, NULL);
 }
 
 /*

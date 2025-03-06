@@ -38,6 +38,7 @@
    [num_elems _intptr]
    [elem_bytes _intptr]
    [size _intptr]
+   [free_data _bool]
    [dataptr _pointer]))
 
 #;(define-cstruct _NDArrayIter

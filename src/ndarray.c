@@ -30,6 +30,7 @@ NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes, uint8_t *ptr)
     nda->num_elems = num_elems;
     nda->elem_bytes = elem_bytes;
     nda->size = num_elems * elem_bytes;
+    nda->free_data = false;
 
     if(ptr)
     {
@@ -38,6 +39,7 @@ NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes, uint8_t *ptr)
     else
     {
 	nda->dataptr = (uint8_t *) malloc(nda->size);
+	nda->free_data = true;
 	if(!(nda->dataptr))
 	{
 	    free(nda);
@@ -63,7 +65,7 @@ void ndarray_free(NDArray *nda)
 {
     if(nda)
     {
-    	if(nda->dataptr) free(nda->dataptr);
+    	if(nda->free_data && nda->dataptr) free(nda->dataptr);
 	if(nda->dims) free(nda->dims);
 	free(nda);
     }

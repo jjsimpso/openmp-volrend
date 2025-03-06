@@ -18,6 +18,8 @@ typedef struct {
     intptr_t elem_bytes;
     // total size of the array in bytes
     intptr_t size;
+    // flag to indicate that dataptr should be free'd
+    bool free_data;
     // pointer to the first element
     uint8_t *dataptr;
 } NDArray;
