@@ -7,28 +7,27 @@
 
 (provide define-ndarray
          _intptr-pointer
-         _ndarray-pointer
-         _ndarray_iter-pointer
-         _slice-pointer
          ndarray_new
          ndarray_free
          ndarray_iter_new
          ndarray_iter_new_all_but_axis
          ndarray_iter_free
+         ndarray_iter_next
+         ndarray_iter_reset
          ndarray-ref
          ndarray-dims
-         _NDArray
-         (struct-out NDArray))
+         _NDArray-pointer
+         _NDArrayIter-pointer
+         _Slice-pointer
+         (struct-out NDArray)
+         (struct-out NDArrayIter)
+         (struct-out Slice))
 
 (define-ffi-definer define-ndarray (ffi-lib "../libvolrend"))
 
 (define MAX-DIMS 32)
 
 (define _intptr-pointer (_cpointer 'intptr_t))
-
-(define _ndarray-pointer (_cpointer 'NDArray))
-(define _ndarray_iter-pointer (_cpointer 'NDArray))
-(define _slice-pointer (_cpointer 'Slice))
 
 (define _intptr-array-max-dims (_array _intptr MAX-DIMS))
 
@@ -41,7 +40,7 @@
    [free_data _bool]
    [dataptr _pointer]))
 
-#;(define-cstruct _NDArrayIter
+(define-cstruct _NDArrayIter
   ([nd_m1 _int]
    [index _intptr]
    [length _intptr]
@@ -50,8 +49,8 @@
    [strides _intptr-array-max-dims]
    [backstrides _intptr-array-max-dims]
    [slicestarts _intptr-array-max-dims]
-   [nda _ndarray-pointer]
-   [cursor __pointer]
+   [nda _NDArray-pointer]
+   [cursor _pointer]
    [contiguous _bool]))
 
 (define-cstruct _Slice
@@ -64,30 +63,34 @@
       (error who "returned NULL")
       p))
 
-(define-ndarray ndarray_free (_fun _ndarray-pointer -> _void)
+(define-ndarray ndarray_free (_fun _NDArray-pointer -> _void)
   #:wrap (deallocator))
 (define-ndarray ndarray_new (_fun _int [dims : (_vector i _intptr)] _intptr _pointer
-                                  -> (p : _ndarray-pointer)
+                                  -> (p : _NDArray-pointer)
                                   -> (check-null p 'ndarray_new))
   #:wrap (allocator ndarray_free))
 
-(define-ndarray ndarray_iter_free (_fun _ndarray_iter-pointer -> _void)
+(define-ndarray ndarray_iter_free (_fun _NDArrayIter-pointer -> _void)
   #:wrap (deallocator))
-(define-ndarray ndarray_iter_new (_fun _ndarray-pointer _slice-pointer
-                                       -> (p : _ndarray_iter-pointer)
+(define-ndarray ndarray_iter_new (_fun _NDArray-pointer _Slice-pointer/null
+                                       -> (p : _NDArrayIter-pointer)
                                        -> (check-null p 'ndarray_iter_new))
   #:wrap (allocator ndarray_iter_free))
-(define-ndarray ndarray_iter_new_all_but_axis (_fun _ndarray-pointer _slice-pointer (_cpointer 'int)
-                                                    -> (p : _ndarray_iter-pointer)
+(define-ndarray ndarray_iter_new_all_but_axis (_fun _NDArray-pointer _Slice-pointer/null (_cpointer 'int)
+                                                    -> (p : _NDArrayIter-pointer)
                                                     -> (check-null p 'ndarray_new))
   #:wrap (allocator ndarray_iter_free))
+
+(define-ndarray ndarray_iter_next (_fun _NDArrayIter-pointer -> _bool))
+(define-ndarray ndarray_iter_reset (_fun _NDArrayIter-pointer -> _void))
+
 
 #;(define (ndarray-ref p type i)
   (define nda (ptr-ref p _NDArray))
   (ptr-ref (NDArray-dataptr nda) type i))
 
 (define-syntax-rule (ndarray-ref p type i ...)
-  (ptr-ref (NDArray-dataptr (ptr-ref p _NDArray)) type i ...))
+  (ptr-ref (NDArray-dataptr p) type i ...))
 
 (define (ndarray-dims p i)
   (ptr-ref (NDArray-dims (ptr-ref p _NDArray)) _intptr i))
