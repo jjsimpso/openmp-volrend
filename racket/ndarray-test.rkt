@@ -5,11 +5,10 @@
          ffi/unsafe/cvector
          racket/flonum)
 
+(require rackunit)
+
 (require "ndarray-ffi.rkt"
          "ndarray-ops-ffi.rkt")
-
-(provide linspace
-         run-linspace)
 
 #|
 (define _shape-array-1d (_array _intptr 1))
@@ -19,12 +18,9 @@
 |#
 
 (define (print-iter it type)
-  (let loop ([cursor (NDArrayIter-cursor it)]
-             [i 0])
-    (printf "it[~a] = ~a~n" i (ptr-ref cursor type 0))
-    (when (ndarray_iter_next it)
-      (loop (NDArrayIter-cursor it) (add1 i))))
-  (ndarray_iter_reset it))
+  (for ([x (in-iter it type)]
+        [i (in-naturals 0)])
+    (printf "it[~a] = ~a~n" i x)))
 
 (define (test-simple-iterator)
   (define nda (ndarray_new 2 (vector 10 5) (ctype-sizeof _int) #f))
@@ -34,11 +30,53 @@
     (ptr-set! cursor _int 0 i)
     (when (ndarray_iter_next it)
       (loop (NDArrayIter-cursor it) (add1 i))))
-  (ndarray_iter_reset it)
-  (print-iter it _int)
+  (ndarray_iter_reset it)  
+  ;(print-iter it _int)
+  (check-equal?
+   (ndarray-data->list nda _int)
+   '(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49))
 
-  #;(define it2 (ndarray_iter_new nda (make-Slice 1 8 3) (make-Slice 0 2 2)))
-  #;(print-iter it2 _int))
+  (define it2 (ndarray_iter_new nda (make-slice 2 '((0 8 2) (1 3 1)))))
+  ;(print-iter it2 _int)
+  (check-equal? (for/list ([x (in-iter it2 _int)])
+                  x)
+                '(1 2 3 11 12 13 21 22 23 31 32 33 41 42 43)))
+
+(define (test-multi-iterator)
+  (define A (flvector 0.0   0.0  0.0
+                      10.0 10.0 10.0
+                      20.0 20.0 20.0
+                      30.0 30.0 30.0))
+  (define B (flvector 1.0 2.0 3.0))
+  (define nda-a (ndarray_new 2 (vector 4 3) (ctype-sizeof _double) (flvector->cpointer A)))
+  (define nda-b (ndarray_new 1 (vector 3) (ctype-sizeof _double) (flvector->cpointer B)))
+  (define it-a (ndarray_iter_new nda-a #f))
+  (define it-b (ndarray_iter_new nda-b #f))
+  (printf "Multi Iteration Tests~n")
+  (printf "---------------------~n")
+  (printf "A~n")
+  (print-iter it-a _double)
+  (printf "B~n")
+  (print-iter it-b _double)
+
+  (printf "A*B~n")
+  (print-iter (ndarray_iter_new (ndarray_mul_double nda-a nda-b) #f) _double)
+
+  (printf "A*1.5~n")
+  (define nda-d (ndarray_mul_double nda-a (ndarray_new 1 (vector 1) (ctype-sizeof _double) (flvector->cpointer (flvector 1.5)))))
+  (print-iter (ndarray_iter_new nda-d #f) _double)
+
+  (printf "A*10~n")
+  (print-iter (ndarray_iter_new (ndarray_iter_mul_double it-a (ndarray_iter_new nda-a (make-slice 2 '((1 1 1) (0 0 1))))) #f) _double)
+
+  (printf "2x2x2 matrix * 2x2~n")
+  (define nda-3d (ndarray_new 3 (vector 2 2 2) (ctype-sizeof _double) #f))
+  (define nda-2d (ndarray_new 2 (vector 2 2) (ctype-sizeof _double) #f))
+  (ndarray_fill_double nda-3d 10.0)
+  (ndarray_fill_index_double nda-2d)
+  (print-iter (ndarray_iter_new (ndarray_mul_double nda-3d nda-2d) #f) _double)
+  
+  void)
 
 (define (linspace start stop [num 50] [endpoint? #t])
   (define num-points (if endpoint? (add1 num) num))
@@ -68,9 +106,11 @@
    
   (ndarray_add_double a-start (ndarray_mul_double a-span (ndarray_mul_double a-step indexes))))
 
-(define (run-linspace)
+(define (test-linspace)
   (define result (linspace 0 5000 50 #t))
-  (map (lambda (i) (ndarray-ref result _double i)) '(0 1 2 3 4 5 50)))
+  (check-equal?
+   (map (lambda (i) (ndarray-ref result _double i)) '(0 1 2 3 4 5 50))
+   '(0.0 100.0 200.0 300.0 400.0 500.0 5000.0)))
 
 ;(run-linspace)
 ;(collect-garbage 'major)

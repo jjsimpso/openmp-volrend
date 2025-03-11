@@ -5,6 +5,8 @@
          ffi/unsafe/define
          ffi/unsafe/cvector)
 
+(require (for-syntax syntax/parse))
+
 (provide define-ndarray
          _intptr-pointer
          ndarray_new
@@ -16,6 +18,10 @@
          ndarray_iter_reset
          ndarray-ref
          ndarray-dims
+         ndarray-data->list
+         ndarray-iter-data
+         make-slice
+         in-iter
          _NDArray-pointer
          _NDArrayIter-pointer
          _Slice-pointer
@@ -31,6 +37,9 @@
 
 (define _intptr-array-max-dims (_array _intptr MAX-DIMS))
 
+(define _NDArray-pointer-pointer (_cpointer '_NDArray-pointer))
+(define _NDArrayIter-pointer-pointer (_cpointer '_NDArrayIter-pointer))
+
 (define-cstruct _NDArray
   ([ndim _int]
    [dims _intptr-pointer]
@@ -45,13 +54,22 @@
    [index _intptr]
    [length _intptr]
    [coords _intptr-array-max-dims] ;; (make-array-type _intptr MAX-DIMS)
-   [dims_m1 _intptr-array-max-dims] 
+   [dims_m1 _intptr-array-max-dims]
    [strides _intptr-array-max-dims]
    [backstrides _intptr-array-max-dims]
    [slicestarts _intptr-array-max-dims]
    [nda _NDArray-pointer]
    [cursor _pointer]
    [contiguous _bool]))
+
+(define-cstruct _NDArrayMultiIter
+  ([num _int]
+   [nd_m1 _int]
+   [index _intptr]
+   [length _intptr]
+   [dims_m1 _intptr-array-max-dims]
+   [nda _NDArray-pointer-pointer]
+   [iter _NDArrayIter-pointer-pointer]))
 
 (define-cstruct _Slice
   ([start _intptr]
@@ -63,6 +81,8 @@
       (error who "returned NULL")
       p))
 
+;; ND Array functions
+;; ------------------
 (define-ndarray ndarray_free (_fun _NDArray-pointer -> _void)
   #:wrap (deallocator))
 (define-ndarray ndarray_new (_fun _int [dims : (_vector i _intptr)] _intptr _pointer
@@ -70,6 +90,9 @@
                                   -> (check-null p 'ndarray_new))
   #:wrap (allocator ndarray_free))
 
+
+;; ND Array Iterator functions
+;; ---------------------------
 (define-ndarray ndarray_iter_free (_fun _NDArrayIter-pointer -> _void)
   #:wrap (deallocator))
 (define-ndarray ndarray_iter_new (_fun _NDArray-pointer _Slice-pointer/null
@@ -85,6 +108,22 @@
 (define-ndarray ndarray_iter_reset (_fun _NDArrayIter-pointer -> _void))
 
 
+;; ND Array Multi Iterator functions
+;; ---------------------------------
+(define-ndarray ndarray_multi_iter_free (_fun _NDArrayMultiIter-pointer -> _void)
+  #:wrap (deallocator))
+(define-ndarray ndarray_multi_iter_new (_fun #:varargs-after 1 _int _NDArray-pointer _NDArray-pointer
+                                             -> (p : _NDArrayMultiIter-pointer)
+                                             -> (check-null p 'ndarray_multi_iter_new))
+  #:wrap (allocator ndarray_multi_iter_free))
+(define-ndarray ndarray_multi_iter_free_except_iter (_fun _NDArrayMultiIter-pointer -> _void)
+  #:wrap (deallocator))
+(define-ndarray ndarray_multi_iter_new_from_iter (_fun #:varargs-after 1 _int _NDArrayIter-pointer _NDArrayIter-pointer
+                                             -> (p : _NDArrayMultiIter-pointer)
+                                             -> (check-null p 'ndarray_multi_iter_new_from_iter))
+  #:wrap (allocator ndarray_multi_iter_free_except_iter))
+
+
 #;(define (ndarray-ref p type i)
   (define nda (ptr-ref p _NDArray))
   (ptr-ref (NDArray-dataptr nda) type i))
@@ -94,3 +133,47 @@
 
 (define (ndarray-dims p i)
   (ptr-ref (NDArray-dims (ptr-ref p _NDArray)) _intptr i))
+
+(define (ndarray-data->list nda type)
+  (cblock->list (NDArray-dataptr nda) type (NDArray-num_elems nda)))
+
+(define-syntax-rule (ndarray-iter-data p type)
+  (ptr-ref (NDArrayIter-cursor p) type 0))
+
+;; provide the number of dimensions and a list of triples(start end stride)
+;; returns a cpointer to an array of _Slices
+(define (make-slice nd range-lst)
+  (define slice-ptr 
+    (vector->cblock 
+     (for/vector #:length nd
+                 ([r (in-list range-lst)])
+       (apply make-Slice r))
+     _Slice))
+  (set-cpointer-tag! slice-ptr 'Slice)
+  slice-ptr)
+
+(define (in-iter-double/proc n)
+  #f)
+
+(define-sequence-syntax in-iter
+  (lambda () #'in-iter-double/proc)
+  (lambda (stx)
+    (syntax-parse stx
+      [[(val) (_ expr type)]
+       #'[(val)
+          (:do-in
+           ([(it) expr])
+           (unless (NDArrayIter? it)
+             (raise-argument-error 'in-iter "NDArrayiter?" it))
+           ([n it])
+           #t
+           ([(val) (ndarray-iter-data n type)])
+           #t
+           ;; advance cursor in iterator and continue or reset iterator and quit
+           (if (ndarray_iter_next n)
+               #t
+               (begin
+                 (ndarray_iter_reset n)
+                 #f))
+           [n])]]
+      [_ #false])))
