@@ -52,31 +52,52 @@
   (define nda-b (ndarray_new 1 (vector 3) (ctype-sizeof _double) (flvector->cpointer B)))
   (define it-a (ndarray_iter_new nda-a #f))
   (define it-b (ndarray_iter_new nda-b #f))
+  #|
   (printf "Multi Iteration Tests~n")
   (printf "---------------------~n")
   (printf "A~n")
   (print-iter it-a _double)
   (printf "B~n")
   (print-iter it-b _double)
-
-  (printf "A*B~n")
-  (print-iter (ndarray_iter_new (ndarray_mul_double nda-a nda-b) #f) _double)
-
-  (printf "A*1.5~n")
+  |#
+  (check-equal? (for/list ([x (in-iter it-a _double)])
+                  x)
+                '(0.0 0.0 0.0 10.0 10.0 10.0 20.0 20.0 20.0 30.0 30.0 30.0))
+  (check-equal? (for/list ([x (in-iter it-b _double)])
+                  x)
+                '(1.0 2.0 3.0))
+  
+  ;(printf "A*B~n")
+  ;(print-iter (ndarray_iter_new (ndarray_mul_double nda-a nda-b) #f) _double)
+  (check-equal? (for/list ([x (in-iter (ndarray_iter_new (ndarray_mul_double nda-a nda-b) #f) _double)])
+                  x)
+                '(0.0 0.0 0.0 10.0 20.0 30.0 20.0 40.0 60.0 30.0 60.0 90.0))
+  
   (define nda-d (ndarray_mul_double nda-a (ndarray_new 1 (vector 1) (ctype-sizeof _double) (flvector->cpointer (flvector 1.5)))))
-  (print-iter (ndarray_iter_new nda-d #f) _double)
-
-  (printf "A*10~n")
-  (print-iter (ndarray_iter_new (ndarray_iter_mul_double it-a (ndarray_iter_new nda-a (make-slice 2 '((1 1 1) (0 0 1))))) #f) _double)
-
-  (printf "2x2x2 matrix * 2x2~n")
+  ;(printf "A*1.5~n")
+  ;(print-iter (ndarray_iter_new nda-d #f) _double)
+  (check-equal? (for/list ([x (in-iter (ndarray_iter_new nda-d #f) _double)])
+                  x)
+                '(0.0 0.0 0.0 15.0 15.0 15.0 30.0 30.0 30.0 45.0 45.0 45.0))
+  
+  ;(printf "A*10~n")
+  ;(print-iter (ndarray_iter_new (ndarray_iter_mul_double it-a (ndarray_iter_new nda-a (make-slice 2 '((1 1 1) (0 0 1))))) #f) _double)
+  (check-equal? (for/list ([x (in-iter (ndarray_iter_new (ndarray_iter_mul_double
+                                                          it-a
+                                                          (ndarray_iter_new nda-a (make-slice 2 '((1 1 1) (0 0 1))))) #f)
+                                       _double)])
+                  x)
+                '(0.0 0.0 0.0 100.0 100.0 100.0 200.0 200.0 200.0 300.0 300.0 300.0))
+  
   (define nda-3d (ndarray_new 3 (vector 2 2 2) (ctype-sizeof _double) #f))
   (define nda-2d (ndarray_new 2 (vector 2 2) (ctype-sizeof _double) #f))
   (ndarray_fill_double nda-3d 10.0)
   (ndarray_fill_index_double nda-2d)
-  (print-iter (ndarray_iter_new (ndarray_mul_double nda-3d nda-2d) #f) _double)
-  
-  void)
+  ;(printf "2x2x2 matrix * 2x2~n")
+  ;(print-iter (ndarray_iter_new (ndarray_mul_double nda-3d nda-2d) #f) _double)
+  (check-equal? (for/list ([x (in-iter (ndarray_iter_new (ndarray_mul_double nda-3d nda-2d) #f) _double)])
+                  x)
+                '(0.0 10.0 20.0 30.0 0.0 10.0 20.0 30.0)))
 
 (define (linspace start stop [num 50] [endpoint? #t])
   (define num-points (if endpoint? (add1 num) num))
@@ -112,5 +133,7 @@
    (map (lambda (i) (ndarray-ref result _double i)) '(0 1 2 3 4 5 50))
    '(0.0 100.0 200.0 300.0 400.0 500.0 5000.0)))
 
-;(run-linspace)
-;(collect-garbage 'major)
+(test-linspace)
+(test-simple-iterator)
+(test-multi-iterator)
+(collect-garbage 'major)
