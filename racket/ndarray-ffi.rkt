@@ -132,7 +132,7 @@
   (ptr-ref (NDArray-dataptr p) type i ...))
 
 (define (ndarray-dims p i)
-  (ptr-ref (NDArray-dims (ptr-ref p _NDArray)) _intptr i))
+  (ptr-ref (NDArray-dims p) _intptr i))
 
 (define (ndarray-data->list nda type)
   (cblock->list (NDArray-dataptr nda) type (NDArray-num_elems nda)))
@@ -152,11 +152,13 @@
   (set-cpointer-tag! slice-ptr 'Slice)
   slice-ptr)
 
-(define (in-iter-double/proc n)
-  #f)
+;; for now assume the type is _double in the expression case(non-for)
+(define (in-iter/proc n)
+  (for/list ([v (in-iter n _double)])
+    v))
 
 (define-sequence-syntax in-iter
-  (lambda () #'in-iter-double/proc)
+  (lambda () #'in-iter/proc)
   (lambda (stx)
     (syntax-parse stx
       [[(val) (_ expr type)]
