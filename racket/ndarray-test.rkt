@@ -8,7 +8,8 @@
 (require rackunit)
 
 (require "ndarray-ffi.rkt"
-         "ndarray-ops-ffi.rkt")
+         "ndarray-ops-ffi.rkt"
+         "ndarray-io-ffi.rkt")
 
 #|
 (define _shape-array-1d (_array _intptr 1))
@@ -133,7 +134,24 @@
    (map (lambda (i) (ndarray-ref result _double i)) '(0 1 2 3 4 5 50))
    '(0.0 100.0 200.0 300.0 400.0 500.0 5000.0)))
 
+(define (test-ppm)
+  (define-values (rgb w h) (read_ppm "../test/image-01.ppm"))
+  (define nda (ndarray_new 3 (vector w h 3) 1 rgb))
+  (ndarray_iter_write_ppm (ndarray_iter_new nda #f) "out.ppm" w h)
+
+  (define skip_dim (malloc _int))
+  (ptr-set! skip_dim _int 0 -1)
+  (define it2 (ndarray_iter_new_all_but_axis nda #f skip_dim))
+  (ndarray_iter_write_ppm it2 "out2.ppm" w h)
+
+  (ndarray_iter_write_ppm (ndarray_iter_new nda (make-slice 3 `((0 ,(sub1 h)  2)
+                                                                (0 ,(sub1 w) 2)
+                                                                (0 2 1))))
+                          "out3.ppm" (/ w 2) (/ h 2))
+  (free rgb))
+
 (test-linspace)
 (test-simple-iterator)
 (test-multi-iterator)
+(test-ppm)
 (collect-garbage 'major)

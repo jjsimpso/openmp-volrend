@@ -9,6 +9,7 @@
 
 (provide define-ndarray
          _intptr-pointer
+         _uint8-pointer
          ndarray_new
          ndarray_free
          ndarray_iter_new
@@ -34,6 +35,7 @@
 (define MAX-DIMS 32)
 
 (define _intptr-pointer (_cpointer 'intptr_t))
+(define _uint8-pointer (_cpointer 'uint8_t))
 
 (define _intptr-array-max-dims (_array _intptr MAX-DIMS))
 
@@ -99,7 +101,7 @@
                                        -> (p : _NDArrayIter-pointer)
                                        -> (check-null p 'ndarray_iter_new))
   #:wrap (allocator ndarray_iter_free))
-(define-ndarray ndarray_iter_new_all_but_axis (_fun _NDArray-pointer _Slice-pointer/null (_cpointer 'int)
+(define-ndarray ndarray_iter_new_all_but_axis (_fun _NDArray-pointer _Slice-pointer/null _pointer
                                                     -> (p : _NDArrayIter-pointer)
                                                     -> (check-null p 'ndarray_new))
   #:wrap (allocator ndarray_iter_free))
