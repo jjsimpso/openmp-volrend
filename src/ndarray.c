@@ -258,16 +258,12 @@ int ndarray_iter_write_file(NDArrayIter *it, FILE *out)
     {
 	if(it->contiguous)
 	{
-	    int num_bytes = it->nda->elem_bytes;
-	    do
+	    int num_bytes = it->nda->elem_bytes * it->length;
+	    cnt = fwrite(it->cursor, 1, num_bytes, out);
+	    if(cnt != num_bytes)
 	    {
-		cnt = fwrite(it->cursor, 1, num_bytes, out);
-		if(cnt != num_bytes)
-		{
-		    err = -2;
-		    break;
-		}
-	    } while(ndarray_iter_next(it));
+		err = -2;
+	    }
 	}
 	else
 	{
