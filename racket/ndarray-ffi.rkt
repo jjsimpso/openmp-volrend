@@ -35,7 +35,7 @@
 (define MAX-DIMS 32)
 
 (define _intptr-pointer (_cpointer 'intptr_t))
-(define _uint8-pointer (_cpointer 'uint8_t))
+(define _uint8-pointer (_cpointer/null 'uint8_t))
 
 (define _intptr-array-max-dims (_array _intptr MAX-DIMS))
 
@@ -88,7 +88,7 @@
 (define-ndarray ndarray_free (_fun _NDArray-pointer -> _void)
   #:wrap (deallocator))
 (define-ndarray ndarray_new (_fun _int [dims : (_vector i _intptr)] _intptr _pointer
-                                  -> (p : _NDArray-pointer)
+                                  -> (p : _NDArray-pointer/null)
                                   -> (check-null p 'ndarray_new))
   #:wrap (allocator ndarray_free))
 
@@ -98,11 +98,11 @@
 (define-ndarray ndarray_iter_free (_fun _NDArrayIter-pointer -> _void)
   #:wrap (deallocator))
 (define-ndarray ndarray_iter_new (_fun _NDArray-pointer _Slice-pointer/null
-                                       -> (p : _NDArrayIter-pointer)
+                                       -> (p : _NDArrayIter-pointer/null)
                                        -> (check-null p 'ndarray_iter_new))
   #:wrap (allocator ndarray_iter_free))
 (define-ndarray ndarray_iter_new_all_but_axis (_fun _NDArray-pointer _Slice-pointer/null _pointer
-                                                    -> (p : _NDArrayIter-pointer)
+                                                    -> (p : _NDArrayIter-pointer/null)
                                                     -> (check-null p 'ndarray_new))
   #:wrap (allocator ndarray_iter_free))
 
@@ -115,13 +115,13 @@
 (define-ndarray ndarray_multi_iter_free (_fun _NDArrayMultiIter-pointer -> _void)
   #:wrap (deallocator))
 (define-ndarray ndarray_multi_iter_new (_fun #:varargs-after 1 _int _NDArray-pointer _NDArray-pointer
-                                             -> (p : _NDArrayMultiIter-pointer)
+                                             -> (p : _NDArrayMultiIter-pointer/null)
                                              -> (check-null p 'ndarray_multi_iter_new))
   #:wrap (allocator ndarray_multi_iter_free))
 (define-ndarray ndarray_multi_iter_free_except_iter (_fun _NDArrayMultiIter-pointer -> _void)
   #:wrap (deallocator))
 (define-ndarray ndarray_multi_iter_new_from_iter (_fun #:varargs-after 1 _int _NDArrayIter-pointer _NDArrayIter-pointer
-                                             -> (p : _NDArrayMultiIter-pointer)
+                                             -> (p : _NDArrayMultiIter-pointer/null)
                                              -> (check-null p 'ndarray_multi_iter_new_from_iter))
   #:wrap (allocator ndarray_multi_iter_free_except_iter))
 
