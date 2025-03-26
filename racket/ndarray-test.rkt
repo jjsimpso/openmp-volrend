@@ -3,7 +3,8 @@
 (require ffi/unsafe
          ffi/unsafe/define
          ffi/unsafe/cvector
-         racket/flonum)
+         racket/flonum
+         racket/runtime-path)
 
 (require rackunit)
 
@@ -134,21 +135,33 @@
    (map (lambda (i) (ndarray-ref result _double i)) '(0 1 2 3 4 5 50))
    '(0.0 100.0 200.0 300.0 400.0 500.0 5000.0)))
 
+(define-runtime-path test-ppm-path "../test/image-01.ppm")
+(define-runtime-paths (out-ppm-path out2-ppm-path out3-ppm-path)
+  (values "out.ppm" "out2.ppm" "out3.ppm"))
+
 (define (test-ppm)
-  (define-values (rgb w h) (read_ppm "../test/image-01.ppm"))
+  (define-values (rgb w h) (read_ppm test-ppm-path))
   (define nda (ndarray_new 3 (vector w h 3) 1 rgb))
-  (ndarray_iter_write_ppm (ndarray_iter_new nda #f) "out.ppm" w h)
+  (ndarray_iter_write_ppm (ndarray_iter_new nda #f) out-ppm-path w h)
 
   (define skip_dim (malloc _int))
   (ptr-set! skip_dim _int 0 -1)
   (define it2 (ndarray_iter_new_all_but_axis nda #f skip_dim))
-  (ndarray_iter_write_ppm it2 "out2.ppm" w h)
+  (ndarray_iter_write_ppm it2 out2-ppm-path w h)
 
   (ndarray_iter_write_ppm (ndarray_iter_new nda (make-slice 3 `((0 ,(sub1 h)  2)
                                                                 (0 ,(sub1 w) 2)
                                                                 (0 2 1))))
-                          "out3.ppm" (/ w 2) (/ h 2))
+                          out3-ppm-path (/ w 2) (/ h 2))
   (free rgb))
+
+(define (test-bigmul x)
+  (time
+   (define a (ndarray_new 2 (vector x x) 8 #f))
+   (define b (ndarray_new 2 (vector x x) 8 #f))
+   (ndarray_fill_double a 2.0)
+   (ndarray_fill_double b 2.0)
+   (ndarray_mul_double a b)))
 
 (test-linspace)
 (test-simple-iterator)
