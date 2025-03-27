@@ -126,15 +126,39 @@
   #:wrap (allocator ndarray_multi_iter_free_except_iter))
 
 
-#;(define (ndarray-ref p type i)
-  (define nda (ptr-ref p _NDArray))
-  (ptr-ref (NDArray-dataptr nda) type i))
-
-(define-syntax-rule (ndarray-ref p type i ...)
-  (ptr-ref (NDArray-dataptr p) type i ...))
-
+;; accessor function for NDArray dims array
+;; i is a 0-based index
 (define (ndarray-dims p i)
   (ptr-ref (NDArray-dims p) _intptr i))
+
+;; calculate the stride of dimension n
+;; n is a 0-based index
+(define (dim-stride p n)
+  (when (> (add1 n) (NDArray-ndim p))
+    (error (format "dimension ~a exceeds NDArray's dimensions" n)))
+  (define elem-bytes (NDArray-elem_bytes p))
+  (for/fold ([sum elem-bytes])
+            ([i (in-range (sub1 (NDArray-ndim p)) n -1)])
+    (* (ndarray-dims p i) sum)))
+
+(define-syntax ndarray-ref
+  (syntax-rules ()
+    [(ndarray-ref p type i)
+     (ptr-ref (NDArray-dataptr p) type i)]
+    [(ndarray-ref p type i j)
+     (ptr-ref (NDArray-dataptr p)
+              type
+              'abs
+              (+ (* i (dim-stride p 0))
+                 (* j (dim-stride p 1))))]
+    ;; this case duplicates work in stride calculation
+    [(ndarray-ref p type i ...)
+     (let* ([indices '(i ...)]
+            [offset (for/fold ([sum 0])
+                              ([idx (in-list indices)]
+                               [dim (in-naturals)])
+                      (+ sum (* idx (dim-stride p dim))))])
+       (ptr-ref (NDArray-dataptr p) type 'abs offset))]))
 
 (define (ndarray-data->list nda type)
   (cblock->list (NDArray-dataptr nda) type (NDArray-num_elems nda)))
