@@ -16,10 +16,11 @@ LIB_NAME        := libvolrend
 CC = gcc
 COMPILERFLAGS = -Wall -std=gnu11 -O3
 DEBUG_FLAGS = -g -O0
+OPENMP_FLAGS = -fopenmp
 #SAN_FLAGS = -fsanitize=address -fno-omit-frame-pointer
 #MYFLAGS = -DVGA_DEBUG
 INCLUDE  = -I$(CURDIR)/$(INCDIR) -I$(CURDIR)/$(SRCDIR)
-CFLAGS = $(COMPILERFLAGS) $(MYFLAGS) $(DEBUG_FLAGS) $(SAN_FLAGS) $(INCLUDE)
+CFLAGS = $(COMPILERFLAGS) $(MYFLAGS) $(DEBUG_FLAGS) $(OPENMP_FLAGS) $(SAN_FLAGS) $(INCLUDE)
 
 LDFLAGS = -shared -fpic
 #LDFLAGS += -fsanitize=address

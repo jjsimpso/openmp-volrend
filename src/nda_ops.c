@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <malloc.h>
 #include <string.h>
+#include <omp.h>
 
 #include "ndarray.h"
 
@@ -133,6 +134,48 @@ NDArray *ndarray_mul_double(NDArray *a, NDArray *b)
     return c;
 }
 */
+
+NDArray *ndarray_mul_double_contig(NDArray *a, NDArray *b)
+{
+    // allocate result array
+    NDArray *c = ndarray_new(a->ndim, a->dims, a->elem_bytes, NULL);
+    if(!c)
+    {
+	return NULL;
+    }
+
+    intptr_t elem_stride = a->elem_bytes;
+    intptr_t base_stride = (a->num_elems * elem_stride) / a->dims[0]; // stride of first dimension
+    intptr_t sub_len = base_stride / elem_stride; // number of elements within each iteration of 1st dimension
+
+    #pragma omp parallel for
+    for(int i = 0; i < a->dims[0]; i++)
+    {
+	double *result = (double *)(c->dataptr + (base_stride * i));
+	double *acursor = (double *)(a->dataptr + (base_stride * i));
+	double *bcursor = (double *)(b->dataptr + (base_stride * i));
+	for(int j = 0; j < sub_len; j++)
+	{
+	    result[j] = acursor[j] * bcursor[j];
+	}
+    }
+    
+    return c;
+}
+
+double ndarray_sum_double(NDArray *a)
+{
+    double sum = 0.0;
+    double *data = (double *)NDARRAY_DATAPTR(a);
+    
+    #pragma omp parallel for shared(data) reduction(+:sum)
+    for(int i = 0; i < a->num_elems; i++)
+    {
+	sum += data[i];
+    }
+    
+    return sum;
+}
 
 MAKE_NDARRAY_OP_FUNC(mul, *, float)
 MAKE_NDARRAY_OP_FUNC(mul, *, double)

@@ -156,12 +156,18 @@
   (free rgb))
 
 (define (test-bigmul x)
+  (define a (ndarray_new 2 (vector x x) 8 #f))
+  (define b (ndarray_new 2 (vector x x) 8 #f))
+  (ndarray_fill_index_double a)
+  (ndarray_fill_double b 2.0)
   (time
-   (define a (ndarray_new 2 (vector x x) 8 #f))
-   (define b (ndarray_new 2 (vector x x) 8 #f))
-   (ndarray_fill_double a 2.0)
-   (ndarray_fill_double b 2.0)
-   (ndarray_mul_double a b)))
+   (ndarray_mul_double_contig a b)))
+
+(define (test-bigsum x)
+  (define a (ndarray_new 2 (vector x x) 8 #f))
+  (ndarray_fill_index_double a)
+  (time
+   (ndarray_sum_double a)))
 
 (test-linspace)
 (test-simple-iterator)

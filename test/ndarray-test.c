@@ -189,6 +189,15 @@ void linspace(double start, double stop, int num, bool endpoint)
     free(step_data);
 }
 
+void test_bigsum(int x)
+{
+    NDArray *nda = ndarray_new(2, (intptr_t []){x, x}, sizeof(double), NULL);
+    ndarray_fill_index_double(nda);
+    double sum = ndarray_sum_double(nda);
+    printf("sum = %f\n", sum);
+    ndarray_free(nda);
+}
+
 int main(int argc, char **argv)
 {
 
@@ -199,6 +208,8 @@ int main(int argc, char **argv)
     test_multi_iterator();
 
     linspace(0, 5000, 50, true);
+
+    test_bigsum(10);
     
     return 0;
 }

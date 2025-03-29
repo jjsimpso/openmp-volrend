@@ -66,3 +66,6 @@ NDArray *ndarray_iter_add_uint8_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_add_uint16_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_add_uint32_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_add_uint64_t(NDArrayIter *a, NDArrayIter *b);
+
+NDArray *ndarray_mul_double_contig(NDArray *a, NDArray *b);
+double ndarray_sum_double(NDArray *a);
