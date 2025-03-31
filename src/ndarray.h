@@ -7,6 +7,8 @@
 
 #define MAX_DIMS 32
 
+#define OPENMP_ELEM_THRESHOLD 10000
+
 typedef struct {
     // number of dimensions, N
     int ndim;
@@ -84,3 +86,5 @@ NDArrayMultiIter *ndarray_multi_iter_new_from_iter(int num, ...);
 void ndarray_multi_iter_free(NDArrayMultiIter *mit);
 void ndarray_multi_iter_free_except_iter(NDArrayMultiIter *mit);
 bool ndarray_multi_iter_next(NDArrayMultiIter *mit);
+
+bool ndarray_shape_equal(NDArray *a, NDArray *b);

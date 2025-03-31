@@ -68,13 +68,76 @@ MAKE_NDARRAY_FILL_INDEX_FUNC(uint8_t)
 MAKE_NDARRAY_FILL_INDEX_FUNC(uint16_t)
 MAKE_NDARRAY_FILL_INDEX_FUNC(uint32_t)
 MAKE_NDARRAY_FILL_INDEX_FUNC(uint64_t)
+
+#define MAKE_NDARRAY_SUM_FUNC(type)                                  \
+type ndarray_sum_##type(NDArray *a)                                  \
+{                                                                    \
+    double sum = 0.0;                                                \
+    double *data = (double *)NDARRAY_DATAPTR(a);                     \
+                                                                     \
+    if(a->num_elems > OPENMP_ELEM_THRESHOLD)                         \
+    {                                                                \
+        _Pragma("omp parallel for shared(data) reduction(+:sum)")    \
+	for(int i = 0; i < a->num_elems; i++)                        \
+	{                                                            \
+	    sum += data[i];                                          \
+	}                                                            \
+    }                                                                \
+    else                                                             \
+    {	                                                             \
+	for(int i = 0; i < a->num_elems; i++)                        \
+	{                                                            \
+	    sum += data[i];                                          \
+	}                                                            \
+    }                                                                \
+                                                                     \
+    return sum;                                                      \
+}
+
+MAKE_NDARRAY_SUM_FUNC(float)
+MAKE_NDARRAY_SUM_FUNC(double)
+MAKE_NDARRAY_SUM_FUNC(int32_t)
+MAKE_NDARRAY_SUM_FUNC(int64_t)
+MAKE_NDARRAY_SUM_FUNC(uint32_t)
+MAKE_NDARRAY_SUM_FUNC(uint64_t)
+
+/* sample expansion
+double ndarray_sum_double(NDArray *a)
+{
+    double sum = 0.0;
+    double *data = (double *)NDARRAY_DATAPTR(a);
+
+    if(a->num_elems > OPENMP_ELEM_THRESHOLD)
+    {
+        #pragma omp parallel for shared(data) reduction(+:sum)
+	for(int i = 0; i < a->num_elems; i++)
+	{
+	    sum += data[i];
+	}
+    }
+    else
+    {	
+	for(int i = 0; i < a->num_elems; i++)
+	{
+	    sum += data[i];
+	}
+    }
     
+    return sum;
+}
+*/
+
 /* 
    allocates an NDArray to store the result and returns a pointer to it
 */
 #define MAKE_NDARRAY_OP_FUNC(name, op, type)	                                                 \
 NDArray *ndarray_##name##_##type(NDArray *a, NDArray *b)                                         \
 {                                                                                                \
+    if((a->num_elems > OPENMP_ELEM_THRESHOLD) && ndarray_shape_equal(a, b))                      \
+    {                                                                                            \
+        return ndarray_##name##_##type##_mp(a, b);                                               \
+    }                                                                                            \
+                                                                                                 \
     NDArrayMultiIter *mit = ndarray_multi_iter_new(2, a, b);                                     \
                                                                                                  \
     if(!mit)                                                                                     \
@@ -106,6 +169,11 @@ NDArray *ndarray_##name##_##type(NDArray *a, NDArray *b)                        
 /* sample expansion
 NDArray *ndarray_mul_double(NDArray *a, NDArray *b)
 {
+    if((a->num_elems > OPENMP_ELEM_THRESHOLD) && ndarray_shape_equal(a, b))
+    {
+        return ndarray_mul_double_mp(a, b);
+    }
+
     NDArrayMultiIter *mit = ndarray_multi_iter_new(2, a, b);
 
     if(!mit)
@@ -135,7 +203,43 @@ NDArray *ndarray_mul_double(NDArray *a, NDArray *b)
 }
 */
 
-NDArray *ndarray_mul_double_contig(NDArray *a, NDArray *b)
+/*
+  If the NDArrays have the same shape, we can use an algorithm accelerated by openmp. We
+  also don't need to use iterators since we won't be broadcasting and NDArrays are contiguous.
+*/
+#define MAKE_NDARRAY_OP_MP_FUNC(name, op, type)	                                                 \
+NDArray *ndarray_##name##_##type##_mp(NDArray *a, NDArray *b)                                    \
+{                                                                                                \
+    /* allocate result array */ 	                                                         \
+    NDArray *c = ndarray_new(a->ndim, a->dims, a->elem_bytes, NULL);                             \
+    if(!c)                                                                                       \
+    {                                                                                            \
+	return NULL;                                                                             \
+    }                                                                                            \
+                                                                                                 \
+    intptr_t elem_stride = a->elem_bytes;                                                        \
+    /* stride of first dimension */                                                              \
+    intptr_t base_stride = (a->num_elems * elem_stride) / a->dims[0];                            \
+    /* number of elements within each iteration of 1st dimension*/                               \
+    intptr_t sub_len = base_stride / elem_stride;                                                \
+                                                                                                 \
+    _Pragma("omp parallel for")                                                                  \
+    for(int i = 0; i < a->dims[0]; i++)                                                          \
+    {                                                                                            \
+	type *result = (type *)(c->dataptr + (base_stride * i));                                 \
+	type *acursor = (type *)(a->dataptr + (base_stride * i));                                \
+	type *bcursor = (type *)(b->dataptr + (base_stride * i));                                \
+	for(int j = 0; j < sub_len; j++)                                                         \
+	{                                                                                        \
+	    result[j] = acursor[j] * bcursor[j];                                                 \
+	}                                                                                        \
+    }                                                                                            \
+                                                                                                 \
+    return c;                                                                                    \
+}
+
+/* sample expansion
+NDArray *ndarray_mul_double_mp(NDArray *a, NDArray *b)
 {
     // allocate result array
     NDArray *c = ndarray_new(a->ndim, a->dims, a->elem_bytes, NULL);
@@ -162,20 +266,29 @@ NDArray *ndarray_mul_double_contig(NDArray *a, NDArray *b)
     
     return c;
 }
+*/
 
-double ndarray_sum_double(NDArray *a)
-{
-    double sum = 0.0;
-    double *data = (double *)NDARRAY_DATAPTR(a);
-    
-    #pragma omp parallel for shared(data) reduction(+:sum)
-    for(int i = 0; i < a->num_elems; i++)
-    {
-	sum += data[i];
-    }
-    
-    return sum;
-}
+MAKE_NDARRAY_OP_MP_FUNC(mul, *, float)
+MAKE_NDARRAY_OP_MP_FUNC(mul, *, double)
+MAKE_NDARRAY_OP_MP_FUNC(mul, *, int8_t)
+MAKE_NDARRAY_OP_MP_FUNC(mul, *, int16_t)
+MAKE_NDARRAY_OP_MP_FUNC(mul, *, int32_t)
+MAKE_NDARRAY_OP_MP_FUNC(mul, *, int64_t)
+MAKE_NDARRAY_OP_MP_FUNC(mul, *, uint8_t)
+MAKE_NDARRAY_OP_MP_FUNC(mul, *, uint16_t)
+MAKE_NDARRAY_OP_MP_FUNC(mul, *, uint32_t)
+MAKE_NDARRAY_OP_MP_FUNC(mul, *, uint64_t)
+
+MAKE_NDARRAY_OP_MP_FUNC(add, +, float)
+MAKE_NDARRAY_OP_MP_FUNC(add, +, double)
+MAKE_NDARRAY_OP_MP_FUNC(add, +, int8_t)
+MAKE_NDARRAY_OP_MP_FUNC(add, +, int16_t)
+MAKE_NDARRAY_OP_MP_FUNC(add, +, int32_t)
+MAKE_NDARRAY_OP_MP_FUNC(add, +, int64_t)
+MAKE_NDARRAY_OP_MP_FUNC(add, +, uint8_t)
+MAKE_NDARRAY_OP_MP_FUNC(add, +, uint16_t)
+MAKE_NDARRAY_OP_MP_FUNC(add, +, uint32_t)
+MAKE_NDARRAY_OP_MP_FUNC(add, +, uint64_t)
 
 MAKE_NDARRAY_OP_FUNC(mul, *, float)
 MAKE_NDARRAY_OP_FUNC(mul, *, double)
@@ -198,7 +311,6 @@ MAKE_NDARRAY_OP_FUNC(add, +, uint8_t)
 MAKE_NDARRAY_OP_FUNC(add, +, uint16_t)
 MAKE_NDARRAY_OP_FUNC(add, +, uint32_t)
 MAKE_NDARRAY_OP_FUNC(add, +, uint64_t)
-
 
 /* 
    allocates an NDArray to store the result and returns a pointer to it

@@ -155,15 +155,31 @@
                           out3-ppm-path (/ w 2) (/ h 2))
   (free rgb))
 
-(define (test-bigmul x)
+(define (test-bigmul)
+  (define a (ndarray_new 2 (vector 10000 10000) 8 #f))
+  (define b (ndarray_new 2 (vector 10000 10000) 8 #f))
+  (ndarray_fill_index_double a)
+  (ndarray_fill_double b 2.0)
+  (define c (ndarray_mul_double_mp a b))
+  (check-equal? (ndarray-ref c _double 1 0) 20000.0)
+  (check-equal? (ndarray-ref c _double 0 1000) 2000.0)
+  (check-equal? (ndarray-ref c _double 1000 1000) 20002000.0)
+  (check-equal? (ndarray-ref c _double 9999 9999) 199999998.0))
+
+(define (test-bigsum)
+  (define a (ndarray_new 2 (vector 10000 10000) 8 #f))
+  (ndarray_fill_index_double a)
+  (check-equal? (ndarray_sum_double a) 4.99999995e+15))
+
+(define (time-mul-double x)
   (define a (ndarray_new 2 (vector x x) 8 #f))
   (define b (ndarray_new 2 (vector x x) 8 #f))
   (ndarray_fill_index_double a)
   (ndarray_fill_double b 2.0)
   (time
-   (ndarray_mul_double_contig a b)))
+   (ndarray_mul_double a b)))
 
-(define (test-bigsum x)
+(define (time-sum-double x)
   (define a (ndarray_new 2 (vector x x) 8 #f))
   (ndarray_fill_index_double a)
   (time
@@ -173,4 +189,6 @@
 (test-simple-iterator)
 (test-multi-iterator)
 (test-ppm)
+(test-bigmul)
+(test-bigsum)
 (collect-garbage 'major)

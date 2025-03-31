@@ -23,6 +23,35 @@ void ndarray_fill_index_uint16_t(NDArray *a);
 void ndarray_fill_index_uint32_t(NDArray *a);
 void ndarray_fill_index_uint64_t(NDArray *a);
 
+float ndarray_sum_float(NDArray *a);
+double ndarray_sum_double(NDArray *a);
+int32_t ndarray_sum_int32_t(NDArray *a);
+int64_t ndarray_sum_int64_t(NDArray *a);
+uint32_t ndarray_sum_uint32_t(NDArray *a);
+uint64_t ndarray_sum_uint64_t(NDArray *a);
+
+NDArray *ndarray_mul_float_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_mul_double_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_mul_int8_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_mul_int16_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_mul_int32_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_mul_int64_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_mul_uint8_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_mul_uint16_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_mul_uint32_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_mul_uint64_t_mp(NDArray *a, NDArray *b);
+
+NDArray *ndarray_add_float_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_add_double_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_add_int8_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_add_int16_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_add_int32_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_add_int64_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_add_uint8_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_add_uint16_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_add_uint32_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_add_uint64_t_mp(NDArray *a, NDArray *b);
+
 NDArray *ndarray_mul_float(NDArray *a, NDArray *b);
 NDArray *ndarray_mul_double(NDArray *a, NDArray *b);
 NDArray *ndarray_mul_int8_t(NDArray *a, NDArray *b);
@@ -66,6 +95,3 @@ NDArray *ndarray_iter_add_uint8_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_add_uint16_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_add_uint32_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_add_uint64_t(NDArrayIter *a, NDArrayIter *b);
-
-NDArray *ndarray_mul_double_contig(NDArray *a, NDArray *b);
-double ndarray_sum_double(NDArray *a);

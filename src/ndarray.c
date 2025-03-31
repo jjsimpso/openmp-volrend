@@ -555,3 +555,21 @@ bool ndarray_multi_iter_next(NDArrayMultiIter *mit)
     
     return (mit->index < mit->length);
 }
+
+bool ndarray_shape_equal(NDArray *a, NDArray *b)
+{
+    if(a->ndim != b->ndim)
+    {
+	return false;
+    }
+
+    for(int i = 0; i < a->ndim; i++)
+    {
+	if(a->dims[i] != b->dims[i])
+	{
+	    return false;
+	}
+    }
+    
+    return true;
+}
