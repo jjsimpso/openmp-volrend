@@ -24,7 +24,9 @@
          make-slice
          in-iter
          _NDArray-pointer
+         _NDArray-pointer/null
          _NDArrayIter-pointer
+         _NDArrayIter-pointer/null
          _Slice-pointer
          (struct-out NDArray)
          (struct-out NDArrayIter)

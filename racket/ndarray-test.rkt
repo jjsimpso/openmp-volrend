@@ -155,12 +155,27 @@
                           out3-ppm-path (/ w 2) (/ h 2))
   (free rgb))
 
+;; check that exceptions are triggered for certain conditions
+(define (test-err)
+  (define a (ndarray_new 2 (vector 3 3) (ctype-sizeof _int32) #f))
+  (define b (ndarray_new 2 (vector 3 4) (ctype-sizeof _int32) #f))
+  (ndarray_fill_index_int32_t a)
+  (ndarray_fill_index_int32_t b)
+  (check-equal?
+   (with-handlers ([exn:fail? (lambda (exn) "caught error")])
+     (ndarray_add_int32_t a b))
+   "caught error")
+  (check-equal?
+   (with-handlers ([exn:fail? (lambda (exn) "caught error")])
+     (ndarray_mul_int32_t a b))
+   "caught error"))
+  
 (define (test-bigmul)
   (define a (ndarray_new 2 (vector 10000 10000) 8 #f))
   (define b (ndarray_new 2 (vector 10000 10000) 8 #f))
   (ndarray_fill_index_double a)
   (ndarray_fill_double b 2.0)
-  (define c (ndarray_mul_double_mp a b))
+  (define c (ndarray_mul_double a b))
   (check-equal? (ndarray-ref c _double 1 0) 20000.0)
   (check-equal? (ndarray-ref c _double 0 1000) 2000.0)
   (check-equal? (ndarray-ref c _double 1000 1000) 20002000.0)
@@ -189,6 +204,7 @@
 (test-simple-iterator)
 (test-multi-iterator)
 (test-ppm)
+(test-err)
 (test-bigmul)
 (test-bigsum)
 (collect-garbage 'major)
