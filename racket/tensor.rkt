@@ -9,7 +9,8 @@
          "ndarray-ops-ffi.rkt")
 
 (provide make-tensor
-         tensor-fill
+         tshape
+         tfill
          tref
          t*
          t+
@@ -18,8 +19,20 @@
 (struct tensor
   (type  ; a ctype
    shape ; a vector
-   ndarray)
+   ndarray
+   [iter #:auto])
+  #:auto-value #f
   #:prefab)
+
+(define (iter-shape it)
+  (for/vector #:length (add1 (NDArrayIter-nd_m1 it))
+              ([i (in-naturals)])
+    (ndarray-iter-dims it i)))
+
+(define (tshape t)
+  (if (tensor-iter t)
+      (iter-shape (tensor-iter t))
+      (tensor-shape t)))
 
 (define (guess-type v)
   (cond
@@ -29,7 +42,7 @@
     [else
      _double]))
 
-(define (tensor-fill t v)
+(define (tfill t v)
   (case (ctype->layout (tensor-type t))
     [(double) (ndarray_fill_double (tensor-ndarray t) v)]
     [(float)  (ndarray_fill_float (tensor-ndarray t))]
@@ -62,27 +75,77 @@
   
   (tensor type shape nda))
 
+(define (slice t args)
+  void)
+
 (define-syntax-rule (tref t i ...)
   (ndarray-ref (tensor-ndarray t) (tensor-type t) i ...))
 
+;(require (for-syntax syntax/parse racket/syntax))
+
+#;(define-syntax (op-name stx)
+  (syntax-parse stx
+    #:datum-literals (iterator)
+    [(_ op type)
+     (with-syntax ([name (format-id stx "ndarray_~a_~a" (syntax-e #'op) (syntax-e #'type))])
+       #'name)]
+    [(_ op type iterator)
+     (with-syntax ([name (format-id stx "ndarray_iter_~a_~a" (syntax-e #'op) (syntax-e #'type))])
+       #'name)]
+    #;[(_) #'"dispatch-op: invalid syntax"]))
+
+(define (dispatch-mul type iter?)
+  (if iter?
+      (case type
+        [(double) ndarray_iter_mul_double]
+        [(float) ndarray_iter_mul_float]
+        [(int64) ndarray_iter_mul_int64_t]
+        [(uint8) ndarray_iter_mul_uint8_t]
+        [else
+         (error "unsupported tensor type")])
+      (case type
+        [(double) ndarray_mul_double]
+        [(float) ndarray_mul_float]
+        [(int64) ndarray_mul_int64_t]
+        [(uint8) ndarray_mul_uint8_t]
+        [else
+         (error "unsupported tensor type")])))
+
+(define (dispatch-add type iter?)
+  (if iter?
+      (case type
+        [(double) ndarray_iter_add_double]
+        [(float) ndarray_iter_add_float]
+        [(int64) ndarray_iter_add_int64_t]
+        [(uint8) ndarray_iter_add_uint8_t]
+        [else
+         (error "unsupported tensor type")])
+      (case type
+        [(double) ndarray_add_double]
+        [(float) ndarray_add_float]
+        [(int64) ndarray_add_int64_t]
+        [(uint8) ndarray_add_uint8_t]
+        [else
+         (error "unsupported tensor type")])))
+
 (define (t* a b)
   (define type (tensor-type a))
-  (define shape (tensor-shape a))
-  (case (ctype->layout type)
-    [(double) (tensor type shape (ndarray_mul_double (tensor-ndarray a) (tensor-ndarray b)))]
-    [(float) (tensor type shape (ndarray_mul_float   (tensor-ndarray a) (tensor-ndarray b)))]
-    [(int64) (tensor type shape (ndarray_mul_int64_t (tensor-ndarray a) (tensor-ndarray b)))]
-    [(uint8) (tensor type shape (ndarray_mul_uint8_t (tensor-ndarray a) (tensor-ndarray b)))]
+  (define shape (tshape a))
+  (cond
+    [(and (false? (tensor-iter a)) (false? (tensor-iter b)))
+     (tensor type shape ((dispatch-mul (ctype->layout type) #f) (tensor-ndarray a) (tensor-ndarray b)))]
+    [(and (tensor-iter a) (tensor-iter b))
+     (tensor type shape ((dispatch-mul (ctype->layout type) #t) (tensor-iter a) (tensor-iter b)))]
     [else
-     (error "unsupported tensor type")]))
+     (error "incompatible tensor arguments")]))
 
 (define (t+ a b)
   (define type (tensor-type a))
-  (define shape (tensor-shape a))
-  (case (ctype->layout type)
-    [(double) (tensor type shape (ndarray_add_double (tensor-ndarray a) (tensor-ndarray b)))]
-    [(float) (tensor type shape (ndarray_add_float   (tensor-ndarray a) (tensor-ndarray b)))]
-    [(int64) (tensor type shape (ndarray_add_int64_t (tensor-ndarray a) (tensor-ndarray b)))]
-    [(uint8) (tensor type shape (ndarray_add_uint8_t (tensor-ndarray a) (tensor-ndarray b)))]
+  (define shape (tshape a))
+  (cond
+    [(and (false? (tensor-iter a)) (false? (tensor-iter b)))
+     (tensor type shape ((dispatch-add (ctype->layout type) #f) (tensor-ndarray a) (tensor-ndarray b)))]
+    [(and (tensor-iter a) (tensor-iter b))
+     (tensor type shape ((dispatch-add (ctype->layout type) #t) (tensor-iter a) (tensor-iter b)))]
     [else
-     (error "unsupported tensor type")]))
+     (error "incompatible tensor arguments")]))

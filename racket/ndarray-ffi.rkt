@@ -21,6 +21,7 @@
          ndarray-dims
          ndarray-data->list
          ndarray-iter-data
+         ndarray-iter-dims
          make-slice
          in-iter
          _NDArray-pointer
@@ -167,6 +168,10 @@
 
 (define-syntax-rule (ndarray-iter-data p type)
   (ptr-ref (NDArrayIter-cursor p) type 0))
+
+;; return size of dimension i in iterator
+(define (ndarray-iter-dims p i)
+  (add1 (array-ref (NDArrayIter-dims_m1 p) i)))
 
 ;; provide the number of dimensions and a list of triples(start end stride)
 ;; returns a cpointer to an array of _Slices
