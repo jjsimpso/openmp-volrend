@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <malloc.h>
 #include <string.h>
+#include <math.h>
 #include <omp.h>
 
 #include "ndarray.h"
@@ -393,7 +394,7 @@ NDArray *ndarray_iter_##name##_##type(NDArrayIter *a, NDArrayIter *b)           
 
 
 /* sample expansion
-NDArray *ndarray_iter_mul(NDArrayIter *a, NDArrayIter *b)
+NDArray *ndarray_iter_mul_double(NDArrayIter *a, NDArrayIter *b)
 {
     NDArrayMultiIter *mit = ndarray_multi_iter_new_from_iter(2, a, b);
     
@@ -468,3 +469,75 @@ MAKE_NDARRAY_ITER_OP_FUNC(div, /, uint8_t)
 MAKE_NDARRAY_ITER_OP_FUNC(div, /, uint16_t)
 MAKE_NDARRAY_ITER_OP_FUNC(div, /, uint32_t)
 MAKE_NDARRAY_ITER_OP_FUNC(div, /, uint64_t)
+
+/* 
+   allocates an NDArray to store the result and returns a pointer to it
+*/    
+#define MAKE_NDARRAY_FUN1_FUNC(name, fun, type)                            \
+NDArray *ndarray_##name##_##type(NDArray *a, type y)                       \
+{                                                                          \
+    /* allocate result array */                                            \
+    NDArray *c = ndarray_new(a->ndim, a->dims, sizeof(type), NULL);        \
+    if(!c)                                                                 \
+    {                                                                      \
+	return NULL;                                                       \
+    }                                                                      \
+                                                                           \
+    type *data = (type *)NDARRAY_DATAPTR(a);                               \
+    type *result = (type *)NDARRAY_DATAPTR(c);                             \
+                                                                           \
+    if(a->num_elems > OPENMP_ELEM_THRESHOLD)                               \
+    {                                                                      \
+        _Pragma("omp parallel for shared(data)")                           \
+	for(int i = 0; i < a->num_elems; i++)                              \
+	{                                                                  \
+	    result[i] = fun(data[i], y);                                   \
+	}                                                                  \
+    }                                                                      \
+    else                                                                   \
+    {	                                                                   \
+	for(int i = 0; i < a->num_elems; i++)                              \
+	{                                                                  \
+	    result[i] = fun(data[i], y);                                   \
+	}                                                                  \
+    }                                                                      \
+                                                                           \
+    return c;                                                              \
+}
+
+
+/* sample expansion
+NDArray *ndarray_pow_double(NDArray *a, double y)
+{
+    // allocate result array
+    NDArray *c = ndarray_new(a->ndim, a->dims, sizeof(double), NULL);
+    if(!c)
+    {
+	return NULL;
+    }
+    
+    double *data = (double *)NDARRAY_DATAPTR(a);
+    double *result = (double *)NDARRAY_DATAPTR(c);
+
+    if(a->num_elems > OPENMP_ELEM_THRESHOLD)
+    {
+        #pragma omp parallel for shared(data)
+	for(int i = 0; i < a->num_elems; i++)
+	{
+	    result[i] = pow(data[i], y);
+	}
+    }
+    else
+    {	
+	for(int i = 0; i < a->num_elems; i++)
+	{
+	    result[i] = pow(data[i], y);
+	}
+    }
+    
+    return c;
+}
+*/
+
+MAKE_NDARRAY_FUN1_FUNC(expt, powf, float)
+MAKE_NDARRAY_FUN1_FUNC(expt, pow, double)

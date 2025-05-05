@@ -20,13 +20,13 @@ OPENMP_FLAGS = -fopenmp
 #SAN_FLAGS = -fsanitize=address -fno-omit-frame-pointer
 #MYFLAGS = -DVGA_DEBUG
 INCLUDE  = -I$(CURDIR)/$(INCDIR) -I$(CURDIR)/$(SRCDIR)
-CFLAGS = $(COMPILERFLAGS) $(MYFLAGS) $(DEBUG_FLAGS) $(OPENMP_FLAGS) $(SAN_FLAGS) $(INCLUDE)
+LIBS     =  -lm
+CFLAGS = $(COMPILERFLAGS) $(MYFLAGS) $(DEBUG_FLAGS) $(OPENMP_FLAGS) $(SAN_FLAGS) $(INCLUDE) $(LIBS)
 
 LDFLAGS = -shared -fpic
 #LDFLAGS += -fsanitize=address
 
 LIBDIRS  = -L$(CURDIR)/$(BUILD) -L$(CURDIR)
-LIBS     =  
 
 DEPSDIR := $(CURDIR)/$(BUILD)
 #CFILES	:= $(foreach dir,$(SRCDIR),$(notdir $(wildcard $(dir)/*.c)))

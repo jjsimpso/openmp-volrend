@@ -111,7 +111,9 @@
          ndarray_iter_div_uint8_t 
          ndarray_iter_div_uint16_t
          ndarray_iter_div_uint32_t
-         ndarray_iter_div_uint64_t)
+         ndarray_iter_div_uint64_t
+         ndarray_expt_float
+         ndarray_expt_double)
 
 (define (check-null p who)
   (if (false? p)
@@ -478,6 +480,19 @@
 (define-ndarray ndarray_iter_div_uint64_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_iter_div_uint64_t))
+  #:wrap (allocator ndarray_free))
+
+
+;; Operations on NDArrays
+;;------------------------------
+(define-ndarray ndarray_expt_float(_fun _NDArray-pointer _float
+                                        -> (p : _NDArray-pointer/null)
+                                        -> (check-null p 'ndarray_expt_float))
+  #:wrap (allocator ndarray_free))
+
+(define-ndarray ndarray_expt_double (_fun _NDArray-pointer _double
+                                          -> (p : _NDArray-pointer/null)
+                                          -> (check-null p 'ndarray_expt_double))
   #:wrap (allocator ndarray_free))
 
 

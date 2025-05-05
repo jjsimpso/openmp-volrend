@@ -24,6 +24,10 @@
         [i (in-naturals 0)])
     (printf "it[~a] = ~a~n" i x)))
 
+(define (print-array nda type)
+  (define it (ndarray_iter_new nda #f))
+  (print-iter it type))
+
 (define (test-simple-iterator)
   (define nda (ndarray_new 2 (vector 10 5) (ctype-sizeof _int) #f))
   (define it (ndarray_iter_new nda #f))
@@ -169,7 +173,27 @@
    (with-handlers ([exn:fail? (lambda (exn) "caught error")])
      (ndarray_mul_int32_t a b))
    "caught error"))
+
+(define (test-ops)
+  (define a (ndarray_new 2 (vector 10 10) (ctype-sizeof _double) #f))
+  (ndarray_fill_index_double a)
+  (define b (ndarray_new 2 (vector 10 10) (ctype-sizeof _float) #f))
+  (ndarray_fill_index_float b)
   
+  (define c (ndarray_expt_double a 2.0))
+  (check-equal? (ndarray-ref c _double 0 0) 0.0)
+  (check-equal? (ndarray-ref c _double 0 1) 1.0)
+  (check-equal? (ndarray-ref c _double 0 2) 4.0)
+  (check-equal? (ndarray-ref c _double 5 0) 2500.0)
+  (check-equal? (ndarray-ref c _double 9 9) 9801.0)
+
+  (define d (ndarray_expt_float b 2.0))
+  (check-equal? (ndarray-ref d _float 0 0) 0.0)
+  (check-equal? (ndarray-ref d _float 0 1) 1.0)
+  (check-equal? (ndarray-ref d _float 0 2) 4.0)
+  (check-equal? (ndarray-ref d _float 5 0) 2500.0)
+  (check-equal? (ndarray-ref d _float 9 9) 9801.0))
+
 (define (test-bigmul)
   (define a (ndarray_new 2 (vector 10000 10000) 8 #f))
   (define b (ndarray_new 2 (vector 10000 10000) 8 #f))
@@ -204,6 +228,7 @@
 (test-simple-iterator)
 (test-multi-iterator)
 (test-ppm)
+(test-ops)
 (test-err)
 (test-bigmul)
 (test-bigsum)

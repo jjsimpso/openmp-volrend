@@ -52,6 +52,28 @@ NDArray *ndarray_add_uint16_t_mp(NDArray *a, NDArray *b);
 NDArray *ndarray_add_uint32_t_mp(NDArray *a, NDArray *b);
 NDArray *ndarray_add_uint64_t_mp(NDArray *a, NDArray *b);
 
+NDArray *ndarray_sub_float_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_double_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_int8_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_int16_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_int32_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_int64_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_uint8_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_uint16_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_uint32_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_uint64_t_mp(NDArray *a, NDArray *b);
+
+NDArray *ndarray_div_float_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_div_double_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_div_int8_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_div_int16_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_div_int32_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_div_int64_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_div_uint8_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_div_uint16_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_div_uint32_t_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_div_uint64_t_mp(NDArray *a, NDArray *b);
+
 NDArray *ndarray_mul_float(NDArray *a, NDArray *b);
 NDArray *ndarray_mul_double(NDArray *a, NDArray *b);
 NDArray *ndarray_mul_int8_t(NDArray *a, NDArray *b);
@@ -74,6 +96,28 @@ NDArray *ndarray_add_uint16_t(NDArray *a, NDArray *b);
 NDArray *ndarray_add_uint32_t(NDArray *a, NDArray *b);
 NDArray *ndarray_add_uint64_t(NDArray *a, NDArray *b);
 
+NDArray *ndarray_sub_float(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_double(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_int8_t(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_int16_t(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_int32_t(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_int64_t(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_uint8_t(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_uint16_t(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_uint32_t(NDArray *a, NDArray *b);
+NDArray *ndarray_sub_uint64_t(NDArray *a, NDArray *b);
+
+NDArray *ndarray_div_float(NDArray *a, NDArray *b);
+NDArray *ndarray_div_double(NDArray *a, NDArray *b);
+NDArray *ndarray_div_int8_t(NDArray *a, NDArray *b);
+NDArray *ndarray_div_int16_t(NDArray *a, NDArray *b);
+NDArray *ndarray_div_int32_t(NDArray *a, NDArray *b);
+NDArray *ndarray_div_int64_t(NDArray *a, NDArray *b);
+NDArray *ndarray_div_uint8_t(NDArray *a, NDArray *b);
+NDArray *ndarray_div_uint16_t(NDArray *a, NDArray *b);
+NDArray *ndarray_div_uint32_t(NDArray *a, NDArray *b);
+NDArray *ndarray_div_uint64_t(NDArray *a, NDArray *b);
+
 NDArray *ndarray_iter_mul_float(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_mul_double(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_mul_int8_t(NDArrayIter *a, NDArrayIter *b);
@@ -95,3 +139,28 @@ NDArray *ndarray_iter_add_uint8_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_add_uint16_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_add_uint32_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_add_uint64_t(NDArrayIter *a, NDArrayIter *b);
+
+NDArray *ndarray_iter_sub_float(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_sub_double(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_sub_int8_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_sub_int16_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_sub_int32_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_sub_int64_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_sub_uint8_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_sub_uint16_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_sub_uint32_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_sub_uint64_t(NDArrayIter *a, NDArrayIter *b);
+
+NDArray *ndarray_iter_div_float(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_div_double(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_div_int8_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_div_int16_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_div_int32_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_div_int64_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_div_uint8_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_div_uint16_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_div_uint32_t(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_div_uint64_t(NDArrayIter *a, NDArrayIter *b);
+
+NDArray *ndarray_expt_float(NDArray *a, float y);
+NDArray *ndarray_expt_double(NDArray *a, double y);
