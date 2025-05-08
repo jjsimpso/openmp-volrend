@@ -23,6 +23,20 @@ NDArray *ndarray_new_result(NDArrayMultiIter *mit, intptr_t elem_bytes)
 }
 
 /*
+  As above but argument is a standard iterator.
+*/
+NDArray *ndarray_new_result_single(NDArrayIter *it, intptr_t elem_bytes)
+{
+    intptr_t dims[MAX_DIMS] = {0};
+    for(int i = 0; i <= it->nd_m1; i++)
+    {
+	dims[i] = it->dims_m1[i] + 1;
+    }
+    
+    return ndarray_new(it->nd_m1 + 1, dims, elem_bytes, NULL);
+}
+
+/*
 
 */
 #define MAKE_NDARRAY_FILL_FUNC(type)	             \
@@ -73,8 +87,8 @@ MAKE_NDARRAY_FILL_INDEX_FUNC(uint64_t)
 #define MAKE_NDARRAY_SUM_FUNC(type)                                  \
 type ndarray_sum_##type(NDArray *a)                                  \
 {                                                                    \
-    double sum = 0.0;                                                \
-    double *data = (double *)NDARRAY_DATAPTR(a);                     \
+    type sum = 0.0;                                                  \
+    type *data = (type *)NDARRAY_DATAPTR(a);                         \
                                                                      \
     if(a->num_elems > OPENMP_ELEM_THRESHOLD)                         \
     {                                                                \
@@ -127,6 +141,26 @@ double ndarray_sum_double(NDArray *a)
     return sum;
 }
 */
+
+#define MAKE_NDARRAY_ITER_SUM_FUNC(type)                             \
+type ndarray_iter_sum_##type(NDArrayIter *a)                         \
+{                                                                    \
+    type sum = 0.0;                                                  \
+        						             \
+    do                                                               \
+    {                                                                \
+	sum += ITER_DATA(a, type);                                   \
+    } while(ndarray_iter_next(a));                                   \
+                                                                     \
+    return sum;                                                      \
+}
+
+MAKE_NDARRAY_ITER_SUM_FUNC(float)
+MAKE_NDARRAY_ITER_SUM_FUNC(double)
+MAKE_NDARRAY_ITER_SUM_FUNC(int32_t)
+MAKE_NDARRAY_ITER_SUM_FUNC(int64_t)
+MAKE_NDARRAY_ITER_SUM_FUNC(uint32_t)
+MAKE_NDARRAY_ITER_SUM_FUNC(uint64_t)
 
 /* 
    allocates an NDArray to store the result and returns a pointer to it
@@ -541,3 +575,28 @@ NDArray *ndarray_pow_double(NDArray *a, double y)
 
 MAKE_NDARRAY_FUN1_FUNC(expt, powf, float)
 MAKE_NDARRAY_FUN1_FUNC(expt, pow, double)
+
+/* 
+   allocates an NDArray to store the result and returns a pointer to it
+*/    
+#define MAKE_NDARRAY_ITER_FUN1_FUNC(name, fun, type)                       \
+NDArray *ndarray_iter_##name##_##type(NDArrayIter *a, type y)              \
+{                                                                          \
+    /* allocate result array */                                            \
+    NDArray *c = ndarray_new_result_single(a, sizeof(type));               \
+    if(!c)                                                                 \
+    {                                                                      \
+	return NULL;                                                       \
+    }                                                                      \
+                                                                           \
+    type *result = (type *) NDARRAY_DATAPTR(c);                            \
+    do                                                                     \
+    {                                                                      \
+	*result++ = fun(ITER_DATA(a, type), y);                            \
+    } while(ndarray_iter_next(a));                                         \
+                                                                           \
+    return c;                                                              \
+}
+
+MAKE_NDARRAY_ITER_FUN1_FUNC(expt, powf, float)
+MAKE_NDARRAY_ITER_FUN1_FUNC(expt, pow, double)

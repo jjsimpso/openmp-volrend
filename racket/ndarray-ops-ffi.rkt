@@ -31,7 +31,13 @@
          ndarray_sum_int32_t 
          ndarray_sum_int64_t
          ndarray_sum_uint32_t 
-         ndarray_sum_uint64_t 
+         ndarray_sum_uint64_t
+         ndarray_iter_sum_float
+         ndarray_iter_sum_double
+         ndarray_iter_sum_int32_t 
+         ndarray_iter_sum_int64_t
+         ndarray_iter_sum_uint32_t 
+         ndarray_iter_sum_uint64_t          
          ndarray_mul_float
          ndarray_mul_double
          ndarray_mul_int8_t
@@ -113,7 +119,9 @@
          ndarray_iter_div_uint32_t
          ndarray_iter_div_uint64_t
          ndarray_expt_float
-         ndarray_expt_double)
+         ndarray_expt_double
+         ndarray_iter_expt_float
+         ndarray_iter_expt_double)
 
 (define (check-null p who)
   (if (false? p)
@@ -148,6 +156,13 @@
 (define-ndarray ndarray_sum_int64_t (_fun _NDArray-pointer -> _int64))
 (define-ndarray ndarray_sum_uint32_t (_fun _NDArray-pointer -> _uint32))
 (define-ndarray ndarray_sum_uint64_t (_fun _NDArray-pointer -> _uint64))
+
+(define-ndarray ndarray_iter_sum_float (_fun _NDArrayIter-pointer -> _float))
+(define-ndarray ndarray_iter_sum_double (_fun _NDArrayIter-pointer -> _double))
+(define-ndarray ndarray_iter_sum_int32_t (_fun _NDArrayIter-pointer -> _int32))
+(define-ndarray ndarray_iter_sum_int64_t (_fun _NDArrayIter-pointer -> _int64))
+(define-ndarray ndarray_iter_sum_uint32_t (_fun _NDArrayIter-pointer -> _uint32))
+(define-ndarray ndarray_iter_sum_uint64_t (_fun _NDArrayIter-pointer -> _uint64))
 
 ;; Binary operations on NDArrays
 ;;------------------------------
@@ -493,6 +508,17 @@
 (define-ndarray ndarray_expt_double (_fun _NDArray-pointer _double
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_expt_double))
+  #:wrap (allocator ndarray_free))
+
+
+(define-ndarray ndarray_iter_expt_float(_fun _NDArrayIter-pointer _float
+                                        -> (p : _NDArray-pointer/null)
+                                        -> (check-null p 'ndarray_iter_expt_float))
+  #:wrap (allocator ndarray_free))
+
+(define-ndarray ndarray_iter_expt_double (_fun _NDArrayIter-pointer _double
+                                          -> (p : _NDArray-pointer/null)
+                                          -> (check-null p 'ndarray_iter_expt_double))
   #:wrap (allocator ndarray_free))
 
 

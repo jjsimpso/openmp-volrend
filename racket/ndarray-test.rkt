@@ -179,6 +179,14 @@
   (ndarray_fill_index_double a)
   (define b (ndarray_new 2 (vector 10 10) (ctype-sizeof _float) #f))
   (ndarray_fill_index_float b)
+
+  (define skip_dim (malloc _int))
+  (ptr-set! skip_dim _int 0 -1)
+
+  (check-equal? (ndarray_sum_double a) 4950.0)
+  (check-equal? (ndarray_sum_float b) 4950.0)
+  (check-equal? (ndarray_iter_sum_double (ndarray_iter_new a (make-slice 2 '((0 2 1) (0 2 1))))) 99.0)
+  (check-equal? (ndarray_iter_sum_float (ndarray_iter_new_all_but_axis b #f skip_dim)) 450.0)
   
   (define c (ndarray_expt_double a 2.0))
   (check-equal? (ndarray-ref c _double 0 0) 0.0)
@@ -192,7 +200,10 @@
   (check-equal? (ndarray-ref d _float 0 1) 1.0)
   (check-equal? (ndarray-ref d _float 0 2) 4.0)
   (check-equal? (ndarray-ref d _float 5 0) 2500.0)
-  (check-equal? (ndarray-ref d _float 9 9) 9801.0))
+  (check-equal? (ndarray-ref d _float 9 9) 9801.0)
+
+  (define e (ndarray_iter_expt_float (ndarray_iter_new b #f) 2.0))
+  (check-equal? (ndarray-ref e _float 5 0) 2500.0))
 
 (define (test-bigmul)
   (define a (ndarray_new 2 (vector 10000 10000) 8 #f))

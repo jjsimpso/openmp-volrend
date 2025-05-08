@@ -30,6 +30,13 @@ int64_t ndarray_sum_int64_t(NDArray *a);
 uint32_t ndarray_sum_uint32_t(NDArray *a);
 uint64_t ndarray_sum_uint64_t(NDArray *a);
 
+float ndarray_iter_sum_float(NDArrayIter *a);
+double ndarray_iter_sum_double(NDArrayIter *a);
+int32_t ndarray_iter_sum_int32_t(NDArrayIter *a);
+int64_t ndarray_iter_sum_int64_t(NDArrayIter *a);
+uint32_t ndarray_iter_sum_uint32_t(NDArrayIter *a);
+uint64_t ndarray_iter_sum_uint64_t(NDArrayIter *a);
+
 NDArray *ndarray_mul_float_mp(NDArray *a, NDArray *b);
 NDArray *ndarray_mul_double_mp(NDArray *a, NDArray *b);
 NDArray *ndarray_mul_int8_t_mp(NDArray *a, NDArray *b);
@@ -164,3 +171,6 @@ NDArray *ndarray_iter_div_uint64_t(NDArrayIter *a, NDArrayIter *b);
 
 NDArray *ndarray_expt_float(NDArray *a, float y);
 NDArray *ndarray_expt_double(NDArray *a, double y);
+
+NDArray *ndarray_iter_expt_float(NDArrayIter *a, float y);
+NDArray *ndarray_iter_expt_double(NDArrayIter *a, double y);
