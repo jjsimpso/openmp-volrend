@@ -150,8 +150,9 @@
 
   (define skip_dim (malloc _int))
   (ptr-set! skip_dim _int 0 -1)
-  (define it2 (ndarray_iter_new_all_but_axis nda #f skip_dim))
-  (ndarray_iter_write_ppm it2 out2-ppm-path w h)
+  ;; writing a ppm with skip dim set is no longer supported by ndarray_iter_write_file
+  ;(define it2 (ndarray_iter_new_all_but_axis nda #f skip_dim))
+  ;(ndarray_iter_write_ppm it2 out2-ppm-path w h)
 
   (ndarray_iter_write_ppm (ndarray_iter_new nda (make-slice 3 `((0 ,(sub1 h)  2)
                                                                 (0 ,(sub1 w) 2)

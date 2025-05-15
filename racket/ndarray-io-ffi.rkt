@@ -8,7 +8,14 @@
 
 (provide read_ppm
          write_ppm
+         ndarray_read_ppm
+         ndarray_write_ppm
          ndarray_iter_write_ppm)
+
+(define (check-null p who)
+  (if (false? p)
+      (error who "returned NULL")
+      p))
 
 ;(define free_ppm (deallocator (lambda (v) (when v (free v)))))
 
@@ -20,5 +27,12 @@
 ;;  #:wrap (allocator free_ppm))
 
 (define-ndarray write_ppm (_fun _path _int _int _pointer -> _int))
+
+(define-ndarray ndarray_read_ppm (_fun _path
+                                       -> (p : _NDArray-pointer/null)
+                                       -> (check-null p 'ndarray_read_ppm))
+  #:wrap (allocator ndarray_free))
+
+(define-ndarray ndarray_write_ppm (_fun _NDArray-pointer _path -> _int))
 
 (define-ndarray ndarray_iter_write_ppm (_fun _NDArrayIter-pointer _path _int _int -> _int))

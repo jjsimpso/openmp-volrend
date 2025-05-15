@@ -166,7 +166,8 @@ NDArrayIter *ndarray_iter_new_all_but_axis(NDArray *nda, Slice *slices, int *dim
 	return NULL;
     }
 
-    NDArrayIter *iter = ndarray_iter_new(nda, slices);
+    // create iterator without using the slices (yet)
+    NDArrayIter *iter = ndarray_iter_new(nda, NULL);
 
     if(!iter)
     {
@@ -179,12 +180,62 @@ NDArrayIter *ndarray_iter_new_all_but_axis(NDArray *nda, Slice *slices, int *dim
     }
 
     int skip_dim = *dim;
-    iter->nd_m1--;;
-    iter->length = iter->length / (iter->dims_m1[skip_dim] + 1);
-    iter->dims_m1[skip_dim] = 0;
-    iter->backstrides[skip_dim] = 0;
-    iter->contiguous = 0;
 
+    if(slices)
+    {
+	intptr_t nda_strides[MAX_DIMS] = {0};
+	
+	// todo: can we keep it contiguous if skip_dim is 0?
+	iter->contiguous = false;
+	// recalculate length
+	iter->length = 1;
+	// apply the slices, skipping skip_dim
+	for(int i = iter->nd_m1; i >= 0; i--)
+	{
+	    if(i != skip_dim)
+	    {
+		iter->dims_m1[i] = (slices[i].end - slices[i].start) / slices[i].stride;
+		iter->coords[i] = 0;
+		if(i == iter->nd_m1)
+		{
+		    nda_strides[i] = nda->elem_bytes;
+		    iter->strides[i] = slices[i].stride * nda->elem_bytes;
+		}
+		else
+		{
+		    nda_strides[i] = nda->dims[i+1] * nda_strides[i+1];
+		    iter->strides[i] = slices[i].stride * nda_strides[i];
+		}
+		iter->backstrides[i] = iter->dims_m1[i] * iter->strides[i];
+		iter->slicestarts[i] = slices[i].start;
+		iter->length *= iter->dims_m1[i] + 1;
+		iter->cursor += slices[i].start * nda_strides[i];
+	    }
+	    else
+	    {
+		if(i == iter->nd_m1)
+		{
+		    nda_strides[i] = nda->elem_bytes;
+		}
+		
+		iter->coords[i] = 0;
+		iter->dims_m1[i] = 0;
+		iter->backstrides[i] = 0;
+	    }
+	}
+
+	iter->nd_m1--;
+    }
+    else
+    {
+	// just adjust for skipped dimension
+	iter->nd_m1--;
+	iter->length = iter->length / (iter->dims_m1[skip_dim] + 1);
+	iter->dims_m1[skip_dim] = 0;
+	iter->backstrides[skip_dim] = 0;
+	iter->contiguous = false;
+    }
+    
     return iter;
 }
 
@@ -267,7 +318,7 @@ int ndarray_iter_write_file(NDArrayIter *it, FILE *out)
 	}
 	else
 	{
-	    int num_bytes = it->strides[it->nd_m1];
+	    int num_bytes = it->nda->elem_bytes; //it->strides[it->nd_m1];
 	    do
 	    {
 		cnt = fwrite(it->cursor, 1, num_bytes, out);

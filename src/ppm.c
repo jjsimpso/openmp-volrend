@@ -117,6 +117,33 @@ int write_ppm(char *path, int width, int height, uint8_t *data)
     return err;
 }
 
+NDArray *ndarray_read_ppm(char *path)
+{
+    int w, h;
+    uint8_t *rgb = read_ppm(path, &w, &h);
+
+    if(rgb == NULL)
+    {
+	return NULL;
+    }
+    
+    NDArray *nda = ndarray_new(3, (intptr_t []){h, w, 3}, 1, rgb);
+    if(nda == NULL)
+    {
+	free(rgb);
+    }
+
+    return nda;
+}
+
+int ndarray_write_ppm(NDArray *nda, char *path)
+{
+    int w = nda->dims[1];
+    int h = nda->dims[0];
+    
+    return write_ppm(path, w, h, nda->dataptr);
+}
+
 int ndarray_iter_write_ppm(NDArrayIter *it, char *path, int width, int height)
 {
     int err = 0;

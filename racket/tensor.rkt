@@ -10,17 +10,20 @@
 
 (provide make-tensor
          tshape
-         tfill
+         tfill!
          tref
+         tslice
          t*
          t+
+         (struct-out tensor)
+         NDArray?
          _double)
 
 (struct tensor
   (type  ; a ctype
    shape ; a vector
    ndarray
-   [iter #:auto])
+   [iter #:auto #:mutable])
   #:auto-value #f
   #:prefab)
 
@@ -36,13 +39,19 @@
 
 (define (guess-type v)
   (cond
+    [(NDArray? v)
+     (case (NDArray-elem_bytes v)
+       [(8) _double]
+       [(4) _float]
+       [(1) _uint8]
+       [else _double])]
     [(double-flonum? v) _double]
     [(single-flonum? v) _float]
     [(exact-integer? v) _int64]
     [else
      _double]))
 
-(define (tfill t v)
+(define (tfill! t v)
   (case (ctype->layout (tensor-type t))
     [(double) (ndarray_fill_double (tensor-ndarray t) v)]
     [(float)  (ndarray_fill_float (tensor-ndarray t))]
@@ -53,10 +62,15 @@
   (define type (if ctype
                    ctype
                    (guess-type v)))
-  (define nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))
+  (define nda #f)
+  
   ;; initialize tensor
   (cond
+    [(NDArray? v)
+     ;; todo: add shape check
+     (set! nda v)]
     [(eq? v 'index)
+     (set! nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))
      (case (ctype->layout type)
        [(double) (ndarray_fill_index_double nda)]
        [(float) (ndarray_fill_index_float nda)]
@@ -65,6 +79,7 @@
        [else
         (error "unsupported tensor type")])]
     [else
+     (set! nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))
      (case (ctype->layout type)
        [(double) (ndarray_fill_double nda v)]
        [(float) (ndarray_fill_float nda)]
@@ -75,8 +90,28 @@
   
   (tensor type shape nda))
 
-(define (slice t args)
-  void)
+;; returns a new tensor that points to the same ndarray
+(define (tslice t slice-list #:skip-dim [skip-dim #f])
+  (define tnew (tensor (tensor-type t) (tensor-shape t) (tensor-ndarray t)))
+  (define nd (if skip-dim
+                 (sub1 (vector-length (tensor-shape tnew)))
+                 (vector-length (tensor-shape tnew))))
+  
+  (unless (or (empty? slice-list)
+              (equal? nd (length slice-list)))
+    (error "slices don't match tensor dimensions"))
+  (define slices (if (empty? slice-list)
+                     #f
+                     (make-slice nd slice-list)))
+  (define it
+    (if skip-dim
+        (let ([dim (malloc _int)])
+          (ptr-set! dim _int 0 skip-dim)
+          (ndarray_iter_new_all_but_axis (tensor-ndarray t) slices dim))
+        (ndarray_iter_new (tensor-ndarray t) slices)))
+  
+  (set-tensor-iter! tnew it)
+  tnew)
 
 (define-syntax-rule (tref t i ...)
   (ndarray-ref (tensor-ndarray t) (tensor-type t) i ...))

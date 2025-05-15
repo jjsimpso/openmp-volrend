@@ -66,7 +66,10 @@ void test_ppm()
     //write_ppm("out.ppm", w, h, rgb);
     ndarray_iter_write_ppm(it, "out.ppm", w, h);
     ndarray_iter_free(it);
-    
+
+    // this doesn't work as originally intended now that ndarray_iter_write_file only
+    // writes elements matching the actual ndarray element size
+    // this was a bit of a hack to begin with
     int skip_dim = -1;
     NDArrayIter *it2 = ndarray_iter_new_all_but_axis(nda, NULL, &skip_dim);
     ndarray_iter_write_ppm(it2, "out2.ppm", w, h);
