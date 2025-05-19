@@ -236,12 +236,21 @@
   (time
    (ndarray_sum_double a)))
 
-(test-linspace)
-(test-simple-iterator)
-(test-multi-iterator)
-(test-ppm)
-(test-ops)
-(test-err)
-(test-bigmul)
-(test-bigsum)
-(collect-garbage 'major)
+;; now fixed
+(define (iter-crash)
+  (define nda (ndarray_new 1 (vector 256) 4 #f))
+  (ndarray_fill_index_int32_t nda)
+  (print-iter (ndarray_iter_new nda #f) _int32))
+
+(define (run-tests)
+  (test-linspace)
+  (test-simple-iterator)
+  (test-multi-iterator)
+  (test-ppm)
+  (test-ops)
+  (test-err)
+  (test-bigmul)
+  (test-bigsum)
+  (collect-garbage 'major))
+
+(run-tests)

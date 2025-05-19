@@ -51,7 +51,7 @@
    [num_elems _intptr]
    [elem_bytes _intptr]
    [size _intptr]
-   [free_data _bool]
+   [free_data _stdbool]
    [dataptr _pointer]))
 
 (define-cstruct _NDArrayIter
@@ -65,7 +65,7 @@
    [slicestarts _intptr-array-max-dims]
    [nda _NDArray-pointer]
    [cursor _pointer]
-   [contiguous _bool]))
+   [contiguous _stdbool]))
 
 (define-cstruct _NDArrayMultiIter
   ([num _int]
@@ -109,7 +109,7 @@
                                                     -> (check-null p 'ndarray_new))
   #:wrap (allocator ndarray_iter_free))
 
-(define-ndarray ndarray_iter_next (_fun _NDArrayIter-pointer -> _bool))
+(define-ndarray ndarray_iter_next (_fun _NDArrayIter-pointer -> _stdbool))
 (define-ndarray ndarray_iter_reset (_fun _NDArrayIter-pointer -> _void))
 
 

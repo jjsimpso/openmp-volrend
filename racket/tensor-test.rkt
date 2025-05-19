@@ -2,11 +2,17 @@
 
 (require racket/flonum
          racket/runtime-path
+         ffi/unsafe
          "ndarray-ffi.rkt"
          "ndarray-io-ffi.rkt"
          "tensor.rkt")
 
 (require rackunit)
+
+(define (print-tensor t)
+  (for ([x (in-tensor t)]
+        [i (in-naturals 0)])
+    (printf "t[~a] = ~a~n" i x)))
 
 (define (linspace start stop [num 50] [endpoint? #t])
   (define num-points (if endpoint? (add1 num) num))
@@ -18,6 +24,12 @@
   (define a-step (make-tensor (vector 1)  (exact->inexact (/ 1 num)) #:ctype _double))
 
   (t+ a-start (t* a-span (t* a-step indexes))))
+
+#;(define (plot-observations)
+  (define xs (linspace 500 5000 20 #t))
+  (define ys (t* (make-tensor (vector 1) 1.5) (texpt xs 3.5)))
+  
+  void)
 
 (define (test-linspace)
   (define result (linspace 0 5000 50 #t))
@@ -34,7 +46,7 @@
   (define h (vector-ref (tshape t) 0))
   (if (tensor-iter t)
       (ndarray_iter_write_ppm (tensor-iter t) path w h)
-      (write_ppm path w h (NDArray-dataptr (tensor-ndarray t))))
+      (ndarray_write_ppm (tensor-ndarray t) path))
   void)
 
 (define (tensor-read-ppm path)
@@ -46,7 +58,8 @@
   (define w (vector-ref (tshape ppm) 1))
   (define h (vector-ref (tshape ppm) 0))
   (tensor-write-ppm ppm out-ppm-path)
-  ;; writing a ppm with skip dim set is no longer supported by ndarray_iter_write_file
+  ;(print-tensor ppm)
+  ;; writing a ppm with skip dim set like this is no longer supported by ndarray_iter_write_file
   #;(tensor-write-ppm (tslice ppm '() #:skip-dim -1) out2-ppm-path)
   (tensor-write-ppm (tslice ppm `((0 ,(sub1 h)  2)
                                   (0 ,(sub1 w) 2)
@@ -57,16 +70,10 @@
                               (0 ,(sub1 w) 2))
                             #:skip-dim -1)
                     out4-ppm-path))
-#|
-  (define skip_dim (malloc _int))
-  (ptr-set! skip_dim _int 0 -1)
-  (define it2 (ndarray_iter_new_all_but_axis nda #f skip_dim))
-  (ndarray_iter_write_ppm it2 out2-ppm-path w h)
 
-  (ndarray_iter_write_ppm (ndarray_iter_new nda (make-slice 3 `((0 ,(sub1 h)  2)
-                                                                (0 ,(sub1 w) 2)
-                                                                (0 2 1))))
-                          out3-ppm-path (/ w 2) (/ h 2))
-|#
 
-(test-ppm)
+(define (run-tests)
+  (test-linspace)
+  (test-ppm))
+
+(run-tests)

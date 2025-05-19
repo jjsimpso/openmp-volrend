@@ -14,6 +14,15 @@ void print_iter(NDArrayIter *it)
     } while(ndarray_iter_next(it));
 }
 
+void print_iter_byte(NDArrayIter *it)
+{
+    int i = 0;
+    do
+    {
+	printf("it[%d]=%d\n", i++, ITER_DATA(it, uint8_t));
+    } while(ndarray_iter_next(it));
+}
+
 void print_iter_double(NDArrayIter *it)
 {
     int i = 0;
@@ -65,6 +74,8 @@ void test_ppm()
 
     //write_ppm("out.ppm", w, h, rgb);
     ndarray_iter_write_ppm(it, "out.ppm", w, h);
+    ndarray_iter_reset(it);
+    print_iter_byte(it);
     ndarray_iter_free(it);
 
     // this doesn't work as originally intended now that ndarray_iter_write_file only

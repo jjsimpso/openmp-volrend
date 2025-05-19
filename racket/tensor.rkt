@@ -8,11 +8,15 @@
 (require "ndarray-ffi.rkt"
          "ndarray-ops-ffi.rkt")
 
+(require (for-syntax syntax/parse racket/syntax))
+
 (provide make-tensor
          tshape
          tfill!
          tref
          tslice
+         in-tensor
+         tmap
          t*
          t+
          (struct-out tensor)
@@ -43,8 +47,10 @@
      (case (NDArray-elem_bytes v)
        [(8) _double]
        [(4) _float]
+       [(2) _int16]
        [(1) _uint8]
-       [else _double])]
+       [else
+        (error "Unable to guess tensor's type, supply type with #:ctype")])]
     [(double-flonum? v) _double]
     [(single-flonum? v) _float]
     [(exact-integer? v) _int64]
@@ -116,7 +122,39 @@
 (define-syntax-rule (tref t i ...)
   (ndarray-ref (tensor-ndarray t) (tensor-type t) i ...))
 
-;(require (for-syntax syntax/parse racket/syntax))
+(define (in-tensor/proc t)
+  (for/vector ([v (in-tensor t)])
+    v))
+
+(define-sequence-syntax in-tensor
+  (lambda () #'in-tensor/proc)
+  (lambda (stx)
+    (syntax-parse stx
+      [[(val) (_ expr)]
+       #'[(val)
+          (:do-in
+           ([(it) (if (tensor-iter expr)
+                      (tensor-iter expr)
+                      (ndarray_iter_new (tensor-ndarray expr) #f))]
+            [(type) (tensor-type expr)])
+           (unless (NDArrayIter? it)
+             (raise-argument-error 'in-iter "NDArrayiter?" it))
+           ([n it])
+           #t
+           ([(val) (ndarray-iter-data n type)])
+           #t
+           ;; advance cursor in iterator and continue or reset iterator and quit
+           (if (ndarray_iter_next n)
+               #t
+               (begin
+                 (ndarray_iter_reset n)
+                 #f))
+           [n])]]
+      [_ #false])))
+
+;; only map over one tensor for now
+(define (tmap proc t)
+  void)
 
 #;(define-syntax (op-name stx)
   (syntax-parse stx
