@@ -71,9 +71,27 @@
                             #:skip-dim -1)
                     out4-ppm-path))
 
+(define (test-tmap)
+  (define t1 (make-tensor (vector 3 3) 'index #:ctype _uint8))
+  (define t2 (tmap (lambda (x) (* x 2)) t1))
+  (check-equal?
+   (map (lambda (i) (tref t2 i)) '(0 1 2 3 4 5 6 7 8))
+   '(0 2 4 6 8 10 12 14 16))
+  (define t3 (tmap (lambda (x y) (+ x y)) t1 t2))
+  (check-equal?
+   (map (lambda (i) (tref t3 i)) '(0 1 2 3 4 5 6 7 8))
+   '(0 3 6 9 12 15 18 21 24)))
+
+(define (test-build-tensor)
+  (define t1 (build-tensor (vector 3 3) (lambda (i) (exact->inexact i)) _float))
+  (check-equal?
+   (map (lambda (i) (tref t1 i)) '(0 1 2 3 4 5 6 7 8))
+   '(0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0)))
 
 (define (run-tests)
   (test-linspace)
-  (test-ppm))
+  (test-ppm)
+  (test-tmap)
+  (test-build-tensor))
 
 (run-tests)

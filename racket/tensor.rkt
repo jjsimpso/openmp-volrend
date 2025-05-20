@@ -11,6 +11,7 @@
 (require (for-syntax syntax/parse racket/syntax))
 
 (provide make-tensor
+         build-tensor
          tshape
          tfill!
          tref
@@ -57,6 +58,11 @@
     [else
      _double]))
 
+(define (guess-default-value type)
+  (case (ctype->layout type)
+    [(double float) 0.0]
+    [else 0]))
+    
 (define (tfill! t v)
   (case (ctype->layout (tensor-type t))
     [(double) (ndarray_fill_double (tensor-ndarray t) v)]
@@ -64,10 +70,14 @@
     [(int64)  (ndarray_fill_int64_t (tensor-ndarray t))]
     [(uint8)  (ndarray_fill_uint8_t (tensor-ndarray t))]))
 
-(define (make-tensor shape [v 0.0] #:ctype [ctype #f])
+(define (make-tensor shape [val 0.0] #:ctype [ctype #f])
   (define type (if ctype
                    ctype
-                   (guess-type v)))
+                   (guess-type val)))
+  ;; pick default value if not explicitly set and type isn't double
+  (define v (if (and (equal? val 0.0) (not (eq? type 'double)))
+                (guess-default-value type)
+                val))
   (define nda #f)
   
   ;; initialize tensor
@@ -88,13 +98,21 @@
      (set! nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))
      (case (ctype->layout type)
        [(double) (ndarray_fill_double nda v)]
-       [(float) (ndarray_fill_float nda)]
-       [(int64) (ndarray_fill_int64_t nda)]
-       [(uint8) (ndarray_fill_uint8_t nda)]
+       [(float) (ndarray_fill_float nda v)]
+       [(int64) (ndarray_fill_int64_t nda v)]
+       [(uint8) (ndarray_fill_uint8_t nda v)]
        [else
         (error "unsupported tensor type")])])
   
   (tensor type shape nda))
+
+(define (build-tensor shape proc ctype)
+  (define t (make-tensor shape #:ctype ctype))
+  (define dataptr (NDArray-dataptr (tensor-ndarray t)))
+  (for ([v (in-tensor t)]
+        [i (in-naturals 0)])
+    (ptr-set! dataptr ctype i (proc i)))
+  t)
 
 ;; returns a new tensor that points to the same ndarray
 (define (tslice t slice-list #:skip-dim [skip-dim #f])
@@ -152,9 +170,28 @@
            [n])]]
       [_ #false])))
 
-;; only map over one tensor for now
-(define (tmap proc t)
-  void)
+(define tmap
+  (case-lambda
+    [(proc t)
+     (define type (tensor-type t))
+     (define result (make-tensor (tshape t) #:ctype type))
+     (define result-it (ndarray_iter_new (tensor-ndarray result) #f))
+     (for ([x (in-tensor t)])
+       (ptr-set! (NDArrayIter-cursor result-it) type 0 (proc x))
+       (ndarray_iter_next result-it))
+     result]
+    [(proc ta tb)
+     (define type (tensor-type ta))
+     (unless (and (eq? type (tensor-type tb))
+                  (equal? (tensor-shape ta) (tensor-shape tb)))
+       (error "tensor arguments are incompatible in either shape or type"))
+     (define result (make-tensor (tshape ta) #:ctype type))
+     (define result-it (ndarray_iter_new (tensor-ndarray result) #f))
+     (for ([x (in-tensor ta)]
+           [y (in-tensor tb)])
+       (ptr-set! (NDArrayIter-cursor result-it) type 0 (proc x y))
+       (ndarray_iter_next result-it))
+     result]))
 
 #;(define-syntax (op-name stx)
   (syntax-parse stx
