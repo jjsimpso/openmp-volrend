@@ -175,10 +175,10 @@
     [(proc t)
      (define type (tensor-type t))
      (define result (make-tensor (tshape t) #:ctype type))
-     (define result-it (ndarray_iter_new (tensor-ndarray result) #f))
-     (for ([x (in-tensor t)])
-       (ptr-set! (NDArrayIter-cursor result-it) type 0 (proc x))
-       (ndarray_iter_next result-it))
+     (define result-dataptr (NDArray-dataptr (tensor-ndarray result)))
+     (for ([x (in-tensor t)]
+           [i (in-naturals 0)])
+       (ptr-set! result-dataptr type i (proc x)))
      result]
     [(proc ta tb)
      (define type (tensor-type ta))
@@ -186,11 +186,11 @@
                   (equal? (tensor-shape ta) (tensor-shape tb)))
        (error "tensor arguments are incompatible in either shape or type"))
      (define result (make-tensor (tshape ta) #:ctype type))
-     (define result-it (ndarray_iter_new (tensor-ndarray result) #f))
+     (define result-dataptr (NDArray-dataptr (tensor-ndarray result)))
      (for ([x (in-tensor ta)]
-           [y (in-tensor tb)])
-       (ptr-set! (NDArrayIter-cursor result-it) type 0 (proc x y))
-       (ndarray_iter_next result-it))
+           [y (in-tensor tb)]
+           [i (in-naturals 0)])
+       (ptr-set! result-dataptr type i (proc x y)))
      result]))
 
 #;(define-syntax (op-name stx)
