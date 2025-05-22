@@ -25,11 +25,38 @@
 
   (t+ a-start (t* a-span (t* a-step indexes))))
 
-#;(define (plot-observations)
+(require math/distributions
+         math/statistics
+         plot)
+
+(define (plot-observations)
+  (define (the-process x)
+    (* 1.5 (expt x 3.5)))
   (define xs (linspace 500 5000 20 #t))
   (define ys (t* (make-tensor (vector 1) 1.5) (texpt xs 3.5)))
-  
-  void)
+  (define errors
+    (let ([d (normal-dist 0 0.25)])
+      (build-tensor (tshape ys) (lambda (_i) (sample d)) _double)))
+  (printf "xs: shape=~a~n" (tshape xs))
+  (print-tensor xs)
+  (printf "ys: shape=~a~n" (tshape ys))
+  (print-tensor ys)
+  (printf "errors: shape=~a~n" (tshape errors))
+  (print-tensor errors)
+  (define ys-observations (t* ys (t+ (make-tensor (vector 1) 1.0) errors)))
+  (define observations (tmap/vector (lambda (x y) (vector x y)) xs ys-observations))
+  (define renderers1
+    (list
+     (tick-grid)
+     (function the-process #:color "orange" #:label "the process")
+     (points (in-vector observations) #:color "indianred" #:label "observations")))
+  (list
+  (parameterize ([plot-title "Linear Grid"])
+    (plot-pict renderers1))
+  (parameterize ([plot-title "Log-Log Grid"]
+                 [plot-x-transform log-transform]
+                 [plot-y-transform log-transform])
+    (plot-pict renderers1))))
 
 (define (test-linspace)
   (define result (linspace 0 5000 50 #t))

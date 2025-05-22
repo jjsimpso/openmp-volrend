@@ -19,6 +19,7 @@
          ndarray_iter_reset
          ndarray-ref
          ndarray-dims
+         ndarray-dims->shape
          ndarray-data->list
          ndarray-iter-data
          ndarray-iter-dims
@@ -162,6 +163,11 @@
                                [dim (in-naturals)])
                       (+ sum (* idx (dim-stride p dim))))])
        (ptr-ref (NDArray-dataptr p) type 'abs offset))]))
+
+(define (ndarray-dims->shape nda)
+  (for/vector #:length (NDArray-ndim nda)
+              ([i (in-naturals 0)])
+    (ndarray-dims nda i)))
 
 (define (ndarray-data->list nda type)
   (cblock->list (NDArray-dataptr nda) type (NDArray-num_elems nda)))

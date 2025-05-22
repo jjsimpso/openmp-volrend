@@ -13,13 +13,16 @@
 (provide make-tensor
          build-tensor
          tshape
+         tlen
          tfill!
          tref
          tslice
          in-tensor
          tmap
+         tmap/vector
          t*
          t+
+         texpt
          (struct-out tensor)
          NDArray?
          _double)
@@ -41,6 +44,11 @@
   (if (tensor-iter t)
       (iter-shape (tensor-iter t))
       (tensor-shape t)))
+
+(define (tlen t)
+  (if (tensor-iter t)
+      (NDArrayIter-length (tensor-iter t))
+      (NDArray-num_elems (tensor-ndarray t))))
 
 (define (guess-type v)
   (cond
@@ -170,6 +178,7 @@
            [n])]]
       [_ #false])))
 
+;; use tmap when the tensor operation you need doesn't exist
 (define tmap
   (case-lambda
     [(proc t)
@@ -192,6 +201,24 @@
            [i (in-naturals 0)])
        (ptr-set! result-dataptr type i (proc x y)))
      result]))
+
+;; like tmap but returns a vector instead of a tensor
+;; useful for interacting with other racket code
+(define tmap/vector
+  (case-lambda
+    [(proc t)
+     (for/vector #:length (tlen t)
+                 ([x (in-tensor t)])
+       (proc x))]
+    [(proc ta tb)
+     (define type (tensor-type ta))
+     (unless (and (eq? type (tensor-type tb))
+                  (equal? (tensor-shape ta) (tensor-shape tb)))
+       (error "tensor arguments are incompatible in either shape or type"))
+     (for/vector #:length (tlen ta)
+                 ([x (in-tensor ta)]
+                  [y (in-tensor tb)])
+       (proc x y))]))
 
 #;(define-syntax (op-name stx)
   (syntax-parse stx
@@ -240,22 +267,39 @@
 
 (define (t* a b)
   (define type (tensor-type a))
-  (define shape (tshape a))
   (cond
     [(and (false? (tensor-iter a)) (false? (tensor-iter b)))
-     (tensor type shape ((dispatch-mul (ctype->layout type) #f) (tensor-ndarray a) (tensor-ndarray b)))]
+     (define result ((dispatch-mul (ctype->layout type) #f) (tensor-ndarray a) (tensor-ndarray b)))
+     (tensor type (ndarray-dims->shape result) result)]
     [(and (tensor-iter a) (tensor-iter b))
-     (tensor type shape ((dispatch-mul (ctype->layout type) #t) (tensor-iter a) (tensor-iter b)))]
+     (define result ((dispatch-mul (ctype->layout type) #t) (tensor-iter a) (tensor-iter b)))
+     (tensor type (ndarray-dims->shape result) result)]
     [else
      (error "incompatible tensor arguments")]))
 
 (define (t+ a b)
   (define type (tensor-type a))
-  (define shape (tshape a))
   (cond
     [(and (false? (tensor-iter a)) (false? (tensor-iter b)))
-     (tensor type shape ((dispatch-add (ctype->layout type) #f) (tensor-ndarray a) (tensor-ndarray b)))]
+     (define result ((dispatch-add (ctype->layout type) #f) (tensor-ndarray a) (tensor-ndarray b)))
+     (tensor type (ndarray-dims->shape result) result)]
     [(and (tensor-iter a) (tensor-iter b))
-     (tensor type shape ((dispatch-add (ctype->layout type) #t) (tensor-iter a) (tensor-iter b)))]
+     (define result ((dispatch-add (ctype->layout type) #t) (tensor-iter a) (tensor-iter b)))
+     (tensor type (ndarray-dims->shape result) result)]
     [else
      (error "incompatible tensor arguments")]))
+
+(define (texpt t w)
+  (define type (tensor-type t))
+  (define shape (tshape t))
+  (if (tensor-iter t)
+      (case (ctype->layout type)
+        [(double) (tensor type shape (ndarray_iter_expt_double (tensor-iter t) w))]
+        [(float) (tensor type shape (ndarray_iter_expt_float (tensor-iter t) w))]
+        [else
+         (error "unsupported tensor type" type)])
+      (case (ctype->layout type)
+        [(double) (tensor type shape (ndarray_expt_double (tensor-ndarray t) w))]
+        [(float) (tensor type shape (ndarray_expt_float (tensor-ndarray t) w))]
+        [else
+         (error "unsupported tensor type" type)])))
