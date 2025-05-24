@@ -162,6 +162,62 @@ MAKE_NDARRAY_ITER_SUM_FUNC(int64_t)
 MAKE_NDARRAY_ITER_SUM_FUNC(uint32_t)
 MAKE_NDARRAY_ITER_SUM_FUNC(uint64_t)
 
+bool ndarray_equal(NDArray *a, NDArray *b)
+{
+    if((a->ndim != b->ndim) ||
+       (a->num_elems != b->num_elems) ||
+       (a->size != b->size))
+    {
+	return false;
+    }
+
+    if(memcmp(a->dataptr, b->dataptr, a->size))
+    {
+	return false;
+    }
+
+    return true;
+}
+
+#define MAKE_NDARRAY_ITER_EQUAL_FUNC(type)                                 \
+bool ndarray_iter_equal_##type(NDArrayIter *a, NDArrayIter *b)	           \
+{                                                                          \
+    if((a->nd_m1 != b->nd_m1) ||                                           \
+       (a->length != b->length) ||                                         \
+       (a->nda->elem_bytes != b->nda->elem_bytes))                         \
+    {                                                                      \
+	return false;                                                      \
+    }                                                                      \
+                                                                           \
+    NDArrayMultiIter *mit = ndarray_multi_iter_new(2, a, b);               \
+                                                                           \
+    if(!mit)                                                               \
+    {                                                                      \
+	return false;                                                      \
+    }                                                                      \
+             						                   \
+    do                                                                     \
+    {                                                                      \
+	if(MULTI_ITER_DATA(mit, 0, type) != MULTI_ITER_DATA(mit, 1, type)) \
+	{                                                                  \
+	    return false;                                                  \
+	}                                                                  \
+    } while(ndarray_multi_iter_next(mit));                                 \
+                                                                           \
+    return true;                                                           \
+}
+
+MAKE_NDARRAY_ITER_EQUAL_FUNC(float)
+MAKE_NDARRAY_ITER_EQUAL_FUNC(double)
+MAKE_NDARRAY_ITER_EQUAL_FUNC(int8_t)
+MAKE_NDARRAY_ITER_EQUAL_FUNC(int16_t)
+MAKE_NDARRAY_ITER_EQUAL_FUNC(int32_t)
+MAKE_NDARRAY_ITER_EQUAL_FUNC(int64_t)
+MAKE_NDARRAY_ITER_EQUAL_FUNC(uint8_t)
+MAKE_NDARRAY_ITER_EQUAL_FUNC(uint16_t)
+MAKE_NDARRAY_ITER_EQUAL_FUNC(uint32_t)
+MAKE_NDARRAY_ITER_EQUAL_FUNC(uint64_t)
+
 /* 
    allocates an NDArray to store the result and returns a pointer to it
 */

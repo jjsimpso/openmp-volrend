@@ -37,6 +37,19 @@ int64_t ndarray_iter_sum_int64_t(NDArrayIter *a);
 uint32_t ndarray_iter_sum_uint32_t(NDArrayIter *a);
 uint64_t ndarray_iter_sum_uint64_t(NDArrayIter *a);
 
+bool ndarray_equal(NDArray *a, NDArray *b);
+
+bool ndarray_iter_equal_float(NDArrayIter *a, NDArrayIter *b);
+bool ndarray_iter_equal_double(NDArrayIter *a, NDArrayIter *b);
+bool ndarray_iter_equal_int8_t(NDArrayIter *a, NDArrayIter *b);
+bool ndarray_iter_equal_int16_t(NDArrayIter *a, NDArrayIter *b);
+bool ndarray_iter_equal_int32_t(NDArrayIter *a, NDArrayIter *b);
+bool ndarray_iter_equal_int64_t(NDArrayIter *a, NDArrayIter *b);
+bool ndarray_iter_equal_uint8_t(NDArrayIter *a, NDArrayIter *b);
+bool ndarray_iter_equal_uint16_t(NDArrayIter *a, NDArrayIter *b);
+bool ndarray_iter_equal_uint32_t(NDArrayIter *a, NDArrayIter *b);
+bool ndarray_iter_equal_uint64_t(NDArrayIter *a, NDArrayIter *b);
+
 NDArray *ndarray_mul_float_mp(NDArray *a, NDArray *b);
 NDArray *ndarray_mul_double_mp(NDArray *a, NDArray *b);
 NDArray *ndarray_mul_int8_t_mp(NDArray *a, NDArray *b);

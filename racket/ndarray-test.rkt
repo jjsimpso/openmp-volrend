@@ -10,6 +10,7 @@
 
 (require "ndarray-ffi.rkt"
          "ndarray-ops-ffi.rkt"
+         "ndarray-matrix-ffi.rkt"
          "ndarray-io-ffi.rkt")
 
 #|
@@ -242,6 +243,46 @@
   (ndarray_fill_index_int32_t nda)
   (print-iter (ndarray_iter_new nda #f) _int32))
 
+(define (test-matmul)
+  (define a (ndarray_new 2 (vector 2 2) 8 #f))
+  (define b (ndarray_new 2 (vector 2 2) 8 #f))
+  (ndarray_fill_double a 2.0)
+  (ndarray_fill_mat_ident_double b)
+
+  (check-equal? (ndarray-ref b _double 0 0) 1.0)
+  (check-equal? (ndarray-ref b _double 0 1) 0.0)
+  (check-equal? (ndarray-ref b _double 1 1) 1.0)
+  (check-equal? (ndarray-ref b _double 1 0) 0.0)
+
+  (define c (ndarray_matmul_double_mp a b))
+
+  (check-equal? (ndarray-ref c _double 0 0) 2.0)
+  (check-equal? (ndarray-ref c _double 0 1) 2.0)
+  (check-equal? (ndarray-ref c _double 1 1) 2.0)
+  (check-equal? (ndarray-ref c _double 1 0) 2.0)
+
+  (define u (ndarray_new 2 (vector 32 32) 8 #f))
+  (define v (ndarray_new 2 (vector 32 32) 8 #f))
+  (ndarray_fill_index_double u)
+  (ndarray_fill_mat_ident_double v)
+  ;(print-array v _double)
+  (define w (ndarray_matmul_double_mp u v))
+
+  (check-equal? (ndarray-ref w _double 0 0) 0.0)
+  (check-equal? (ndarray-ref w _double 0 1) 1.0)
+  (check-equal? (ndarray-ref w _double 1 0) 32.0)
+  (check-equal? (ndarray_equal u w) #t)
+  
+  void)
+
+(define (time-matmul x)
+  (define a (ndarray_new 2 (vector x x) 8 #f))
+  (define b (ndarray_new 2 (vector x x) 8 #f))
+  (ndarray_fill_index_double a)
+  (ndarray_fill_index_double b)
+  (time
+   (ndarray_matmul_double_mp a b)))
+
 (define (run-tests)
   (test-linspace)
   (test-simple-iterator)
@@ -251,6 +292,7 @@
   (test-err)
   (test-bigmul)
   (test-bigsum)
+  (test-matmul)
   (collect-garbage 'major))
 
 (run-tests)

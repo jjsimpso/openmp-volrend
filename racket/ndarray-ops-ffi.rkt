@@ -37,7 +37,8 @@
          ndarray_iter_sum_int32_t 
          ndarray_iter_sum_int64_t
          ndarray_iter_sum_uint32_t 
-         ndarray_iter_sum_uint64_t          
+         ndarray_iter_sum_uint64_t
+         ndarray_equal
          ndarray_mul_float
          ndarray_mul_double
          ndarray_mul_int8_t
@@ -123,10 +124,6 @@
          ndarray_iter_expt_float
          ndarray_iter_expt_double)
 
-(define (check-null p who)
-  (if (false? p)
-      (error who "returned NULL")
-      p))
 
 (define-ndarray ndarray_fill_float (_fun _NDArray-pointer _float -> _void))
 (define-ndarray ndarray_fill_double (_fun _NDArray-pointer _double -> _void))
@@ -163,6 +160,8 @@
 (define-ndarray ndarray_iter_sum_int64_t (_fun _NDArrayIter-pointer -> _int64))
 (define-ndarray ndarray_iter_sum_uint32_t (_fun _NDArrayIter-pointer -> _uint32))
 (define-ndarray ndarray_iter_sum_uint64_t (_fun _NDArrayIter-pointer -> _uint64))
+
+(define-ndarray ndarray_equal (_fun _NDArray-pointer _NDArray-pointer -> _stdbool))
 
 ;; Binary operations on NDArrays
 ;;------------------------------

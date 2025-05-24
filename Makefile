@@ -6,8 +6,8 @@ BUILD		:= src
 SRCDIR		:= src
 INCDIR		:= include
 
-LIB_SOURCES	:= ndarray.c ppm.c nda_ops.c
-LIB_INCLUDES	:= ndarray.h ppm.h nda_ops.h
+LIB_SOURCES	:= ndarray.c ppm.c nda_ops.c nda_matrix.c
+LIB_INCLUDES	:= ndarray.h ppm.h nda_ops.h nda_matrix.h
 LIB_NAME        := libvolrend
 
 #---------------------------------------------------------------------------------

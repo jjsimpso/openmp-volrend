@@ -10,6 +10,7 @@
 (provide define-ndarray
          _intptr-pointer
          _uint8-pointer
+         check-null
          ndarray_new
          ndarray_free
          ndarray_iter_new
