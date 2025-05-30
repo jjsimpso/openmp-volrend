@@ -243,6 +243,25 @@
   (ndarray_fill_index_int32_t nda)
   (print-iter (ndarray_iter_new nda #f) _int32))
 
+(define (test-equal)
+  (define a (ndarray_new 3 (vector 4 4 4) 2 #f))
+  (define b (ndarray_new 2 (vector 4 4) 2 #f))
+  (ndarray_fill_int16_t a 2)
+  (ndarray_fill_int16_t b 2)
+
+  (check-equal? (ndarray_equal a b) #f)
+  (check-equal? (ndarray_iter_equal_int16_t (ndarray_iter_new a #f)
+                                            (ndarray_iter_new b #f))
+                #t)
+
+  (define c (ndarray_new 2 (vector 4 3) 2 #f))
+  (ndarray_fill_int16_t c 2)
+  (check-equal? (ndarray_iter_equal_int16_t (ndarray_iter_new b #f)
+                                            (ndarray_iter_new c #f))
+                #f)
+  
+  void)
+  
 (define (test-matmul)
   (define a (ndarray_new 2 (vector 2 2) 8 #f))
   (define b (ndarray_new 2 (vector 2 2) 8 #f))
@@ -254,7 +273,7 @@
   (check-equal? (ndarray-ref b _double 1 1) 1.0)
   (check-equal? (ndarray-ref b _double 1 0) 0.0)
 
-  (define c (ndarray_matmul_double_mp a b))
+  (define c (ndarray_matmul_double a b))
 
   (check-equal? (ndarray-ref c _double 0 0) 2.0)
   (check-equal? (ndarray-ref c _double 0 1) 2.0)
@@ -266,12 +285,19 @@
   (ndarray_fill_index_double u)
   (ndarray_fill_mat_ident_double v)
   ;(print-array v _double)
-  (define w (ndarray_matmul_double_mp u v))
+  (define w (ndarray_matmul_double u v))
 
   (check-equal? (ndarray-ref w _double 0 0) 0.0)
   (check-equal? (ndarray-ref w _double 0 1) 1.0)
   (check-equal? (ndarray-ref w _double 1 0) 32.0)
   (check-equal? (ndarray_equal u w) #t)
+
+  ; error conditions
+  (check-exn exn:fail? (thunk (ndarray_matmul_double a u)))
+  (check-exn exn:fail? (thunk (ndarray_matmul_double (ndarray_new 3 (vector 3 3 3) 8 #f)
+                                                     (ndarray_new 3 (vector 3 3 3) 8 #f))))
+  (check-not-exn (thunk (ndarray_matmul_double (ndarray_new 2 (vector 1 32) 8 #f)
+                                               (ndarray_new 2 (vector 32 1) 8 #f))))
   
   void)
 
@@ -281,7 +307,7 @@
   (ndarray_fill_index_double a)
   (ndarray_fill_index_double b)
   (time
-   (ndarray_matmul_double_mp a b)))
+   (ndarray_matmul_double a b)))
 
 (define (run-tests)
   (test-linspace)
@@ -292,6 +318,7 @@
   (test-err)
   (test-bigmul)
   (test-bigsum)
+  (test-equal)
   (test-matmul)
   (collect-garbage 'major))
 

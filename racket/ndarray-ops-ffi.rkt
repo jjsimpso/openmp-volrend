@@ -39,6 +39,16 @@
          ndarray_iter_sum_uint32_t 
          ndarray_iter_sum_uint64_t
          ndarray_equal
+         ndarray_iter_equal_float
+         ndarray_iter_equal_double
+         ndarray_iter_equal_int8_t
+         ndarray_iter_equal_int16_t
+         ndarray_iter_equal_int32_t
+         ndarray_iter_equal_int64_t
+         ndarray_iter_equal_uint8_t
+         ndarray_iter_equal_uint16_t
+         ndarray_iter_equal_uint32_t
+         ndarray_iter_equal_uint64_t         
          ndarray_mul_float
          ndarray_mul_double
          ndarray_mul_int8_t
@@ -161,7 +171,20 @@
 (define-ndarray ndarray_iter_sum_uint32_t (_fun _NDArrayIter-pointer -> _uint32))
 (define-ndarray ndarray_iter_sum_uint64_t (_fun _NDArrayIter-pointer -> _uint64))
 
+;; Equality operations
+;;------------------------------
 (define-ndarray ndarray_equal (_fun _NDArray-pointer _NDArray-pointer -> _stdbool))
+
+(define-ndarray ndarray_iter_equal_float (_fun _NDArrayIter-pointer _NDArrayIter-pointer -> _stdbool))
+(define-ndarray ndarray_iter_equal_double (_fun _NDArrayIter-pointer _NDArrayIter-pointer -> _stdbool))
+(define-ndarray ndarray_iter_equal_int8_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer -> _stdbool))
+(define-ndarray ndarray_iter_equal_int16_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer -> _stdbool))
+(define-ndarray ndarray_iter_equal_int32_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer -> _stdbool))
+(define-ndarray ndarray_iter_equal_int64_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer -> _stdbool))
+(define-ndarray ndarray_iter_equal_uint8_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer -> _stdbool))
+(define-ndarray ndarray_iter_equal_uint16_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer -> _stdbool))
+(define-ndarray ndarray_iter_equal_uint32_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer -> _stdbool))
+(define-ndarray ndarray_iter_equal_uint64_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer -> _stdbool))
 
 ;; Binary operations on NDArrays
 ;;------------------------------

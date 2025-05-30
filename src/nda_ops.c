@@ -182,14 +182,12 @@ bool ndarray_equal(NDArray *a, NDArray *b)
 #define MAKE_NDARRAY_ITER_EQUAL_FUNC(type)                                 \
 bool ndarray_iter_equal_##type(NDArrayIter *a, NDArrayIter *b)	           \
 {                                                                          \
-    if((a->nd_m1 != b->nd_m1) ||                                           \
-       (a->length != b->length) ||                                         \
-       (a->nda->elem_bytes != b->nda->elem_bytes))                         \
+    if(a->nda->elem_bytes != b->nda->elem_bytes)                           \
     {                                                                      \
 	return false;                                                      \
     }                                                                      \
                                                                            \
-    NDArrayMultiIter *mit = ndarray_multi_iter_new(2, a, b);               \
+    NDArrayMultiIter *mit = ndarray_multi_iter_new_from_iter(2, a, b);     \
                                                                            \
     if(!mit)                                                               \
     {                                                                      \
@@ -200,9 +198,13 @@ bool ndarray_iter_equal_##type(NDArrayIter *a, NDArrayIter *b)	           \
     {                                                                      \
 	if(MULTI_ITER_DATA(mit, 0, type) != MULTI_ITER_DATA(mit, 1, type)) \
 	{                                                                  \
+	    ndarray_multi_iter_free_except_iter(mit);                  	   \
 	    return false;                                                  \
 	}                                                                  \
     } while(ndarray_multi_iter_next(mit));                                 \
+                                                                           \
+    /* don't free the iterators that were passed in */                     \
+    ndarray_multi_iter_free_except_iter(mit);                  		   \
                                                                            \
     return true;                                                           \
 }
@@ -217,6 +219,35 @@ MAKE_NDARRAY_ITER_EQUAL_FUNC(uint8_t)
 MAKE_NDARRAY_ITER_EQUAL_FUNC(uint16_t)
 MAKE_NDARRAY_ITER_EQUAL_FUNC(uint32_t)
 MAKE_NDARRAY_ITER_EQUAL_FUNC(uint64_t)
+
+/* sample expansion
+bool ndarray_iter_equal_int16_t(NDArrayIter *a, NDArrayIter *b)
+{
+    if(a->nda->elem_bytes != b->nda->elem_bytes)
+    {
+	return false;
+    }
+
+    NDArrayMultiIter *mit = ndarray_multi_iter_new_from_iter(2, a, b);
+    if(!mit)
+    {
+	return false;
+    }
+
+    do
+    {
+	if((*((int16_t *)mit->iter[0]->cursor)) != (*((int16_t *)mit->iter[1]->cursor)))
+	{
+	    ndarray_multi_iter_free_except_iter(mit);
+	    return false;
+	}
+    } while(ndarray_multi_iter_next(mit));
+    
+    ndarray_multi_iter_free_except_iter(mit);
+    
+    return true;
+}
+*/
 
 /* 
    allocates an NDArray to store the result and returns a pointer to it
