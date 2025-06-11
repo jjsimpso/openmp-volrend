@@ -23,6 +23,7 @@
          t*
          t+
          texpt
+         t=?
          (struct-out tensor)
          NDArray?
          _double)
@@ -236,15 +237,56 @@
       (case type
         [(double) ndarray_iter_mul_double]
         [(float) ndarray_iter_mul_float]
+        [(int8)  ndarray_iter_mul_int8_t]
+        [(int16) ndarray_iter_mul_int16_t]
+        [(int32) ndarray_iter_mul_int32_t]
         [(int64) ndarray_iter_mul_int64_t]
-        [(uint8) ndarray_iter_mul_uint8_t]
+        [(uint8)  ndarray_iter_mul_uint8_t]
+        [(uint16) ndarray_iter_mul_uint16_t]
+        [(uint32) ndarray_iter_mul_uint32_t]
+        [(uint64) ndarray_iter_mul_uint64_t]
         [else
          (error "unsupported tensor type")])
       (case type
         [(double) ndarray_mul_double]
         [(float) ndarray_mul_float]
+        [(int8)  ndarray_mul_int8_t]
+        [(int16) ndarray_mul_int16_t]
+        [(int32) ndarray_mul_int32_t]
         [(int64) ndarray_mul_int64_t]
-        [(uint8) ndarray_mul_uint8_t]
+        [(uint8)  ndarray_mul_uint8_t]
+        [(uint16) ndarray_mul_uint16_t]
+        [(uint32) ndarray_mul_uint32_t]
+        [(uint64) ndarray_mul_uint64_t]
+        [else
+         (error "unsupported tensor type")])))
+
+(define (dispatch-div type iter?)
+  (if iter?
+      (case type
+        [(double) ndarray_iter_div_double]
+        [(float) ndarray_iter_div_float]
+        [(int8)  ndarray_iter_div_int8_t]
+        [(int16) ndarray_iter_div_int16_t]
+        [(int32) ndarray_iter_div_int32_t]
+        [(int64) ndarray_iter_div_int64_t]
+        [(uint8)  ndarray_iter_div_uint8_t]
+        [(uint16) ndarray_iter_div_uint16_t]
+        [(uint32) ndarray_iter_div_uint32_t]
+        [(uint64) ndarray_iter_div_uint64_t]
+        [else
+         (error "unsupported tensor type")])
+      (case type
+        [(double) ndarray_div_double]
+        [(float) ndarray_div_float]
+        [(int8)  ndarray_div_int8_t]
+        [(int16) ndarray_div_int16_t]
+        [(int32) ndarray_div_int32_t]
+        [(int64) ndarray_div_int64_t]
+        [(uint8)  ndarray_div_uint8_t]
+        [(uint16) ndarray_div_uint16_t]
+        [(uint32) ndarray_div_uint32_t]
+        [(uint64) ndarray_div_uint64_t]
         [else
          (error "unsupported tensor type")])))
 
@@ -253,17 +295,73 @@
       (case type
         [(double) ndarray_iter_add_double]
         [(float) ndarray_iter_add_float]
+        [(int8)  ndarray_iter_add_int8_t]
+        [(int16) ndarray_iter_add_int16_t]
+        [(int32) ndarray_iter_add_int32_t]
         [(int64) ndarray_iter_add_int64_t]
-        [(uint8) ndarray_iter_add_uint8_t]
+        [(uint8)  ndarray_iter_add_uint8_t]
+        [(uint16) ndarray_iter_add_uint16_t]
+        [(uint32) ndarray_iter_add_uint32_t]
+        [(uint64) ndarray_iter_add_uint64_t]
         [else
          (error "unsupported tensor type")])
       (case type
         [(double) ndarray_add_double]
         [(float) ndarray_add_float]
+        [(int8)  ndarray_add_int8_t]
+        [(int16) ndarray_add_int16_t]
+        [(int32) ndarray_add_int32_t]        
         [(int64) ndarray_add_int64_t]
-        [(uint8) ndarray_add_uint8_t]
+        [(uint8)  ndarray_add_uint8_t]
+        [(uint16) ndarray_add_uint16_t]
+        [(uint32) ndarray_add_uint32_t]
+        [(uint64) ndarray_add_uint64_t]
         [else
          (error "unsupported tensor type")])))
+
+(define (dispatch-sub type iter?)
+  (if iter?
+      (case type
+        [(double) ndarray_iter_sub_double]
+        [(float) ndarray_iter_sub_float]
+        [(int8)  ndarray_iter_sub_int8_t]
+        [(int16) ndarray_iter_sub_int16_t]
+        [(int32) ndarray_iter_sub_int32_t]
+        [(int64) ndarray_iter_sub_int64_t]
+        [(uint8)  ndarray_iter_sub_uint8_t]
+        [(uint16) ndarray_iter_sub_uint16_t]
+        [(uint32) ndarray_iter_sub_uint32_t]
+        [(uint64) ndarray_iter_sub_uint64_t]
+        [else
+         (error "unsupported tensor type")])
+      (case type
+        [(double) ndarray_sub_double]
+        [(float) ndarray_sub_float]
+        [(int8)  ndarray_sub_int8_t]
+        [(int16) ndarray_sub_int16_t]
+        [(int32) ndarray_sub_int32_t]        
+        [(int64) ndarray_sub_int64_t]
+        [(uint8)  ndarray_sub_uint8_t]
+        [(uint16) ndarray_sub_uint16_t]
+        [(uint32) ndarray_sub_uint32_t]
+        [(uint64) ndarray_sub_uint64_t]
+        [else
+         (error "unsupported tensor type")])))
+
+(define (dispatch-equal type)
+  (case type
+    [(double) ndarray_iter_equal_double]
+    [(float) ndarray_iter_equal_float]
+    [(int8)  ndarray_iter_equal_int8_t]
+    [(int16) ndarray_iter_equal_int16_t]
+    [(int32) ndarray_iter_equal_int32_t]
+    [(int64) ndarray_iter_equal_int64_t]
+    [(uint8)  ndarray_iter_equal_uint8_t]
+    [(uint16) ndarray_iter_equal_uint16_t]
+    [(uint32) ndarray_iter_equal_uint32_t]
+    [(uint64) ndarray_iter_equal_uint64_t]
+    [else
+     (error "unsupported tensor type")]))
 
 (define (t* a b)
   (define type (tensor-type a))
@@ -273,6 +371,12 @@
      (tensor type (ndarray-dims->shape result) result)]
     [(and (tensor-iter a) (tensor-iter b))
      (define result ((dispatch-mul (ctype->layout type) #t) (tensor-iter a) (tensor-iter b)))
+     (tensor type (ndarray-dims->shape result) result)]
+    [(tensor-iter a)
+     (define result ((dispatch-mul (ctype->layout type) #t) (tensor-iter a) (ndarray_iter_new (tensor-ndarray b) #f)))
+     (tensor type (ndarray-dims->shape result) result)]
+    [(tensor-iter b)
+     (define result ((dispatch-mul (ctype->layout type) #t) (ndarray_iter_new (tensor-ndarray a) #f) (tensor-iter b)))
      (tensor type (ndarray-dims->shape result) result)]
     [else
      (error "incompatible tensor arguments")]))
@@ -286,6 +390,19 @@
     [(and (tensor-iter a) (tensor-iter b))
      (define result ((dispatch-add (ctype->layout type) #t) (tensor-iter a) (tensor-iter b)))
      (tensor type (ndarray-dims->shape result) result)]
+    [else
+     (error "incompatible tensor arguments")]))
+
+(define (t=? a b)
+  (cond
+    [(and (false? (tensor-iter a)) (false? (tensor-iter b)))
+     (ndarray_equal (tensor-ndarray a) (tensor-ndarray b))]
+    [(and (tensor-iter a) (tensor-iter b))
+     ((dispatch-equal (ctype->layout (tensor-type a))) (tensor-iter a) (tensor-iter b))]
+    [(tensor-iter a)
+     ((dispatch-equal (ctype->layout (tensor-type a))) (tensor-iter a) (ndarray_iter_new (tensor-ndarray b) #f))]
+    [(tensor-iter b)
+     ((dispatch-equal (ctype->layout (tensor-type a))) (ndarray_iter_new (tensor-ndarray a) #f) (tensor-iter b))]
     [else
      (error "incompatible tensor arguments")]))
 
