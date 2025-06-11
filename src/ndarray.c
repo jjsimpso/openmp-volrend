@@ -60,7 +60,6 @@ NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes, uint8_t *ptr)
     return nda;
 }
 
-// Note: frees the dataptr, which could have been passed into ndarray_new and not allocated by it
 void ndarray_free(NDArray *nda)
 {
     if(nda)
@@ -223,13 +222,10 @@ NDArrayIter *ndarray_iter_new_all_but_axis(NDArray *nda, Slice *slices, int *dim
 		iter->backstrides[i] = 0;
 	    }
 	}
-
-	iter->nd_m1--;
     }
     else
     {
 	// just adjust for skipped dimension
-	iter->nd_m1--;
 	iter->length = iter->length / (iter->dims_m1[skip_dim] + 1);
 	iter->dims_m1[skip_dim] = 0;
 	iter->backstrides[skip_dim] = 0;
