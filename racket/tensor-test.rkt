@@ -157,7 +157,28 @@
                 #t)
 
   (check-equal? (t=? c (t* b (tslice a '() #:skip-dim 2)))
-                #f))
+                #f)
+
+  (check-equal? (in-tensor (t+ a b))
+                #(2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0 13.0 14.0 15.0 
+                  16.0 17.0 18.0 19.0 20.0 21.0 22.0 23.0 24.0 25.0 26.0 27.0 28.0))
+  (check-equal? (in-tensor (t+ a (tslice a '() #:skip-dim 0)))
+                #(0.0 2.0 4.0 6.0 8.0 10.0 12.0 14.0 16.0
+                  9.0 11.0 13.0 15.0 17.0 19.0 21.0 23.0 25.0
+                  18.0 20.0 22.0 24.0 26.0 28.0 30.0 32.0 34.0))
+  (check-equal? (in-tensor (t+ (tslice a '() #:skip-dim 0) a))
+                #(0.0 2.0 4.0 6.0 8.0 10.0 12.0 14.0 16.0
+                  9.0 11.0 13.0 15.0 17.0 19.0 21.0 23.0 25.0
+                  18.0 20.0 22.0 24.0 26.0 28.0 30.0 32.0 34.0))
+  (check-equal? (in-tensor (t+ (tslice a '() #:skip-dim 0) (tslice a '() #:skip-dim 0)))
+                #(0.0 2.0 4.0 6.0 8.0 10.0 12.0 14.0 16.0))
+  (check-exn exn:fail? (thunk (t+ a (make-tensor (vector 2) 1.0 #:ctype _double))))
+
+  )
+
+(define (test-matmul)
+  
+  void)
 
 (define (run-tests)
   (test-linspace)
