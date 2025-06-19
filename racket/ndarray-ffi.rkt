@@ -19,6 +19,7 @@
          ndarray_iter_next
          ndarray_iter_reset
          ndarray-ref
+         ndarray-set!
          ndarray-dims
          ndarray-dims->shape
          ndarray-data->list
@@ -164,6 +165,19 @@
                                [dim (in-naturals)])
                       (+ sum (* idx (dim-stride p dim))))])
        (ptr-ref (NDArray-dataptr p) type 'abs offset))]))
+
+;; currently only supports up to 2 dimensions
+(define-syntax ndarray-set!
+  (syntax-rules ()
+    [(ndarray-set! p type i v)
+     (ptr-set! (NDArray-dataptr p) type i v)]
+    [(ndarray-set! p type i j v)
+     (ptr-set! (NDArray-dataptr p)
+               type
+               'abs
+               (+ (* i (dim-stride p 0))
+                  (* j (dim-stride p 1)))
+               v)]))
 
 (define (ndarray-dims->shape nda)
   (for/vector #:length (NDArray-ndim nda)

@@ -284,7 +284,6 @@
   (define v (ndarray_new 2 (vector 32 32) 8 #f))
   (ndarray_fill_index_double u)
   (ndarray_fill_mat_ident_double v)
-  ;(print-array v _double)
   (define w (ndarray_matmul_double u v))
 
   (check-equal? (ndarray-ref w _double 0 0) 0.0)
@@ -292,6 +291,31 @@
   (check-equal? (ndarray-ref w _double 1 0) 32.0)
   (check-equal? (ndarray_equal u w) #t)
 
+  (define r (ndarray_new 2 (vector 2 3) 8 #f))
+  (ndarray-set! r _int64 0 0 2)
+  (ndarray-set! r _int64 0 1 3)
+  (ndarray-set! r _int64 0 2 4)
+  (ndarray-set! r _int64 1 0 1)
+  (ndarray-set! r _int64 1 1 0)
+  (ndarray-set! r _int64 1 2 0)
+  ;(print-array r _int64)
+  
+  (define s (ndarray_new 2 (vector 3 2) 8 #f))
+  (ndarray-set! s _int64 0 0 0)
+  (ndarray-set! s _int64 0 1 1000)
+  (ndarray-set! s _int64 1 0 1)
+  (ndarray-set! s _int64 1 1 100)
+  (ndarray-set! s _int64 2 0 0)
+  (ndarray-set! s _int64 2 1 10)
+  ;(print-array s _int64)
+  
+  (define t (ndarray_matmul_int64_t r s))
+  ;(print-array t _int64)
+  (check-equal? (ndarray-ref t _int64 0 0) 3)
+  (check-equal? (ndarray-ref t _int64 0 1) 2340)
+  (check-equal? (ndarray-ref t _int64 1 0) 0)
+  (check-equal? (ndarray-ref t _int64 1 1) 1000)
+  
   ; error conditions
   (check-exn exn:fail? (thunk (ndarray_matmul_double a u)))
   (check-exn exn:fail? (thunk (ndarray_matmul_double (ndarray_new 3 (vector 3 3 3) 8 #f)
