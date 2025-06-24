@@ -20,11 +20,25 @@
 (array-ref (ptr-ref shape _shape-array-1d 0) 0)
 |#
 
-(define (print-iter it type)
+(define (print-iter2d it type)
+  (define row-len (ndarray-dims (NDArrayIter-nda it) 1))
   (for ([x (in-iter it type)]
         [i (in-naturals 0)])
-    (printf "it[~a] = ~a~n" i x)))
+    (when (and (= (remainder i row-len) 0)
+               (not (zero? i)))
+      (printf "~n"))
+    (printf " ~a" x))
+  (printf "~n"))
 
+(define (print-iter it type)
+  (cond
+    [(equal? (NDArrayIter-nd_m1 it) 1)
+     (print-iter2d it type)]
+    [else
+     (for ([x (in-iter it type)]
+           [i (in-naturals 0)])
+       (printf "it[~a] = ~a~n" i x))]))
+    
 (define (print-array nda type)
   (define it (ndarray_iter_new nda #f))
   (print-iter it type))
@@ -315,6 +329,14 @@
   (check-equal? (ndarray-ref t _int64 0 1) 2340)
   (check-equal? (ndarray-ref t _int64 1 0) 0)
   (check-equal? (ndarray-ref t _int64 1 1) 1000)
+
+  ; test iterator matmul
+  (define tt (ndarray_iter_matmul_int64_t (ndarray_iter_new r #f) (ndarray_iter_new s #f)))
+  ;(print-array tt _int64)
+  (check-equal? (ndarray-ref tt _int64 0 0) 3)
+  (check-equal? (ndarray-ref tt _int64 0 1) 2340)
+  (check-equal? (ndarray-ref tt _int64 1 0) 0)
+  (check-equal? (ndarray-ref tt _int64 1 1) 1000)
   
   ; error conditions
   (check-exn exn:fail? (thunk (ndarray_matmul_double a u)))
