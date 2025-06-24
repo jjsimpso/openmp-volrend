@@ -177,14 +177,41 @@
   )
 
 (define (test-matmul)
-  
-  void)
+  (define X (make-tensor (vector 8 4)
+                         (vector 1.0 1.0 2.0 1.0
+                                 2.0 1.0 2.0 1.0
+                                 2.0 2.0 2.0 1.0
+                                 1.0 2.0 2.0 1.0
+                                 1.0 1.0 1.0 1.0
+                                 2.0 1.0 1.0 1.0
+                                 2.0 2.0 1.0 1.0
+                                 1.0 2.0 1.0 1.0)
+                         #:ctype _double))
+  (define T (make-tensor (vector 4 4)
+                         (vector 1.0  0.0    0.0   0.0
+                                 0.0  0.866  0.5   0.0
+                                 0.0 -0.5    0.866 0.0
+                                 0.0  0.951 -0.549 1.0)))
+  (define result (make-tensor (vector 8 4)
+                              (vector 1.0 0.817 1.683 1.0
+                                      2.0 0.817 1.683 1.0
+                                      2.0 1.683 2.183 1.0
+                                      1.0 1.683 2.183 1.0
+                                      1.0 1.317 0.817 1.0
+                                      2.0 1.317 0.817 1.0
+                                      2.0 2.183 1.317 1.0
+                                      1.0 2.183 1.317 1.0)))
+
+  (check-within (in-tensor (t** X T))
+                (in-tensor result)
+                0.01))
 
 (define (run-tests)
   (test-linspace)
   (test-ppm)
   (test-tmap)
   (test-build-tensor)
-  (test-ops))
+  (test-ops)
+  (test-matmul))
 
 (run-tests)

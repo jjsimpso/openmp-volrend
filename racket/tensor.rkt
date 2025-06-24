@@ -6,7 +6,8 @@
          racket/flonum)
 
 (require "ndarray-ffi.rkt"
-         "ndarray-ops-ffi.rkt")
+         "ndarray-ops-ffi.rkt"
+         "ndarray-matrix-ffi.rkt")
 
 (require (for-syntax syntax/parse racket/syntax))
 
@@ -24,6 +25,7 @@
          t+
          t/
          t-
+         t**
          texpt
          t=?
          (struct-out tensor)
@@ -63,6 +65,14 @@
        [(1) _uint8]
        [else
         (error "Unable to guess tensor's type, supply type with #:ctype")])]
+    [(vector? v)
+     (define val (vector-ref v 0))
+     (cond
+       [(double-flonum? val) _double]
+       [(single-flonum? val) _float]
+       [(exact-integer? val) _int64]
+       [else
+        _double])]
     [(double-flonum? v) _double]
     [(single-flonum? v) _float]
     [(exact-integer? v) _int64]
@@ -102,6 +112,10 @@
     [(NDArray? v)
      ;; todo: add shape check
      (set! nda v)]
+    [(vector? v)
+     (set! nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))
+     (for ([i (in-range 0 (NDArray-num_elems nda))])
+       (ndarray-set! nda type i (vector-ref v i)))]
     [(eq? v 'index)
      (set! nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))
      (case (ctype->layout type)
@@ -287,7 +301,7 @@
 (define-op-dispatch div)
 (define-op-dispatch add)
 (define-op-dispatch sub)
-;(define-op-dispatch matmul)
+(define-op-dispatch matmul)
 
 (define (dispatch-equal type)
   (case type
@@ -327,6 +341,7 @@
 (define-binary-op t+ dispatch-add)
 (define-binary-op t/ dispatch-div)
 (define-binary-op t- dispatch-sub)
+(define-binary-op t** dispatch-matmul)
 
 (define (t=? a b)
   (cond

@@ -162,6 +162,9 @@ MAKE_NDARRAY_ITER_SUM_FUNC(int64_t)
 MAKE_NDARRAY_ITER_SUM_FUNC(uint32_t)
 MAKE_NDARRAY_ITER_SUM_FUNC(uint64_t)
 
+/* 
+   Warning: not for comparing arrays of floating point values
+*/
 bool ndarray_equal(NDArray *a, NDArray *b)
 {
     if((a->ndim != b->ndim) ||
