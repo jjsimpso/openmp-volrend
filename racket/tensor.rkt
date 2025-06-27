@@ -145,6 +145,36 @@
     (ptr-set! dataptr ctype i (proc i)))
   t)
 
+;; replace any empty slices with values representing the full slice before calling make-slice
+;; (length slice-list) must equal nd
+(define (preprocess-slice-list t slice-list skip-dim)
+  (define shape (tensor-shape t))
+  (let loop ([i 0]
+             [old-list slice-list]
+             [new-list '()])
+    (cond
+      [(empty? old-list)
+       (reverse new-list)]
+      [(equal? i skip-dim)
+       (loop (add1 i) old-list new-list)]
+      [(empty? (car old-list))
+       (loop (add1 i)
+             (cdr old-list)
+             (cons `(0 ,(sub1 (vector-ref shape i)) 1) new-list))]
+      [else
+       (loop (add1 i)
+             (cdr old-list)
+             (cons (car old-list) new-list))])))
+      
+#|       
+  (for/list ([i (in-naturals 0)]
+             #:unless (equal? i skip-dim)
+             [slice (in-list slice-list)])
+    (if (empty? slice)
+        `(0 ,(sub1 (vector-ref shape i)) 1)
+        slice)))
+|#
+
 ;; returns a new tensor that points to the same ndarray
 (define (tslice t slice-list #:skip-dim [skip-dim #f])
   (define tnew (tensor (tensor-type t) (tensor-shape t) (tensor-ndarray t)))
@@ -157,7 +187,7 @@
     (error "slices don't match tensor dimensions"))
   (define slices (if (empty? slice-list)
                      #f
-                     (make-slice nd slice-list)))
+                     (make-slice nd (preprocess-slice-list t slice-list skip-dim))))
   (define it
     (if skip-dim
         (let ([dim (malloc _int)])

@@ -70,8 +70,22 @@ void ndarray_free(NDArray *nda)
     }
 }
 
+bool valid_slice(Slice *slice, int dim_size)
+{
+    if(!slice ||
+       (slice->stride <= 0) ||
+       (slice->start < 0) ||
+       (slice->end >= dim_size))
+	return false;
+
+    return true;
+}
+
 /* 
    Create a new iterator. If slices is NULL, the iterator will iterate over the whole array.
+
+   Slice restrictions: stride must be > 0 (0 results in divide by zero)
+   
    
 */
 NDArrayIter *ndarray_iter_new(NDArray *nda, Slice *slices)
@@ -129,6 +143,11 @@ NDArrayIter *ndarray_iter_new(NDArray *nda, Slice *slices)
 	
 	for(int i = iter->nd_m1; i >= 0; i--)
 	{
+	    if(!valid_slice(&slices[i], nda->dims[i]))
+	    {
+		free(iter);
+		return NULL;
+	    }
 	    iter->dims_m1[i] = (slices[i].end - slices[i].start) / slices[i].stride;
 	    iter->coords[i] = 0;
 	    if(i == iter->nd_m1)
@@ -188,27 +207,36 @@ NDArrayIter *ndarray_iter_new_all_but_axis(NDArray *nda, Slice *slices, int *dim
 	iter->contiguous = false;
 	// recalculate length
 	iter->length = 1;
+	// since we are skipping a dimension, there will be one less slice than there are dimensions
+	int slice_idx = iter->nd_m1 - 1;
+
 	// apply the slices, skipping skip_dim
 	for(int i = iter->nd_m1; i >= 0; i--)
 	{
 	    if(i != skip_dim)
 	    {
-		iter->dims_m1[i] = (slices[i].end - slices[i].start) / slices[i].stride;
+		if(!valid_slice(&slices[slice_idx], nda->dims[i]))
+		{
+		    free(iter);
+		    return NULL;
+		}
+		iter->dims_m1[i] = (slices[slice_idx].end - slices[slice_idx].start) / slices[slice_idx].stride;
 		iter->coords[i] = 0;
 		if(i == iter->nd_m1)
 		{
 		    nda_strides[i] = nda->elem_bytes;
-		    iter->strides[i] = slices[i].stride * nda->elem_bytes;
+		    iter->strides[i] = slices[slice_idx].stride * nda->elem_bytes;
 		}
 		else
 		{
 		    nda_strides[i] = nda->dims[i+1] * nda_strides[i+1];
-		    iter->strides[i] = slices[i].stride * nda_strides[i];
+		    iter->strides[i] = slices[slice_idx].stride * nda_strides[i];
 		}
 		iter->backstrides[i] = iter->dims_m1[i] * iter->strides[i];
-		iter->slicestarts[i] = slices[i].start;
+		iter->slicestarts[i] = slices[slice_idx].start;
 		iter->length *= iter->dims_m1[i] + 1;
-		iter->cursor += slices[i].start * nda_strides[i];
+		iter->cursor += slices[slice_idx].start * nda_strides[i];
+		slice_idx--;
 	    }
 	    else
 	    {

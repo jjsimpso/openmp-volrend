@@ -204,7 +204,39 @@
 
   (check-within (in-tensor (t** X T))
                 (in-tensor result)
-                0.01))
+                0.01)
+
+  ; check slicing with empty slices
+  (check-equal? (t=? result (tslice result '()))
+                #t)
+  
+  (check-equal? (t=? result (tslice result '(() ())))
+                #t)
+
+  (check-equal? (in-tensor (tslice result '() #:skip-dim 0))
+                #(1.0 0.817 1.683 1.0))
+
+  (check-equal? (in-tensor (tslice result '(()) #:skip-dim 0))
+                #(1.0 0.817 1.683 1.0))
+
+  (check-equal? (in-tensor (tslice result '() #:skip-dim 1))
+                #(1.0 2.0 2.0 1.0 1.0 2.0 2.0 1.0))
+
+  (check-equal? (in-tensor (tslice result '(()) #:skip-dim 1))
+                #(1.0 2.0 2.0 1.0 1.0 2.0 2.0 1.0))
+  
+  ; slice a single column
+  (check-equal? (in-tensor (tslice result '((0 7 1) (1 1 1))))
+                #(0.817 0.817 1.683 1.683 1.317 1.317 2.183 2.183))
+
+  (check-equal? (in-tensor (tslice result '(() (1 1 1))))
+                #(0.817 0.817 1.683 1.683 1.317 1.317 2.183 2.183))
+  
+  ;; invalid slice values
+  (check-exn exn:fail? (thunk (tslice result '((0 7 1) (1 1 0)))))
+  (check-exn exn:fail? (thunk (tslice result '((0 8 1) (1 1 1)))))
+  (check-exn exn:fail? (thunk (tslice result '((-1 7 1) (1 1 1)))))
+  )
 
 (define (run-tests)
   (test-linspace)
