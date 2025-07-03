@@ -3,6 +3,8 @@
 (require racket/flonum
          racket/runtime-path
          ffi/unsafe
+         racket/future
+         future-visualizer
          "ndarray-ffi.rkt"
          "ndarray-io-ffi.rkt"
          "tensor.rkt")
@@ -237,6 +239,43 @@
   (check-exn exn:fail? (thunk (tslice result '((0 8 1) (1 1 1)))))
   (check-exn exn:fail? (thunk (tslice result '((-1 7 1) (1 1 1)))))
   )
+
+(define (sum-columns size)
+  (define a (make-tensor (vector size size) 'index))
+  (for ([i (in-range 0 size)])
+    (tsum (tslice a `(() (,i ,i 1))))))
+
+;; fails to parallelize due to tslice's use of the allocator wrapper when creating
+;; a new iterator
+(define (sum-columns-parallel size)
+  (define a (make-tensor (vector size size) 'index))
+  (define num-threads (processor-count))
+  (define batch-size (/ size num-threads))
+  ;(define sl (tslice a `(() (1 1 1))))
+  (define fs
+    (for/list ([i (in-range num-threads)])
+      (future (lambda ()
+                (for ([j (in-range (* i batch-size) (* (add1 i) batch-size))])
+                  (tsum (tslice a `(() (,j ,j 1)))))))))
+  (for ([f (in-list fs)])
+    (touch f)))
+
+(define (sum-tensor-parallel size)
+  (define a (make-tensor (vector size size) 'index))
+  (define num-threads (processor-count))
+  (define batch-size (/ size num-threads))
+  (define fs
+    (for/list ([i (in-range num-threads)])
+      (future (lambda ()
+                (for ([j (in-range (* i batch-size) (* (add1 i) batch-size))])
+                  (tsum a))))))
+  (for ([f (in-list fs)])
+    (touch f)))
+
+(define (sum-rows size)
+  (define a (make-tensor (vector size size) 'index))
+  (for ([i (in-range 0 size)])
+    (tsum (tslice a `((,i ,i 1) ,empty)))))
 
 (define (run-tests)
   (test-linspace)

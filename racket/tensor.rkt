@@ -28,6 +28,7 @@
          t**
          texpt
          t=?
+         tsum
          (struct-out tensor)
          NDArray?
          _double)
@@ -87,15 +88,15 @@
 (define (tfill! t v)
   (case (ctype->layout (tensor-type t))
     [(double) (ndarray_fill_double (tensor-ndarray t) v)]
-    [(float)  (ndarray_fill_float (tensor-ndarray t))]
-    [(int8)   (ndarray_fill_int8_t (tensor-ndarray t))]
-    [(int16)  (ndarray_fill_int16_t (tensor-ndarray t))]
-    [(int32)  (ndarray_fill_int32_t (tensor-ndarray t))]
-    [(int64)  (ndarray_fill_int64_t (tensor-ndarray t))]
-    [(uint8)  (ndarray_fill_uint8_t (tensor-ndarray t))]
-    [(uint16) (ndarray_fill_uint16_t (tensor-ndarray t))]
-    [(uint32) (ndarray_fill_uint32_t (tensor-ndarray t))]
-    [(uint64) (ndarray_fill_uint64_t (tensor-ndarray t))]))
+    [(float)  (ndarray_fill_float (tensor-ndarray t) v)]
+    [(int8)   (ndarray_fill_int8_t (tensor-ndarray t) v)]
+    [(int16)  (ndarray_fill_int16_t (tensor-ndarray t) v)]
+    [(int32)  (ndarray_fill_int32_t (tensor-ndarray t) v)]
+    [(int64)  (ndarray_fill_int64_t (tensor-ndarray t) v)]
+    [(uint8)  (ndarray_fill_uint8_t (tensor-ndarray t) v)]
+    [(uint16) (ndarray_fill_uint16_t (tensor-ndarray t) v)]
+    [(uint32) (ndarray_fill_uint32_t (tensor-ndarray t) v)]
+    [(uint64) (ndarray_fill_uint64_t (tensor-ndarray t) v)]))
 
 (define (make-tensor shape [val 0.0] #:ctype [ctype #f])
   (define type (if ctype
@@ -400,3 +401,25 @@
         [(float) (tensor type shape (ndarray_expt_float (tensor-ndarray t) w))]
         [else
          (error "unsupported tensor type" type)])))
+
+(define (tsum t)
+  (if (tensor-iter t)
+      (case (ctype->layout (tensor-type t))
+        [(double) (ndarray_iter_sum_double (tensor-iter t))]
+        [(float)  (ndarray_iter_sum_float (tensor-iter t))]
+        [(int32)  (ndarray_iter_sum_int32_t (tensor-iter t))]
+        [(int64)  (ndarray_iter_sum_int64_t (tensor-iter t))]
+        [(uint32) (ndarray_iter_sum_uint32_t (tensor-iter t))]
+        [(uint64) (ndarray_iter_sum_uint64_t (tensor-iter t))]
+        [else
+         (error "unsupported tensor type" (tensor-type t))])
+      (case (ctype->layout (tensor-type t))
+        [(double) (ndarray_sum_double (tensor-ndarray t))]
+        [(float)  (ndarray_sum_float (tensor-ndarray t))]
+        [(int32)  (ndarray_sum_int32_t (tensor-ndarray t))]
+        [(int64)  (ndarray_sum_int64_t (tensor-ndarray t))]
+        [(uint32) (ndarray_sum_uint32_t (tensor-ndarray t))]
+        [(uint64) (ndarray_sum_uint64_t (tensor-ndarray t))]
+        [else
+         (error "unsupported tensor type" (tensor-type t))])))
+

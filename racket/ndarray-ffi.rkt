@@ -109,7 +109,7 @@
   #:wrap (allocator ndarray_iter_free))
 (define-ndarray ndarray_iter_new_all_but_axis (_fun _NDArray-pointer _Slice-pointer/null _pointer
                                                     -> (p : _NDArrayIter-pointer/null)
-                                                    -> (check-null p 'ndarray_new))
+                                                    -> (check-null p 'ndarray_iter_new_all_but_axis))
   #:wrap (allocator ndarray_iter_free))
 
 (define-ndarray ndarray_iter_next (_fun _NDArrayIter-pointer -> _stdbool))
