@@ -245,8 +245,8 @@
   (for ([i (in-range 0 size)])
     (tsum (tslice a `(() (,i ,i 1))))))
 
-;; fails to parallelize due to tslice's use of the allocator wrapper when creating
-;; a new iterator
+;; Can now parallelize in Racket 8.18 with added #:merely-uninterruptible? keyword in allocator wrapper
+;; (needed because tslice calls ndarray_iter_new) 
 (define (sum-columns-parallel size)
   (define a (make-tensor (vector size size) 'index))
   (define num-threads (processor-count))
