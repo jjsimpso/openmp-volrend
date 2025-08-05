@@ -1,0 +1,2 @@
+Useful things:
+* Racket contracts for ndarray shape checks (a la jaxtyping)
