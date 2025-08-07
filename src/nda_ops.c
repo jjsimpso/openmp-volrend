@@ -356,7 +356,7 @@ NDArray *ndarray_##name##_##type##_mp(NDArray *a, NDArray *b)                   
 	type *bcursor = (type *)(b->dataptr + (base_stride * i));                                \
 	for(int j = 0; j < sub_len; j++)                                                         \
 	{                                                                                        \
-	    result[j] = acursor[j] * bcursor[j];                                                 \
+	    result[j] = acursor[j] op bcursor[j];                                                \
 	}                                                                                        \
     }                                                                                            \
                                                                                                  \
