@@ -39,14 +39,25 @@ NDArray *ndarray_new_result_single(NDArrayIter *it, intptr_t elem_bytes)
 /*
 
 */
-#define MAKE_NDARRAY_FILL_FUNC(type)	             \
-void ndarray_fill_##type(NDArray *a, type val)       \
-{                                                    \
-    type *cursor = (type *)NDARRAY_DATAPTR(a);       \
-    for(int i = 0; i < a->num_elems; i++)            \
-    {                                                \
-	*cursor++ = val;                             \
-    }                                                \
+#define MAKE_NDARRAY_FILL_FUNC(type)	                             \
+void ndarray_fill_##type(NDArray *a, type val)                       \
+{                                                                    \
+    type *cursor = (type *)NDARRAY_DATAPTR(a);                       \
+    if(a->num_elems > OPENMP_ELEM_THRESHOLD)     		     \
+    {                                                                \
+        _Pragma("omp parallel for shared(cursor)")                   \
+	for(int i = 0; i < a->num_elems; i++)                        \
+	{                                                            \
+	    cursor[i] = val;					     \
+	}                                                            \
+    }                                                                \
+    else                                                             \
+    {	                                                             \
+        for(int i = 0; i < a->num_elems; i++)                        \
+        {                                                            \
+	    *cursor++ = val;                                         \
+        }                                                            \
+    }                                                                \
 }
 
 MAKE_NDARRAY_FILL_FUNC(float)
