@@ -56,6 +56,16 @@
       (NDArrayIter-length (tensor-iter t))
       (NDArray-num_elems (tensor-ndarray t))))
 
+;; gets a tensor's iterator or creates a new iterator for it
+(define (tensor-as-iter t)
+  (or (tensor-iter t)
+      (ndarray_iter_new (tensor-ndarray t) #f)))
+
+(define (tensor-ndarray-or-iter t iter?)
+  (if iter?
+      (tensor-as-iter t)
+      (tensor-ndarray t)))
+
 (define (guess-type v)
   (cond
     [(NDArray? v)
@@ -334,39 +344,29 @@
 (define-op-dispatch sub)
 (define-op-dispatch matmul)
 
-(define (dispatch-equal type)
-  (case type
-    [(double) ndarray_iter_equal_double]
-    [(float) ndarray_iter_equal_float]
-    [(int8)  ndarray_iter_equal_int8_t]
-    [(int16) ndarray_iter_equal_int16_t]
-    [(int32) ndarray_iter_equal_int32_t]
-    [(int64) ndarray_iter_equal_int64_t]
-    [(uint8)  ndarray_iter_equal_uint8_t]
-    [(uint16) ndarray_iter_equal_uint16_t]
-    [(uint32) ndarray_iter_equal_uint32_t]
-    [(uint64) ndarray_iter_equal_uint64_t]
-    [else
-     (error "unsupported tensor type")]))
+(define (dispatch-equal type iter?)
+  (if iter?
+      (case type
+        [(double) ndarray_iter_equal_double]
+        [(float) ndarray_iter_equal_float]
+        [(int8)  ndarray_iter_equal_int8_t]
+        [(int16) ndarray_iter_equal_int16_t]
+        [(int32) ndarray_iter_equal_int32_t]
+        [(int64) ndarray_iter_equal_int64_t]
+        [(uint8)  ndarray_iter_equal_uint8_t]
+        [(uint16) ndarray_iter_equal_uint16_t]
+        [(uint32) ndarray_iter_equal_uint32_t]
+        [(uint64) ndarray_iter_equal_uint64_t]
+        [else
+         (error "unsupported tensor type")])
+      ndarray_equal))
 
 (define-syntax-rule (define-binary-op name dispatch)
   (define (name a b)
     (define type (tensor-type a))
-    (cond
-      [(and (false? (tensor-iter a)) (false? (tensor-iter b)))
-       (define result ((dispatch (ctype->layout type) #f) (tensor-ndarray a) (tensor-ndarray b)))
-       (tensor type (ndarray-dims->shape result) result)]
-      [(and (tensor-iter a) (tensor-iter b))
-       (define result ((dispatch (ctype->layout type) #t) (tensor-iter a) (tensor-iter b)))
-       (tensor type (ndarray-dims->shape result) result)]
-      [(tensor-iter a)
-       (define result ((dispatch (ctype->layout type) #t) (tensor-iter a) (ndarray_iter_new (tensor-ndarray b) #f)))
-       (tensor type (ndarray-dims->shape result) result)]
-      [(tensor-iter b)
-       (define result ((dispatch (ctype->layout type) #t) (ndarray_iter_new (tensor-ndarray a) #f) (tensor-iter b)))
-       (tensor type (ndarray-dims->shape result) result)]
-    [else
-     (error "incompatible tensor arguments")])))
+    (define iter? (or (tensor-iter a) (tensor-iter b)))
+    (define result ((dispatch (ctype->layout type) iter?) (tensor-ndarray-or-iter a iter?) (tensor-ndarray-or-iter b iter?)))
+    (tensor type (ndarray-dims->shape result) result)))
 
 (define-binary-op t* dispatch-mul)
 (define-binary-op t+ dispatch-add)
@@ -375,17 +375,9 @@
 (define-binary-op t** dispatch-matmul)
 
 (define (t=? a b)
-  (cond
-    [(and (false? (tensor-iter a)) (false? (tensor-iter b)))
-     (ndarray_equal (tensor-ndarray a) (tensor-ndarray b))]
-    [(and (tensor-iter a) (tensor-iter b))
-     ((dispatch-equal (ctype->layout (tensor-type a))) (tensor-iter a) (tensor-iter b))]
-    [(tensor-iter a)
-     ((dispatch-equal (ctype->layout (tensor-type a))) (tensor-iter a) (ndarray_iter_new (tensor-ndarray b) #f))]
-    [(tensor-iter b)
-     ((dispatch-equal (ctype->layout (tensor-type a))) (ndarray_iter_new (tensor-ndarray a) #f) (tensor-iter b))]
-    [else
-     (error "incompatible tensor arguments")]))
+  (define type (tensor-type a))
+  (define iter? (or (tensor-iter a) (tensor-iter b)))
+  ((dispatch-equal (ctype->layout type) iter?) (tensor-ndarray-or-iter a iter?) (tensor-ndarray-or-iter b iter?)))
 
 (define (texpt t w)
   (define type (tensor-type t))
