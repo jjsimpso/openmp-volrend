@@ -38,10 +38,35 @@
      (for ([x (in-iter it type)]
            [i (in-naturals 0)])
        (printf "it[~a] = ~a~n" i x))]))
-    
+
 (define (print-array nda type)
   (define it (ndarray_iter_new nda #f))
   (print-iter it type))
+
+(define (test-ndarray)
+  (define a (ndarray_new 2 (vector 4 4) (ctype-sizeof _uint16) #f))
+  (define b (ndarray_new 2 (vector 4 4) (ctype-sizeof _uint16) #f))
+  (define a_ref (ndarray_new 2 (vector 4 4) (ctype-sizeof _uint16) (NDArray-dataptr a)))
+  (ndarray_fill_uint16_t a 42)
+  (ndarray_fill_uint16_t b 0)
+  (check-equal? (ndarray_shape_equal a b) #t)
+  (check-equal? (ndarray_data_equal a b) #f)
+  (check-equal? (ndarray_data_equal a a_ref) #t)
+  
+  (define a_copy (ndarray_copy a))
+  (check-equal? (ndarray_data_equal a a_copy) #t)
+
+  (define c (ndarray_new 2 (vector 4 5) (ctype-sizeof _uint16) #f))
+  (ndarray_fill_uint16_t c 42)
+  (check-equal? (ndarray_shape_equal a c) #f)
+  (check-equal? (ndarray_data_equal a c) #f)
+
+  (define e (ndarray_new 2 (vector 4 1) (ctype-sizeof _int32) #f))
+  (define f (ndarray_new 2 (vector 1 4) (ctype-sizeof _int32) #f))
+  (ndarray_fill_index_int32_t e)
+  (ndarray_fill_index_int32_t f)
+  (check-equal? (ndarray_equal e f) #f)
+  (check-equal? (ndarray_data_equal e f) #t))
 
 (define (test-simple-iterator)
   (define nda (ndarray_new 2 (vector 10 5) (ctype-sizeof _int) #f))
@@ -368,6 +393,7 @@
 
 (define (run-tests)
   (test-linspace)
+  (test-ndarray)
   (test-simple-iterator)
   (test-multi-iterator)
   (test-ppm)

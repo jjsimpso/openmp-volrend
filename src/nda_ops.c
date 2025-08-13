@@ -175,22 +175,12 @@ MAKE_NDARRAY_ITER_SUM_FUNC(uint64_t)
 
 /* 
    Warning: not for comparing arrays of floating point values
+
+   Checks both the shape and data
 */
 bool ndarray_equal(NDArray *a, NDArray *b)
 {
-    if((a->ndim != b->ndim) ||
-       (a->num_elems != b->num_elems) ||
-       (a->size != b->size))
-    {
-	return false;
-    }
-
-    if(memcmp(a->dataptr, b->dataptr, a->size))
-    {
-	return false;
-    }
-
-    return true;
+    return ndarray_shape_equal(a, b) && ndarray_data_equal(a, b);
 }
 
 #define MAKE_NDARRAY_ITER_EQUAL_FUNC(type)                                 \

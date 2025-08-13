@@ -13,6 +13,9 @@
          check-null
          ndarray_new
          ndarray_free
+         ndarray_copy
+         ndarray_shape_equal
+         ndarray_data_equal
          ndarray_iter_new
          ndarray_iter_new_all_but_axis
          ndarray_iter_free
@@ -98,6 +101,13 @@
                                   -> (check-null p 'ndarray_new))
   #:wrap (allocator #:merely-uninterruptible? #t ndarray_free))
 
+(define-ndarray ndarray_copy (_fun _NDArray-pointer
+                                   -> (p : _NDArray-pointer/null)
+                                   -> (check-null p 'ndarray_copy))
+  #:wrap (allocator #:merely-uninterruptible? #t ndarray_free))
+
+(define-ndarray ndarray_shape_equal (_fun _NDArray-pointer _NDArray-pointer -> _stdbool))
+(define-ndarray ndarray_data_equal (_fun _NDArray-pointer _NDArray-pointer -> _stdbool))
 
 ;; ND Array Iterator functions
 ;; ---------------------------

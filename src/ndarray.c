@@ -70,6 +70,43 @@ void ndarray_free(NDArray *nda)
     }
 }
 
+NDArray *ndarray_copy(NDArray *nda)
+{
+    NDArray *copy = (NDArray *) malloc(sizeof(NDArray));
+
+    if(!copy)
+    {
+	return NULL;
+    }
+
+    copy->ndim = nda->ndim;
+    copy->dims = malloc(copy->ndim * sizeof(intptr_t));
+    if(!(copy->dims))
+    {
+	free(copy);
+	return NULL;
+    }
+    memcpy(copy->dims, nda->dims, copy->ndim * sizeof(intptr_t));
+    
+    copy->num_elems = nda->num_elems;
+    copy->elem_bytes = nda->elem_bytes;
+    copy->size = nda->size;
+    // always need to free since we are copying the data
+    copy->free_data = true;
+
+    copy->dataptr = (uint8_t *) malloc(copy->size);
+    if(copy->dataptr == NULL)
+    {
+	free(copy->dims);
+	free(copy);
+	return NULL;
+    }
+    
+    memcpy(copy->dataptr, nda->dataptr, copy->size);
+
+    return copy;
+}
+
 bool valid_slice(Slice *slice, int dim_size)
 {
     if(!slice ||
@@ -646,5 +683,21 @@ bool ndarray_shape_equal(NDArray *a, NDArray *b)
 	}
     }
     
+    return true;
+}
+
+bool ndarray_data_equal(NDArray *a, NDArray *b)
+{
+    if((a->num_elems != b->num_elems) ||
+       (a->size != b->size))
+    {
+	return false;
+    }
+
+    if(memcmp(a->dataptr, b->dataptr, a->size))
+    {
+	return false;
+    }
+
     return true;
 }

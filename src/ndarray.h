@@ -75,6 +75,7 @@ typedef struct {
 /* function API */
 NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes, uint8_t *ptr);
 void ndarray_free(NDArray *nda);
+NDArray *ndarray_copy(NDArray *nda);
 NDArrayIter *ndarray_iter_new(NDArray *nda, Slice *slices);
 NDArrayIter *ndarray_iter_new_all_but_axis(NDArray *nda, Slice *slices, int *dim);
 void ndarray_iter_free(NDArrayIter *it);
@@ -88,3 +89,4 @@ void ndarray_multi_iter_free_except_iter(NDArrayMultiIter *mit);
 bool ndarray_multi_iter_next(NDArrayMultiIter *mit);
 
 bool ndarray_shape_equal(NDArray *a, NDArray *b);
+bool ndarray_data_equal(NDArray *a, NDArray *b);
