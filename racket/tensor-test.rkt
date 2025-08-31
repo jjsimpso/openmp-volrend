@@ -253,8 +253,12 @@
 
 (define (sum-columns size)
   (define a (make-tensor (vector size size) 'index))
+  (define results (make-vector size))
   (for ([i (in-range 0 size)])
-    (tsum (tslice a `(() (,i ,i 1))))))
+    (vector-set! results
+                 i
+                 (tsum (tslice a `(() (,i ,i 1))))))
+  results)
 
 ;; Can now parallelize in Racket 8.18 with added #:merely-uninterruptible? keyword in allocator wrapper
 ;; (needed because tslice calls ndarray_iter_new) 
@@ -262,15 +266,78 @@
   (define a (make-tensor (vector size size) 'index))
   (define num-threads (processor-count))
   (define batch-size (/ size num-threads))
-  ;(define sl (tslice a `(() (1 1 1))))
+  (define results (make-vector size))
   (define fs
     (for/list ([i (in-range num-threads)])
       (future (lambda ()
                 (for ([j (in-range (* i batch-size) (* (add1 i) batch-size))])
-                  (tsum (tslice a `(() (,j ,j 1)))))))))
+                  (vector-set! results
+                               j
+                               (tsum (tslice a `(() (,j ,j 1))))))))))
   (for ([f (in-list fs)])
-    (touch f)))
+    (touch f))
+  results)
 
+;; uses post-racket 8.18 parallel threads
+(define (sum-columns-parallel-threads size)
+  (define a (make-tensor (vector size size) 'index))
+  (define num-threads (processor-count))
+  (define batch-size (/ size num-threads))
+  (define results (make-vector size))
+  (define thds
+    (for/list ([i (in-range num-threads)])
+      (thread (lambda ()
+                (for ([j (in-range (* i batch-size) (* (add1 i) batch-size))])
+                  (vector-set! results
+                               j
+                               (tsum (tslice a `(() (,j ,j 1)))))))
+              #:pool 'own)))
+  (for ([thd (in-list thds)])
+    (thread-wait thd))
+  results)
+
+(define (time-sum-columns size)
+  (define (cleanup)
+    (collect-garbage)
+    (collect-garbage)
+    (collect-garbage))
+  (define a (make-tensor (vector size size) 'index))
+  (define num-threads (processor-count))
+  (define batch-size (/ size num-threads))
+  (define results (make-vector size))
+  (cleanup)
+  ;; serial version
+  (time ((thunk
+         (for ([i (in-range 0 size)])
+           (vector-set! results
+                        i
+                        (tsum (tslice a `(() (,i ,i 1)))))))))
+  ;; future version
+  (cleanup)
+  (time ((thunk
+         (define fs
+           (for/list ([i (in-range num-threads)])
+             (future (lambda ()
+                       (for ([j (in-range (* i batch-size) (* (add1 i) batch-size))])
+                  (vector-set! results
+                               j
+                               (tsum (tslice a `(() (,j ,j 1))))))))))
+         (for ([f (in-list fs)])
+           (touch f)))))
+  ;; parallel thread version
+  (cleanup)
+  (time ((thunk
+         (define thds
+           (for/list ([i (in-range num-threads)])
+             (thread (lambda ()
+                       (for ([j (in-range (* i batch-size) (* (add1 i) batch-size))])
+                         (vector-set! results
+                                      j
+                                      (tsum (tslice a `(() (,j ,j 1)))))))
+                     #:pool 'own)))
+         (for ([thd (in-list thds)])
+           (thread-wait thd))))))
+  
 (define (sum-tensor-parallel size)
   (define a (make-tensor (vector size size) 'index))
   (define num-threads (processor-count))
@@ -282,6 +349,20 @@
                   (tsum a))))))
   (for ([f (in-list fs)])
     (touch f)))
+
+;; uses post-racket 8.18 parallel threads
+(define (sum-tensor-parallel-threads size)
+  (define a (make-tensor (vector size size) 'index))
+  (define num-threads (processor-count))
+  (define batch-size (/ size num-threads))
+  (define thds
+    (for/list ([i (in-range num-threads)])
+      (thread (lambda ()
+                (for ([j (in-range (* i batch-size) (* (add1 i) batch-size))])
+                  (tsum a)))
+              #:pool 'own)))
+  (for ([thd (in-list thds)])
+    (thread-wait thd)))
 
 (define (sum-rows size)
   (define a (make-tensor (vector size size) 'index))
