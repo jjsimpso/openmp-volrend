@@ -3,6 +3,7 @@
 #include <malloc.h>
 #include <string.h>
 #include <math.h>
+#include <complex.h>
 #include <omp.h>
 
 #include "ndarray.h"
@@ -62,6 +63,7 @@ void ndarray_fill_##type(NDArray *a, type val)                       \
 
 MAKE_NDARRAY_FILL_FUNC(float)
 MAKE_NDARRAY_FILL_FUNC(double)
+MAKE_NDARRAY_FILL_FUNC(complex)
 MAKE_NDARRAY_FILL_FUNC(int8_t)
 MAKE_NDARRAY_FILL_FUNC(int16_t)
 MAKE_NDARRAY_FILL_FUNC(int32_t)
@@ -122,6 +124,7 @@ type ndarray_sum_##type(NDArray *a)                                  \
 
 MAKE_NDARRAY_SUM_FUNC(float)
 MAKE_NDARRAY_SUM_FUNC(double)
+MAKE_NDARRAY_SUM_FUNC(complex)
 MAKE_NDARRAY_SUM_FUNC(int32_t)
 MAKE_NDARRAY_SUM_FUNC(int64_t)
 MAKE_NDARRAY_SUM_FUNC(uint32_t)
@@ -168,6 +171,7 @@ type ndarray_iter_sum_##type(NDArrayIter *a)                         \
 
 MAKE_NDARRAY_ITER_SUM_FUNC(float)
 MAKE_NDARRAY_ITER_SUM_FUNC(double)
+MAKE_NDARRAY_ITER_SUM_FUNC(complex)
 MAKE_NDARRAY_ITER_SUM_FUNC(int32_t)
 MAKE_NDARRAY_ITER_SUM_FUNC(int64_t)
 MAKE_NDARRAY_ITER_SUM_FUNC(uint32_t)
@@ -396,6 +400,7 @@ NDArray *ndarray_mul_double_mp(NDArray *a, NDArray *b)
 
 MAKE_NDARRAY_OP_MP_FUNC(mul, *, float)
 MAKE_NDARRAY_OP_MP_FUNC(mul, *, double)
+MAKE_NDARRAY_OP_MP_FUNC(mul, *, complex)
 MAKE_NDARRAY_OP_MP_FUNC(mul, *, int8_t)
 MAKE_NDARRAY_OP_MP_FUNC(mul, *, int16_t)
 MAKE_NDARRAY_OP_MP_FUNC(mul, *, int32_t)
@@ -407,6 +412,7 @@ MAKE_NDARRAY_OP_MP_FUNC(mul, *, uint64_t)
 
 MAKE_NDARRAY_OP_MP_FUNC(add, +, float)
 MAKE_NDARRAY_OP_MP_FUNC(add, +, double)
+MAKE_NDARRAY_OP_MP_FUNC(add, +, complex)
 MAKE_NDARRAY_OP_MP_FUNC(add, +, int8_t)
 MAKE_NDARRAY_OP_MP_FUNC(add, +, int16_t)
 MAKE_NDARRAY_OP_MP_FUNC(add, +, int32_t)
@@ -418,6 +424,7 @@ MAKE_NDARRAY_OP_MP_FUNC(add, +, uint64_t)
 
 MAKE_NDARRAY_OP_MP_FUNC(sub, -, float)
 MAKE_NDARRAY_OP_MP_FUNC(sub, -, double)
+MAKE_NDARRAY_OP_MP_FUNC(sub, -, complex)
 MAKE_NDARRAY_OP_MP_FUNC(sub, -, int8_t)
 MAKE_NDARRAY_OP_MP_FUNC(sub, -, int16_t)
 MAKE_NDARRAY_OP_MP_FUNC(sub, -, int32_t)
@@ -429,6 +436,7 @@ MAKE_NDARRAY_OP_MP_FUNC(sub, -, uint64_t)
 
 MAKE_NDARRAY_OP_MP_FUNC(div, /, float)
 MAKE_NDARRAY_OP_MP_FUNC(div, /, double)
+MAKE_NDARRAY_OP_MP_FUNC(div, /, complex)
 MAKE_NDARRAY_OP_MP_FUNC(div, /, int8_t)
 MAKE_NDARRAY_OP_MP_FUNC(div, /, int16_t)
 MAKE_NDARRAY_OP_MP_FUNC(div, /, int32_t)
@@ -440,6 +448,7 @@ MAKE_NDARRAY_OP_MP_FUNC(div, /, uint64_t)
 
 MAKE_NDARRAY_OP_FUNC(mul, *, float)
 MAKE_NDARRAY_OP_FUNC(mul, *, double)
+MAKE_NDARRAY_OP_FUNC(mul, *, complex)
 MAKE_NDARRAY_OP_FUNC(mul, *, int8_t)
 MAKE_NDARRAY_OP_FUNC(mul, *, int16_t)
 MAKE_NDARRAY_OP_FUNC(mul, *, int32_t)
@@ -451,6 +460,7 @@ MAKE_NDARRAY_OP_FUNC(mul, *, uint64_t)
 
 MAKE_NDARRAY_OP_FUNC(add, +, float)
 MAKE_NDARRAY_OP_FUNC(add, +, double)
+MAKE_NDARRAY_OP_FUNC(add, +, complex)
 MAKE_NDARRAY_OP_FUNC(add, +, int8_t)
 MAKE_NDARRAY_OP_FUNC(add, +, int16_t)
 MAKE_NDARRAY_OP_FUNC(add, +, int32_t)
@@ -462,6 +472,7 @@ MAKE_NDARRAY_OP_FUNC(add, +, uint64_t)
 
 MAKE_NDARRAY_OP_FUNC(sub, -, float)
 MAKE_NDARRAY_OP_FUNC(sub, -, double)
+MAKE_NDARRAY_OP_FUNC(sub, -, complex)
 MAKE_NDARRAY_OP_FUNC(sub, -, int8_t)
 MAKE_NDARRAY_OP_FUNC(sub, -, int16_t)
 MAKE_NDARRAY_OP_FUNC(sub, -, int32_t)
@@ -473,6 +484,7 @@ MAKE_NDARRAY_OP_FUNC(sub, -, uint64_t)
 
 MAKE_NDARRAY_OP_FUNC(div, /, float)
 MAKE_NDARRAY_OP_FUNC(div, /, double)
+MAKE_NDARRAY_OP_FUNC(div, /, complex)
 MAKE_NDARRAY_OP_FUNC(div, /, int8_t)
 MAKE_NDARRAY_OP_FUNC(div, /, int16_t)
 MAKE_NDARRAY_OP_FUNC(div, /, int32_t)
@@ -553,6 +565,7 @@ NDArray *ndarray_iter_mul_double(NDArrayIter *a, NDArrayIter *b)
 
 MAKE_NDARRAY_ITER_OP_FUNC(mul, *, float)
 MAKE_NDARRAY_ITER_OP_FUNC(mul, *, double)
+MAKE_NDARRAY_ITER_OP_FUNC(mul, *, complex)
 MAKE_NDARRAY_ITER_OP_FUNC(mul, *, int8_t)
 MAKE_NDARRAY_ITER_OP_FUNC(mul, *, int16_t)
 MAKE_NDARRAY_ITER_OP_FUNC(mul, *, int32_t)
@@ -564,6 +577,7 @@ MAKE_NDARRAY_ITER_OP_FUNC(mul, *, uint64_t)
 
 MAKE_NDARRAY_ITER_OP_FUNC(add, +, float)
 MAKE_NDARRAY_ITER_OP_FUNC(add, +, double)
+MAKE_NDARRAY_ITER_OP_FUNC(add, +, complex)
 MAKE_NDARRAY_ITER_OP_FUNC(add, +, int8_t)
 MAKE_NDARRAY_ITER_OP_FUNC(add, +, int16_t)
 MAKE_NDARRAY_ITER_OP_FUNC(add, +, int32_t)
@@ -575,6 +589,7 @@ MAKE_NDARRAY_ITER_OP_FUNC(add, +, uint64_t)
 
 MAKE_NDARRAY_ITER_OP_FUNC(sub, -, float)
 MAKE_NDARRAY_ITER_OP_FUNC(sub, -, double)
+MAKE_NDARRAY_ITER_OP_FUNC(sub, -, complex)
 MAKE_NDARRAY_ITER_OP_FUNC(sub, -, int8_t)
 MAKE_NDARRAY_ITER_OP_FUNC(sub, -, int16_t)
 MAKE_NDARRAY_ITER_OP_FUNC(sub, -, int32_t)
@@ -586,6 +601,7 @@ MAKE_NDARRAY_ITER_OP_FUNC(sub, -, uint64_t)
 
 MAKE_NDARRAY_ITER_OP_FUNC(div, /, float)
 MAKE_NDARRAY_ITER_OP_FUNC(div, /, double)
+MAKE_NDARRAY_ITER_OP_FUNC(div, /, complex)
 MAKE_NDARRAY_ITER_OP_FUNC(div, /, int8_t)
 MAKE_NDARRAY_ITER_OP_FUNC(div, /, int16_t)
 MAKE_NDARRAY_ITER_OP_FUNC(div, /, int32_t)

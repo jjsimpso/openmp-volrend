@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
+#include <math.h>
+#include <complex.h>
 #include "ndarray.h"
 #include "nda_ops.h"
 #include "ppm.h"
@@ -29,6 +31,15 @@ void print_iter_double(NDArrayIter *it)
     do
     {
 	printf("it[%d]=%.2f\n", i++, (double)ITER_DATA(it, double));
+    } while(ndarray_iter_next(it));
+}
+
+void print_iter_complex(NDArrayIter *it)
+{
+    int i = 0;
+    do
+    {
+	printf("it[%d]=%.2f + %.2fi\n", i++, creal((complex)ITER_DATA(it, complex)), cimag((complex)ITER_DATA(it, complex)));
     } while(ndarray_iter_next(it));
 }
 
@@ -212,6 +223,30 @@ void test_bigsum(int x)
     ndarray_free(nda);
 }
 
+void test_complex()
+{
+    complex z = 4.0i;
+    printf("z = %f + %fi\n", creal(z), cimag(z));
+    z = z + 8.0;
+    printf("z = %f + %fi\n", creal(z), cimag(z));
+    double r = 3.14;
+    z = r + z;
+    printf("z = %f + %fi\n", creal(z), cimag(z));
+    z = csqrt(-2);
+    printf("z = %f + %fi\n", creal(z), cimag(z));
+
+    NDArray *nda = ndarray_new(2, (intptr_t []){2, 2}, sizeof(complex), NULL);
+    ndarray_fill_complex(nda, z);
+    NDArrayIter *it = ndarray_iter_new(nda, NULL);
+    print_iter_complex(it);
+
+    NDArray *nda2 = ndarray_new(1, (intptr_t []){1}, sizeof(complex), NULL);
+    ndarray_fill_complex(nda2, 7.0 + z);
+    NDArray *result = ndarray_add_complex(nda, nda2);
+    NDArrayIter *it2 = ndarray_iter_new(result, NULL);
+    print_iter_complex(it2);
+}
+
 int main(int argc, char **argv)
 {
 
@@ -224,6 +259,8 @@ int main(int argc, char **argv)
     linspace(0, 5000, 50, true);
 
     test_bigsum(10);
+
+    test_complex();
     
     return 0;
 }
