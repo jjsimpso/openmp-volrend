@@ -32,7 +32,8 @@
          tsum
          (struct-out tensor)
          NDArray?
-         _double)
+         _double
+         _complex)
 
 (struct tensor
   (type  ; a ctype
