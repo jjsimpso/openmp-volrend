@@ -45,6 +45,7 @@ bool ndarray_fill_mat_ident_##type(NDArray *a)         \
 
 MAKE_NDARRAY_FILL_MAT_IDENT_FUNC(float)
 MAKE_NDARRAY_FILL_MAT_IDENT_FUNC(double)
+MAKE_NDARRAY_FILL_MAT_IDENT_FUNC(complex)
 MAKE_NDARRAY_FILL_MAT_IDENT_FUNC(int8_t)
 MAKE_NDARRAY_FILL_MAT_IDENT_FUNC(int16_t)
 MAKE_NDARRAY_FILL_MAT_IDENT_FUNC(int32_t)
@@ -114,6 +115,7 @@ NDArray *ndarray_matmul_##type##_mp(NDArray *a, NDArray *b)                     
 
 MAKE_NDARRAY_MATMUL_MP_FUNC(float)
 MAKE_NDARRAY_MATMUL_MP_FUNC(double)
+MAKE_NDARRAY_MATMUL_MP_FUNC(complex)
 MAKE_NDARRAY_MATMUL_MP_FUNC(int8_t)
 MAKE_NDARRAY_MATMUL_MP_FUNC(int16_t)
 MAKE_NDARRAY_MATMUL_MP_FUNC(int32_t)
@@ -208,6 +210,7 @@ NDArray *ndarray_matmul_##type(NDArray *a, NDArray *b)                          
 
 MAKE_NDARRAY_MATMUL_FUNC(float)
 MAKE_NDARRAY_MATMUL_FUNC(double)
+MAKE_NDARRAY_MATMUL_FUNC(complex)
 MAKE_NDARRAY_MATMUL_FUNC(int8_t)
 MAKE_NDARRAY_MATMUL_FUNC(int16_t)
 MAKE_NDARRAY_MATMUL_FUNC(int32_t)
@@ -364,6 +367,7 @@ NDArray *ndarray_iter_matmul_##type(NDArrayIter *a, NDArrayIter *b)             
 
 MAKE_NDARRAY_ITER_MATMUL_FUNC(float)
 MAKE_NDARRAY_ITER_MATMUL_FUNC(double)
+MAKE_NDARRAY_ITER_MATMUL_FUNC(complex)
 MAKE_NDARRAY_ITER_MATMUL_FUNC(int8_t)
 MAKE_NDARRAY_ITER_MATMUL_FUNC(int16_t)
 MAKE_NDARRAY_ITER_MATMUL_FUNC(int32_t)
@@ -420,3 +424,9 @@ NDArray *ndarray_iter_matmul_int64_t(NDArrayIter *a, NDArrayIter *b)
     return c;
 }
 */
+
+NDArray *ndarray_mat_inverse_double(NDArray *a)
+{
+
+    return NULL;
+}

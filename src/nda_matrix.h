@@ -2,6 +2,7 @@
 
 bool *ndarray_fill_mat_ident_float(NDArray *a);
 bool *ndarray_fill_mat_ident_double(NDArray *a);
+bool *ndarray_fill_mat_ident_complex(NDArray *a);
 bool *ndarray_fill_mat_ident_int8_t(NDArray *a);
 bool *ndarray_fill_mat_ident_int16_t(NDArray *a);
 bool *ndarray_fill_mat_ident_int32_t(NDArray *a);
@@ -13,6 +14,7 @@ bool *ndarray_fill_mat_ident_uint64_t(NDArray *a);
 
 NDArray *ndarray_matmul_float_mp(NDArray *a, NDArray *b);
 NDArray *ndarray_matmul_double_mp(NDArray *a, NDArray *b);
+NDArray *ndarray_matmul_complex_mp(NDArray *a, NDArray *b);
 NDArray *ndarray_matmul_int8_t_mp(NDArray *a, NDArray *b);
 NDArray *ndarray_matmul_int16_t_mp(NDArray *a, NDArray *b);
 NDArray *ndarray_matmul_int32_t_mp(NDArray *a, NDArray *b);
@@ -24,6 +26,7 @@ NDArray *ndarray_matmul_uint64_t_mp(NDArray *a, NDArray *b);
 
 NDArray *ndarray_matmul_float(NDArray *a, NDArray *b);
 NDArray *ndarray_matmul_double(NDArray *a, NDArray *b);
+NDArray *ndarray_matmul_complex(NDArray *a, NDArray *b);
 NDArray *ndarray_matmul_int8_t(NDArray *a, NDArray *b);
 NDArray *ndarray_matmul_int16_t(NDArray *a, NDArray *b);
 NDArray *ndarray_matmul_int32_t(NDArray *a, NDArray *b);
@@ -35,6 +38,7 @@ NDArray *ndarray_matmul_uint64_t(NDArray *a, NDArray *b);
 
 NDArray *ndarray_iter_matmul_float(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_matmul_double(NDArrayIter *a, NDArrayIter *b);
+NDArray *ndarray_iter_matmul_complex(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_matmul_int8_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_matmul_int16_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_matmul_int32_t(NDArrayIter *a, NDArrayIter *b);
