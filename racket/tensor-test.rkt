@@ -369,6 +369,21 @@
   (for ([i (in-range 0 size)])
     (tsum (tslice a `((,i ,i 1) ,empty)))))
 
+(define (test-complex)
+  (define a (make-tensor (vector 2 2) (make-flrectangular 4.0 1.42) #:ctype _complex))
+  
+  (tset! a 1 0 (sqrt -2.0))
+  (check-equal? (tref a 1 1) (make-flrectangular 4.0 1.42))
+  (check-equal? (tref a 1 0) (sqrt -2.0))
+
+  (define b (make-tensor (vector 2 2) (make-flrectangular 2.0 3.0) #:ctype _complex))
+  (define c (make-tensor (vector 2 2) (make-flrectangular 4.0 6.0) #:ctype _complex))
+  (define result (t* b c))
+  (check-within (tref result 0 0) -10+24i 0.0001)
+  (check-within (tref result 0 1) -10.0+24.0i 0.0001)
+  (check-within (tref result 1 0) (make-flrectangular -10.0 24.0) 0.0001)
+  (check-within (tref result 1 1) (make-rectangular -10.0 24.0) 0.0001))
+
 (define (run-tests)
   (test-linspace)
   (test-ppm)
@@ -376,6 +391,7 @@
   (test-build-tensor)
   (test-ops)
   (test-matmul)
-  (test-geom))
+  (test-geom)
+  (test-complex))
 
 (run-tests)

@@ -17,6 +17,7 @@
          tlen
          tfill!
          tref
+         tset!
          tslice
          in-tensor
          tmap
@@ -70,6 +71,7 @@
   (cond
     [(NDArray? v)
      (case (NDArray-elem_bytes v)
+       [(16) _complex]
        [(8) _double]
        [(4) _float]
        [(2) _int16]
@@ -99,6 +101,7 @@
   (case (ctype->layout (tensor-type t))
     [(double) (ndarray_fill_double (tensor-ndarray t) v)]
     [(float)  (ndarray_fill_float (tensor-ndarray t) v)]
+    ['(double double) (ndarray_fill_complex (tensor-ndarray t) v)]
     [(int8)   (ndarray_fill_int8_t (tensor-ndarray t) v)]
     [(int16)  (ndarray_fill_int16_t (tensor-ndarray t) v)]
     [(int32)  (ndarray_fill_int32_t (tensor-ndarray t) v)]
@@ -141,6 +144,7 @@
      (case (ctype->layout type)
        [(double) (ndarray_fill_double nda v)]
        [(float) (ndarray_fill_float nda v)]
+       ['(double double) (ndarray_fill_complex nda v)]
        [(int64) (ndarray_fill_int64_t nda v)]
        [(uint8) (ndarray_fill_uint8_t nda v)]
        [else
@@ -211,6 +215,9 @@
 
 (define-syntax-rule (tref t i ...)
   (ndarray-ref (tensor-ndarray t) (tensor-type t) i ...))
+
+(define-syntax-rule (tset! t i ... v)
+  (ndarray-set! (tensor-ndarray t) (tensor-type t) i ... v))
 
 (define (in-tensor/proc t)
   (for/vector ([v (in-tensor t)])
@@ -290,6 +297,7 @@
      (with-syntax ([name (format-id stx "dispatch-~a" (syntax-e #'op))]
                    [iter_op_double (format-id stx "ndarray_iter_~a_double" (syntax-e #'op))]
                    [iter_op_float (format-id stx "ndarray_iter_~a_float" (syntax-e #'op))]
+                   [iter_op_complex (format-id stx "ndarray_iter_~a_complex" (syntax-e #'op))]
                    [iter_op_int8_t (format-id stx "ndarray_iter_~a_int8_t" (syntax-e #'op))]
                    [iter_op_int16_t (format-id stx "ndarray_iter_~a_int16_t" (syntax-e #'op))]
                    [iter_op_int32_t (format-id stx "ndarray_iter_~a_int32_t" (syntax-e #'op))]
@@ -300,6 +308,7 @@
                    [iter_op_uint64_t (format-id stx "ndarray_iter_~a_uint64_t" (syntax-e #'op))]
                    [op_double (format-id stx "ndarray_~a_double" (syntax-e #'op))]
                    [op_float (format-id stx "ndarray_~a_float" (syntax-e #'op))]
+                   [op_complex (format-id stx "ndarray_~a_complex" (syntax-e #'op))]
                    [op_int8_t (format-id stx "ndarray_~a_int8_t" (syntax-e #'op))]
                    [op_int16_t (format-id stx "ndarray_~a_int16_t" (syntax-e #'op))]
                    [op_int32_t (format-id stx "ndarray_~a_int32_t" (syntax-e #'op))]
@@ -310,9 +319,10 @@
                    [op_uint64_t (format-id stx "ndarray_~a_uint64_t" (syntax-e #'op))])
        #'(define (name type iter?)
            (if iter?
-               (case type
+               (case (ctype->layout type)
                  [(double) iter_op_double]
                  [(float) iter_op_float]
+                 ['(double double) iter_op_complex]
                  [(int8)  iter_op_int8_t]
                  [(int16) iter_op_int16_t]
                  [(int32) iter_op_int32_t]
@@ -323,9 +333,10 @@
                  [(uint64) iter_op_uint64_t]
                  [else
                   (error "unsupported tensor type")])
-               (case type
+               (case (ctype->layout type)
                  [(double) op_double]
                  [(float) op_float]
+                 ['(double double) op_complex]
                  [(int8)  op_int8_t]
                  [(int16) op_int16_t]
                  [(int32) op_int32_t]
@@ -346,7 +357,7 @@
 
 (define (dispatch-equal type iter?)
   (if iter?
-      (case type
+      (case (ctype->layout type)
         [(double) ndarray_iter_equal_double]
         [(float) ndarray_iter_equal_float]
         [(int8)  ndarray_iter_equal_int8_t]
@@ -365,7 +376,7 @@
   (define (name a b)
     (define type (tensor-type a))
     (define iter? (or (tensor-iter a) (tensor-iter b)))
-    (define result ((dispatch (ctype->layout type) iter?) (tensor-ndarray-or-iter a iter?) (tensor-ndarray-or-iter b iter?)))
+    (define result ((dispatch type iter?) (tensor-ndarray-or-iter a iter?) (tensor-ndarray-or-iter b iter?)))
     (tensor type (ndarray-dims->shape result) result)))
 
 (define-binary-op t* dispatch-mul)
@@ -377,7 +388,7 @@
 (define (t=? a b)
   (define type (tensor-type a))
   (define iter? (or (tensor-iter a) (tensor-iter b)))
-  ((dispatch-equal (ctype->layout type) iter?) (tensor-ndarray-or-iter a iter?) (tensor-ndarray-or-iter b iter?)))
+  ((dispatch-equal type iter?) (tensor-ndarray-or-iter a iter?) (tensor-ndarray-or-iter b iter?)))
 
 (define (texpt t w)
   (define type (tensor-type t))
@@ -399,6 +410,7 @@
       (case (ctype->layout (tensor-type t))
         [(double) (ndarray_iter_sum_double (tensor-iter t))]
         [(float)  (ndarray_iter_sum_float (tensor-iter t))]
+        ['(double double) (ndarray_iter_sum_complex (tensor-iter t))]
         [(int32)  (ndarray_iter_sum_int32_t (tensor-iter t))]
         [(int64)  (ndarray_iter_sum_int64_t (tensor-iter t))]
         [(uint32) (ndarray_iter_sum_uint32_t (tensor-iter t))]
@@ -408,6 +420,7 @@
       (case (ctype->layout (tensor-type t))
         [(double) (ndarray_sum_double (tensor-ndarray t))]
         [(float)  (ndarray_sum_float (tensor-ndarray t))]
+        ['(double double) (ndarray_sum_complex (tensor-ndarray t))]
         [(int32)  (ndarray_sum_int32_t (tensor-ndarray t))]
         [(int64)  (ndarray_sum_int64_t (tensor-ndarray t))]
         [(uint32) (ndarray_sum_uint32_t (tensor-ndarray t))]

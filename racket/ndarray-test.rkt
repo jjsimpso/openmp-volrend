@@ -391,6 +391,13 @@
   (time
    (ndarray_matmul_double a b)))
 
+(define (test-complex)
+  (define a (ndarray_new 2 (vector 2 2) 16 #f))
+  (ndarray_fill_complex a (make-rectangular 4.0 1.42))
+  (ndarray-set! a _complex 1 0 (sqrt -2.0))
+  (check-equal? (ndarray-ref a _complex 1 1) (make-flrectangular 4.0 1.42))
+  (check-equal? (ndarray-ref a _complex 1 0) (sqrt -2.0)))
+
 (define (run-tests)
   (test-linspace)
   (test-ndarray)
@@ -404,6 +411,7 @@
   (test-bigsum)
   (test-equal)
   (test-matmul)
+  (test-complex)
   (collect-garbage 'major))
 
 (run-tests)

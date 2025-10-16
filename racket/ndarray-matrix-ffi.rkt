@@ -8,6 +8,7 @@
 
 (provide ndarray_fill_mat_ident_float
          ndarray_fill_mat_ident_double
+         ndarray_fill_mat_ident_complex
          ndarray_fill_mat_ident_int8_t
          ndarray_fill_mat_ident_int16_t
          ndarray_fill_mat_ident_int32_t
@@ -18,6 +19,7 @@
          ndarray_fill_mat_ident_uint64_t
          ndarray_matmul_float
          ndarray_matmul_double
+         ndarray_matmul_complex
          ndarray_matmul_int8_t
          ndarray_matmul_int16_t
          ndarray_matmul_int32_t
@@ -28,6 +30,7 @@
          ndarray_matmul_uint64_t
          ndarray_iter_matmul_float
          ndarray_iter_matmul_double
+         ndarray_iter_matmul_complex
          ndarray_iter_matmul_int8_t
          ndarray_iter_matmul_int16_t
          ndarray_iter_matmul_int32_t
@@ -39,6 +42,7 @@
 
 (define-ndarray ndarray_fill_mat_ident_float (_fun _NDArray-pointer -> _stdbool))
 (define-ndarray ndarray_fill_mat_ident_double (_fun _NDArray-pointer -> _stdbool))
+(define-ndarray ndarray_fill_mat_ident_complex (_fun _NDArray-pointer -> _stdbool))
 (define-ndarray ndarray_fill_mat_ident_int8_t (_fun _NDArray-pointer -> _stdbool))
 (define-ndarray ndarray_fill_mat_ident_int16_t (_fun _NDArray-pointer -> _stdbool))
 (define-ndarray ndarray_fill_mat_ident_int32_t (_fun _NDArray-pointer -> _stdbool))
@@ -57,6 +61,11 @@
 (define-ndarray ndarray_matmul_double (_fun _NDArray-pointer _NDArray-pointer 
                                             -> (p : _NDArray-pointer/null)
                                             -> (check-null p 'ndarray_matmul_double))
+  #:wrap (allocator ndarray_free))
+
+(define-ndarray ndarray_matmul_complex (_fun _NDArray-pointer _NDArray-pointer 
+                                            -> (p : _NDArray-pointer/null)
+                                            -> (check-null p 'ndarray_matmul_complex))
   #:wrap (allocator ndarray_free))
 
 (define-ndarray ndarray_matmul_int8_t (_fun _NDArray-pointer _NDArray-pointer 
@@ -109,6 +118,11 @@
 (define-ndarray ndarray_iter_matmul_double (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
                                             -> (p : _NDArray-pointer/null)
                                             -> (check-null p 'ndarray_iter_matmul_double))
+  #:wrap (allocator ndarray_free))
+
+(define-ndarray ndarray_iter_matmul_complex (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
+                                            -> (p : _NDArray-pointer/null)
+                                            -> (check-null p 'ndarray_iter_matmul_complex))
   #:wrap (allocator ndarray_free))
 
 (define-ndarray ndarray_iter_matmul_int8_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer 

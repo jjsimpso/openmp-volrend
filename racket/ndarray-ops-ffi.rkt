@@ -8,6 +8,7 @@
 
 (provide ndarray_fill_float
          ndarray_fill_double
+         ndarray_fill_complex
          ndarray_fill_int8_t
          ndarray_fill_int16_t 
          ndarray_fill_int32_t 
@@ -28,12 +29,14 @@
          ndarray_fill_index_uint64_t
          ndarray_sum_float
          ndarray_sum_double
+         ndarray_sum_complex
          ndarray_sum_int32_t 
          ndarray_sum_int64_t
          ndarray_sum_uint32_t 
          ndarray_sum_uint64_t
          ndarray_iter_sum_float
          ndarray_iter_sum_double
+         ndarray_iter_sum_complex
          ndarray_iter_sum_int32_t 
          ndarray_iter_sum_int64_t
          ndarray_iter_sum_uint32_t 
@@ -51,6 +54,7 @@
          ndarray_iter_equal_uint64_t         
          ndarray_mul_float
          ndarray_mul_double
+         ndarray_mul_complex
          ndarray_mul_int8_t
          ndarray_mul_int16_t 
          ndarray_mul_int32_t 
@@ -61,6 +65,7 @@
          ndarray_mul_uint64_t
          ndarray_add_float
          ndarray_add_double
+         ndarray_add_complex
          ndarray_add_int8_t
          ndarray_add_int16_t 
          ndarray_add_int32_t 
@@ -71,6 +76,7 @@
          ndarray_add_uint64_t
          ndarray_sub_float
          ndarray_sub_double
+         ndarray_sub_complex
          ndarray_sub_int8_t
          ndarray_sub_int16_t 
          ndarray_sub_int32_t 
@@ -81,6 +87,7 @@
          ndarray_sub_uint64_t
          ndarray_div_float
          ndarray_div_double
+         ndarray_div_complex
          ndarray_div_int8_t
          ndarray_div_int16_t 
          ndarray_div_int32_t 
@@ -91,6 +98,7 @@
          ndarray_div_uint64_t
          ndarray_iter_mul_float
          ndarray_iter_mul_double
+         ndarray_iter_mul_complex
          ndarray_iter_mul_int8_t
          ndarray_iter_mul_int16_t 
          ndarray_iter_mul_int32_t 
@@ -101,6 +109,7 @@
          ndarray_iter_mul_uint64_t
          ndarray_iter_add_float
          ndarray_iter_add_double
+         ndarray_iter_add_complex
          ndarray_iter_add_int8_t
          ndarray_iter_add_int16_t 
          ndarray_iter_add_int32_t 
@@ -111,6 +120,7 @@
          ndarray_iter_add_uint64_t
          ndarray_iter_sub_float
          ndarray_iter_sub_double
+         ndarray_iter_sub_complex
          ndarray_iter_sub_int8_t
          ndarray_iter_sub_int16_t 
          ndarray_iter_sub_int32_t 
@@ -121,6 +131,7 @@
          ndarray_iter_sub_uint64_t
          ndarray_iter_div_float
          ndarray_iter_div_double
+         ndarray_iter_div_complex
          ndarray_iter_div_int8_t
          ndarray_iter_div_int16_t 
          ndarray_iter_div_int32_t 
@@ -134,9 +145,9 @@
          ndarray_iter_expt_float
          ndarray_iter_expt_double)
 
-
 (define-ndarray ndarray_fill_float (_fun _NDArray-pointer _float -> _void))
 (define-ndarray ndarray_fill_double (_fun _NDArray-pointer _double -> _void))
+(define-ndarray ndarray_fill_complex (_fun _NDArray-pointer _complex -> _void))
 (define-ndarray ndarray_fill_int8_t (_fun _NDArray-pointer _int8 -> _void))
 (define-ndarray ndarray_fill_int16_t (_fun _NDArray-pointer _int16 -> _void))
 (define-ndarray ndarray_fill_int32_t (_fun _NDArray-pointer _int32 -> _void))
@@ -159,6 +170,7 @@
 
 (define-ndarray ndarray_sum_float (_fun _NDArray-pointer -> _float))
 (define-ndarray ndarray_sum_double (_fun _NDArray-pointer -> _double))
+(define-ndarray ndarray_sum_complex (_fun _NDArray-pointer -> _complex))
 (define-ndarray ndarray_sum_int32_t (_fun _NDArray-pointer -> _int32))
 (define-ndarray ndarray_sum_int64_t (_fun _NDArray-pointer -> _int64))
 (define-ndarray ndarray_sum_uint32_t (_fun _NDArray-pointer -> _uint32))
@@ -166,6 +178,7 @@
 
 (define-ndarray ndarray_iter_sum_float (_fun _NDArrayIter-pointer -> _float))
 (define-ndarray ndarray_iter_sum_double (_fun _NDArrayIter-pointer -> _double))
+(define-ndarray ndarray_iter_sum_complex (_fun _NDArrayIter-pointer -> _complex))
 (define-ndarray ndarray_iter_sum_int32_t (_fun _NDArrayIter-pointer -> _int32))
 (define-ndarray ndarray_iter_sum_int64_t (_fun _NDArrayIter-pointer -> _int64))
 (define-ndarray ndarray_iter_sum_uint32_t (_fun _NDArrayIter-pointer -> _uint32))
@@ -195,6 +208,10 @@
 (define-ndarray ndarray_mul_double (_fun _NDArray-pointer _NDArray-pointer 
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_mul_double))
+  #:wrap (allocator ndarray_free))
+(define-ndarray ndarray_mul_complex (_fun _NDArray-pointer _NDArray-pointer 
+                                          -> (p : _NDArray-pointer/null)
+                                          -> (check-null p 'ndarray_mul_complex))
   #:wrap (allocator ndarray_free))
 (define-ndarray ndarray_mul_int8_t (_fun _NDArray-pointer _NDArray-pointer 
                                           -> (p : _NDArray-pointer/null)
@@ -237,6 +254,10 @@
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_add_double))
   #:wrap (allocator ndarray_free))
+(define-ndarray ndarray_add_complex (_fun _NDArray-pointer _NDArray-pointer 
+                                          -> (p : _NDArray-pointer/null)
+                                          -> (check-null p 'ndarray_add_complex))
+  #:wrap (allocator ndarray_free))
 (define-ndarray ndarray_add_int8_t (_fun _NDArray-pointer _NDArray-pointer 
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_add_int8_t))
@@ -278,6 +299,10 @@
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_sub_double))
   #:wrap (allocator ndarray_free))
+(define-ndarray ndarray_sub_complex (_fun _NDArray-pointer _NDArray-pointer 
+                                          -> (p : _NDArray-pointer/null)
+                                          -> (check-null p 'ndarray_sub_complex))
+  #:wrap (allocator ndarray_free))
 (define-ndarray ndarray_sub_int8_t (_fun _NDArray-pointer _NDArray-pointer 
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_sub_int8_t))
@@ -318,6 +343,10 @@
 (define-ndarray ndarray_div_double (_fun _NDArray-pointer _NDArray-pointer 
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_div_double))
+  #:wrap (allocator ndarray_free))
+(define-ndarray ndarray_div_complex (_fun _NDArray-pointer _NDArray-pointer 
+                                          -> (p : _NDArray-pointer/null)
+                                          -> (check-null p 'ndarray_div_complex))
   #:wrap (allocator ndarray_free))
 (define-ndarray ndarray_div_int8_t (_fun _NDArray-pointer _NDArray-pointer 
                                           -> (p : _NDArray-pointer/null)
@@ -363,6 +392,10 @@
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_iter_mul_double))
   #:wrap (allocator ndarray_free))
+(define-ndarray ndarray_iter_mul_complex (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
+                                          -> (p : _NDArray-pointer/null)
+                                          -> (check-null p 'ndarray_iter_mul_complex))
+  #:wrap (allocator ndarray_free))
 (define-ndarray ndarray_iter_mul_int8_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_iter_mul_int8_t))
@@ -403,6 +436,10 @@
 (define-ndarray ndarray_iter_add_double (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_iter_add_double))
+  #:wrap (allocator ndarray_free))
+(define-ndarray ndarray_iter_add_complex (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
+                                          -> (p : _NDArray-pointer/null)
+                                          -> (check-null p 'ndarray_iter_add_complex))
   #:wrap (allocator ndarray_free))
 (define-ndarray ndarray_iter_add_int8_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
                                           -> (p : _NDArray-pointer/null)
@@ -445,6 +482,10 @@
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_iter_sub_double))
   #:wrap (allocator ndarray_free))
+(define-ndarray ndarray_iter_sub_complex (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
+                                          -> (p : _NDArray-pointer/null)
+                                          -> (check-null p 'ndarray_iter_sub_complex))
+  #:wrap (allocator ndarray_free))
 (define-ndarray ndarray_iter_sub_int8_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_iter_sub_int8_t))
@@ -485,6 +526,10 @@
 (define-ndarray ndarray_iter_div_double (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
                                           -> (p : _NDArray-pointer/null)
                                           -> (check-null p 'ndarray_iter_div_double))
+  #:wrap (allocator ndarray_free))
+(define-ndarray ndarray_iter_div_complex (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
+                                          -> (p : _NDArray-pointer/null)
+                                          -> (check-null p 'ndarray_iter_div_complex))
   #:wrap (allocator ndarray_free))
 (define-ndarray ndarray_iter_div_int8_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
                                           -> (p : _NDArray-pointer/null)

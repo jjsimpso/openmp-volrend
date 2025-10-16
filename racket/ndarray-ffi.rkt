@@ -3,7 +3,8 @@
 (require ffi/unsafe
          ffi/unsafe/alloc
          ffi/unsafe/define
-         ffi/unsafe/cvector)
+         ffi/unsafe/cvector
+         racket/flonum)
 
 (require (for-syntax syntax/parse))
 
@@ -42,6 +43,23 @@
 (define-ffi-definer define-ndarray (ffi-lib "../libvolrend"))
 
 (define MAX-DIMS 32)
+
+(provide _complex)
+(provide (struct-out Complex))
+
+(define-cstruct _Complex
+  ([real _double]
+   [imag _double]))
+
+(define _complex (make-ctype _Complex
+                             (lambda (c)
+                               (cond
+                                 [(and (flonum? (real-part c)) (flonum? (imag-part c)))
+                                  (make-Complex (flreal-part c) (flimag-part c))]
+                                 [else
+                                  (make-Complex (exact->inexact (real-part c)) (exact->inexact (imag-part c)))]))
+                             (lambda (v) (make-flrectangular (Complex-real v) (Complex-imag v)))
+                             #;(lambda (v) v)))
 
 (define _intptr-pointer (_cpointer 'intptr_t))
 (define _uint8-pointer (_cpointer/null 'uint8_t))
