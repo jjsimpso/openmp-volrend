@@ -81,7 +81,7 @@
 
 (define (tensor-read-ppm path)
   (define nda (ndarray_read_ppm path))
-  (make-tensor (vector (ndarray-dims nda 1) (ndarray-dims nda 0) 3) nda))
+  (make-tensor (vector (ndarray-dims nda 0) (ndarray-dims nda 1) 3) nda))
   
 (define (test-ppm)
   (define ppm (tensor-read-ppm test-ppm-path))
