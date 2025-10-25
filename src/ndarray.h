@@ -74,6 +74,7 @@ typedef struct {
 
 /* function API */
 NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes, uint8_t *ptr);
+void ndarray_set_freedata(NDArray *nda, bool freedata);
 void ndarray_free(NDArray *nda);
 NDArray *ndarray_copy(NDArray *nda);
 NDArrayIter *ndarray_iter_new(NDArray *nda, Slice *slices);

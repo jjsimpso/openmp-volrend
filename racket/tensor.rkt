@@ -63,10 +63,27 @@
   (or (tensor-iter t)
       (ndarray_iter_new (tensor-ndarray t) #f)))
 
-(define (tensor-ndarray-or-iter t iter?)
-  (if iter?
-      (tensor-as-iter t)
-      (tensor-ndarray t)))
+(define (number->ndarray n type)
+  (define scalar-ptr (malloc type 'raw))
+  (case (ctype->layout type)
+    [(double float) (ptr-set! scalar-ptr type 0 (exact->inexact n))]
+    ['(double double) (ptr-set! scalar-ptr type 0 (exact->inexact n))]
+    [(int8 int16 int32 int64) (ptr-set! scalar-ptr type 0 (exact-truncate n))]
+    [(uint8 uint16 uint32 uint64) (ptr-set! scalar-ptr type 0 (exact-truncate n))]
+    [else (error "Unsupported scalar type conversion to tensor")])
+  (define nda (ndarray_new 1 (vector 1) (ctype-sizeof type) scalar-ptr))
+  (ndarray_set_freedata nda #t)
+  nda)
+
+(define (tensor-ndarray-or-iter t type iter?)
+  (cond
+    [(number? t)
+     ; create an iterator from the number t
+     (ndarray_iter_new (number->ndarray t type) #f)]
+    [iter?
+     (tensor-as-iter t)]
+    [else
+     (tensor-ndarray t)]))
 
 (define (guess-type v)
   (cond
@@ -375,9 +392,12 @@
 
 (define-syntax-rule (define-binary-op name dispatch)
   (define (name a b)
-    (define type (tensor-type a))
-    (define iter? (or (tensor-iter a) (tensor-iter b)))
-    (define result ((dispatch type iter?) (tensor-ndarray-or-iter a iter?) (tensor-ndarray-or-iter b iter?)))
+    (define type
+      (if (tensor? a)
+          (tensor-type a)
+          (tensor-type b)))
+    (define iter? (or (number? a) (number? b) (tensor-iter a) (tensor-iter b)))
+    (define result ((dispatch type iter?) (tensor-ndarray-or-iter a type iter?) (tensor-ndarray-or-iter b type iter?)))
     (tensor type (ndarray-dims->shape result) result)))
 
 (define-binary-op t* dispatch-mul)
@@ -389,20 +409,20 @@
 (define (t=? a b)
   (define type (tensor-type a))
   (define iter? (or (tensor-iter a) (tensor-iter b)))
-  ((dispatch-equal type iter?) (tensor-ndarray-or-iter a iter?) (tensor-ndarray-or-iter b iter?)))
+  ((dispatch-equal type iter?) (tensor-ndarray-or-iter a type iter?) (tensor-ndarray-or-iter b type iter?)))
 
 (define (texpt t w)
   (define type (tensor-type t))
   (define shape (tshape t))
   (if (tensor-iter t)
       (case (ctype->layout type)
-        [(double) (tensor type shape (ndarray_iter_expt_double (tensor-iter t) w))]
-        [(float) (tensor type shape (ndarray_iter_expt_float (tensor-iter t) w))]
+        [(double) (tensor type shape (ndarray_iter_expt_double (tensor-iter t) (exact->inexact w)))]
+        [(float) (tensor type shape (ndarray_iter_expt_float (tensor-iter t) (exact->inexact w)))]
         [else
          (error "unsupported tensor type" type)])
       (case (ctype->layout type)
-        [(double) (tensor type shape (ndarray_expt_double (tensor-ndarray t) w))]
-        [(float) (tensor type shape (ndarray_expt_float (tensor-ndarray t) w))]
+        [(double) (tensor type shape (ndarray_expt_double (tensor-ndarray t) (exact->inexact w)))]
+        [(float) (tensor type shape (ndarray_expt_float (tensor-ndarray t) (exact->inexact w)))]
         [else
          (error "unsupported tensor type" type)])))
 

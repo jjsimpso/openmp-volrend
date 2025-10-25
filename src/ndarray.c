@@ -60,6 +60,11 @@ NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes, uint8_t *ptr)
     return nda;
 }
 
+void ndarray_set_freedata(NDArray *nda, bool freedata)
+{
+    nda->free_data = freedata;
+}
+
 void ndarray_free(NDArray *nda)
 {
     if(nda)

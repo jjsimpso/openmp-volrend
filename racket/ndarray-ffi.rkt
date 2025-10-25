@@ -15,6 +15,7 @@
          ndarray_new
          ndarray_free
          ndarray_copy
+         ndarray_set_freedata
          ndarray_shape_equal
          ndarray_data_equal
          ndarray_iter_new
@@ -123,6 +124,8 @@
                                    -> (p : _NDArray-pointer/null)
                                    -> (check-null p 'ndarray_copy))
   #:wrap (allocator #:merely-uninterruptible? #t ndarray_free))
+
+(define-ndarray ndarray_set_freedata (_fun _NDArray-pointer _stdbool -> _void))
 
 (define-ndarray ndarray_shape_equal (_fun _NDArray-pointer _NDArray-pointer -> _stdbool))
 (define-ndarray ndarray_data_equal (_fun _NDArray-pointer _NDArray-pointer -> _stdbool))
