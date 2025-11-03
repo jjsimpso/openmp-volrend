@@ -44,9 +44,40 @@
   #:prefab)
 
 (define (print-tensor t)
-  (for ([x (in-tensor t)]
-        [i (in-naturals 0)])
-    (printf "t[~a] = ~a~n" i x)))
+  (define (insert-padding n)
+    (for ([i (in-range 0 n)])
+      (display " ")))
+  (define (print-axis it type shape-vec depth)
+    (cond
+      [(= (vector-length shape-vec) 1)
+       (printf "[")
+       (for ([i (in-range 0 (sub1 (vector-ref shape-vec 0)))])
+         (printf "~a, " (ndarray-iter-data-advance it type)))
+       (printf "~a]" (ndarray-iter-data-advance it type))]
+      [(= (vector-length shape-vec) 2)
+       (define row-shape (vector-drop shape-vec 1))
+       (printf "[")
+       (for ([i (in-range 0 (sub1 (vector-ref shape-vec 0)))])
+         (print-axis it type row-shape (add1 depth))
+         (printf ",~n")
+         (insert-padding depth))
+       (print-axis it type row-shape (add1 depth))
+       (printf "]")]
+      [else
+       (define sub-shape (vector-drop shape-vec 1))
+       (define final-i (sub1 (vector-ref shape-vec 0)))
+       (printf "[")
+       (for ([i (in-range 0 (vector-ref shape-vec 0))])
+         (print-axis it type sub-shape (add1 depth))
+         (if (= i final-i)
+             (printf "]~n")
+             (begin
+               (printf ",~n")
+               (insert-padding depth))))
+       #;(printf "~n")]))
+  
+  (define it (ndarray_iter_new (tensor-ndarray t) #f))
+  (print-axis it (tensor-type t) (tshape t) 1))
 
 (define (iter-shape it)
   (for/vector #:length (add1 (NDArrayIter-nd_m1 it))

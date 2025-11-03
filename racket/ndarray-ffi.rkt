@@ -30,6 +30,7 @@
          ndarray-sub-elems
          ndarray-data->list
          ndarray-iter-data
+         ndarray-iter-data-advance
          ndarray-iter-dims
          ndarray-iter-sub-elems
          make-slice
@@ -240,6 +241,11 @@
 
 (define-syntax-rule (ndarray-iter-data p type)
   (ptr-ref (NDArrayIter-cursor p) type 0))
+
+(define (ndarray-iter-data-advance p type)
+  (define val (ndarray-iter-data p type))
+  (ndarray_iter_next p)
+  val)
 
 ;; return size of dimension i in iterator
 (define (ndarray-iter-dims p i)
