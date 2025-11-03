@@ -384,7 +384,36 @@
   (check-within (tref result 1 0) (make-flrectangular -10.0 24.0) 0.0001)
   (check-within (tref result 1 1) (make-rectangular -10.0 24.0) 0.0001))
 
+(define (test-basic)
+  (define a (make-tensor (vector 10 10 3) 1.0))
+  (define it1 (tslice a '((0 4 1) () ())))
+  (check-equal? (tlen a) 300)
+  (check-equal? (tlen a 0) 30)
+  (check-equal? (tlen a 1) 3)
+  (check-equal? (tlen it1) 150)
+  (check-equal? (tlen it1 0) 30)
+  (check-equal? (tlen it1 1) 3)
+  (check-equal? (tref a 150) 1.0)
+  (check-exn exn:fail? (thunk (tref a 300)))
+  (check-exn exn:fail? (thunk (tref it1 150)))
+  (tset! a 299 2.0)
+  (tset! a 149 3.0)
+  (check-exn exn:fail? (thunk (tset! it1 150 1.0)))
+  (check-equal? (tref a 299) 2.0)
+  (check-equal? (tref a 149) 3.0))
+  
+(define (test-sum)
+  (define x (make-tensor (vector 5 3)
+                         (vector 8.54  1.54  8.12
+                                 3.13  8.76  5.29
+                                 7.73  6.71  1.31
+                                 6.44  9.64  8.44
+                                 7.27  8.42  5.2)
+                         #:ctype _double))
+  void)
+
 (define (run-tests)
+  (test-basic)
   (test-linspace)
   (test-ppm)
   (test-tmap)

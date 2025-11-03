@@ -27,9 +27,11 @@
          ndarray-set!
          ndarray-dims
          ndarray-dims->shape
+         ndarray-sub-elems
          ndarray-data->list
          ndarray-iter-data
          ndarray-iter-dims
+         ndarray-iter-sub-elems
          make-slice
          in-iter
          _NDArray-pointer
@@ -166,6 +168,8 @@
 ;; accessor function for NDArray dims array
 ;; i is a 0-based index
 (define (ndarray-dims p i)
+  (when (> (add1 i) (NDArray-ndim p))
+    (error (format "dimension ~a exceeds NDArray's dimensions" i)))
   (ptr-ref (NDArray-dims p) _intptr i))
 
 ;; calculate the stride of dimension n
@@ -177,6 +181,15 @@
   (for/fold ([sum elem-bytes])
             ([i (in-range (sub1 (NDArray-ndim p)) n -1)])
     (* (ndarray-dims p i) sum)))
+
+;; calculate the number of elements of the subarray within/underneath dimension n
+(define (ndarray-sub-elems p n)
+  ;(/ (dim-stride p n) (NDArray-elem_bytes p))
+  (when (> (add1 n) (NDArray-ndim p))
+    (error (format "dimension ~a exceeds NDArray's dimensions" n)))
+  (for/fold ([num-elements 1])
+            ([i (in-range n (sub1 (NDArray-ndim p)))])
+    (* num-elements (ndarray-dims p (add1 i)))))
 
 (define-syntax ndarray-ref
   (syntax-rules ()
@@ -224,6 +237,14 @@
 ;; return size of dimension i in iterator
 (define (ndarray-iter-dims p i)
   (add1 (array-ref (NDArrayIter-dims_m1 p) i)))
+
+;; calculate the number of elements of the subarray within/underneath dimension n
+(define (ndarray-iter-sub-elems p n)
+  (when (> n (NDArrayIter-nd_m1 p))
+    (error (format "dimension ~a exceeds NDArray Iterator's dimensions" n)))
+  (for/fold ([num-elements 1])
+            ([i (in-range n (NDArrayIter-nd_m1 p))])
+    (* num-elements (ndarray-iter-dims p (add1 i)))))
 
 ;; provide the number of dimensions and a list of triples(start end stride)
 ;; returns a cpointer to an array of _Slices

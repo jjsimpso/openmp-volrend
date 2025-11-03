@@ -43,6 +43,11 @@
   #:auto-value #f
   #:prefab)
 
+(define (print-tensor t)
+  (for ([x (in-tensor t)]
+        [i (in-naturals 0)])
+    (printf "t[~a] = ~a~n" i x)))
+
 (define (iter-shape it)
   (for/vector #:length (add1 (NDArrayIter-nd_m1 it))
               ([i (in-naturals)])
@@ -53,10 +58,14 @@
       (iter-shape (tensor-iter t))
       (tensor-shape t)))
 
-(define (tlen t)
-  (if (tensor-iter t)
-      (NDArrayIter-length (tensor-iter t))
-      (NDArray-num_elems (tensor-ndarray t))))
+(define (tlen t [start-dim #f])
+  (if (false? start-dim)
+      (if (tensor-iter t)
+          (NDArrayIter-length (tensor-iter t))
+          (NDArray-num_elems (tensor-ndarray t)))
+      (if (tensor-iter t)
+          (ndarray-iter-sub-elems (tensor-iter t) start-dim)
+          (ndarray-sub-elems (tensor-ndarray t) start-dim))))
 
 ;; gets a tensor's iterator or creates a new iterator for it
 (define (tensor-as-iter t)
@@ -232,10 +241,22 @@
   tnew)
 
 (define-syntax-rule (tref t i ...)
-  (ndarray-ref (tensor-ndarray t) (tensor-type t) i ...))
+  (cond
+    [(> (* (add1 i) ...) (tlen t))
+     (error "tref index out of bounds")]
+    [(tensor-iter t)
+     (error "tref doesn't support iterators")]
+    [else
+      (ndarray-ref (tensor-ndarray t) (tensor-type t) i ...)]))
 
 (define-syntax-rule (tset! t i ... v)
-  (ndarray-set! (tensor-ndarray t) (tensor-type t) i ... v))
+  (cond
+    [(> (* (add1 i) ...) (tlen t))
+     (error "tset! index out of bounds")]
+    [(tensor-iter t)
+     (error "tref doesn't support iterators")]
+    [else
+     (ndarray-set! (tensor-ndarray t) (tensor-type t) i ... v)]))
 
 (define (in-tensor/proc t)
   (for/vector ([v (in-tensor t)])
@@ -426,26 +447,61 @@
         [else
          (error "unsupported tensor type" type)])))
 
-(define (tsum t)
-  (if (tensor-iter t)
-      (case (ctype->layout (tensor-type t))
-        [(double) (ndarray_iter_sum_double (tensor-iter t))]
-        [(float)  (ndarray_iter_sum_float (tensor-iter t))]
-        ['(double double) (ndarray_iter_sum_complex (tensor-iter t))]
-        [(int32)  (ndarray_iter_sum_int32_t (tensor-iter t))]
-        [(int64)  (ndarray_iter_sum_int64_t (tensor-iter t))]
-        [(uint32) (ndarray_iter_sum_uint32_t (tensor-iter t))]
-        [(uint64) (ndarray_iter_sum_uint64_t (tensor-iter t))]
-        [else
-         (error "unsupported tensor type" (tensor-type t))])
-      (case (ctype->layout (tensor-type t))
-        [(double) (ndarray_sum_double (tensor-ndarray t))]
-        [(float)  (ndarray_sum_float (tensor-ndarray t))]
-        ['(double double) (ndarray_sum_complex (tensor-ndarray t))]
-        [(int32)  (ndarray_sum_int32_t (tensor-ndarray t))]
-        [(int64)  (ndarray_sum_int64_t (tensor-ndarray t))]
-        [(uint32) (ndarray_sum_uint32_t (tensor-ndarray t))]
-        [(uint64) (ndarray_sum_uint64_t (tensor-ndarray t))]
-        [else
-         (error "unsupported tensor type" (tensor-type t))])))
+(define (tsum t #:axis [axis #f])
+  (cond
+    [(false? axis)
+     (if (tensor-iter t)
+         (case (ctype->layout (tensor-type t))
+           [(double) (ndarray_iter_sum_double (tensor-iter t))]
+           [(float)  (ndarray_iter_sum_float (tensor-iter t))]
+           ['(double double) (ndarray_iter_sum_complex (tensor-iter t))]
+           [(int32)  (ndarray_iter_sum_int32_t (tensor-iter t))]
+           [(int64)  (ndarray_iter_sum_int64_t (tensor-iter t))]
+           [(uint32) (ndarray_iter_sum_uint32_t (tensor-iter t))]
+           [(uint64) (ndarray_iter_sum_uint64_t (tensor-iter t))]
+           [else
+            (error "unsupported tensor type" (tensor-type t))])
+         (case (ctype->layout (tensor-type t))
+           [(double) (ndarray_sum_double (tensor-ndarray t))]
+           [(float)  (ndarray_sum_float (tensor-ndarray t))]
+           ['(double double) (ndarray_sum_complex (tensor-ndarray t))]
+           [(int32)  (ndarray_sum_int32_t (tensor-ndarray t))]
+           [(int64)  (ndarray_sum_int64_t (tensor-ndarray t))]
+           [(uint32) (ndarray_sum_uint32_t (tensor-ndarray t))]
+           [(uint64) (ndarray_sum_uint64_t (tensor-ndarray t))]
+           [else
+            (error "unsupported tensor type" (tensor-type t))]))]
+    [(>= axis (sub1 (NDArray-ndim (tensor-ndarray t))))
+     (error "axis exceeds tensor dimensions minus one")]
+    [(false? (tensor-iter t))
+     (define axis-sub-elems (tlen t axis))
+     (define dataptr (NDArray-dataptr (tensor-ndarray t)))
+     (define type (tensor-type t))
+     (define result-shape (vector-take (tshape t) (add1 axis)))
+     (define result (make-tensor result-shape #:ctype type))
+     (define (fill-result shape-to-fill sub-shape result-idx src-idx)
+       (cond
+         [(= (vector-length shape-to-fill) 1)
+          (printf "~a ~a ~a ~a~n" shape-to-fill sub-shape result-idx src-idx)
+          (for ([i (in-range result-idx (+ result-idx (vector-ref shape-to-fill 0)))]
+                [j (in-naturals 0)])
+            (define offset (+ src-idx (* j axis-sub-elems)))
+            (printf "  ~a~n" offset)
+            (tset! result i
+                   (for/sum ([k (in-range 0 axis-sub-elems)])
+                     (ptr-ref dataptr type (+ offset k)))))
+          result]
+         [else
+          (for ([i (vector-ref shape-to-fill 0)])
+            (fill-result (vector-drop shape-to-fill 1)
+                         (vector-drop sub-shape 1)
+                         (* i (vector-ref shape-to-fill (sub1 (vector-length shape-to-fill))))
+                         (* i (apply * (vector->list sub-shape)))))
+          result]))
+     (fill-result result-shape (vector-drop (tshape t) 1) 0 0)]
+    [(tensor-iter t)
+     (error "tsum on iterators not currently supported")]
+    [else
+     (error "unsupported argument")]))
+
 
