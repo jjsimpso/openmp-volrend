@@ -221,7 +221,14 @@
                'abs
                (+ (* i (dim-stride p 0))
                   (* j (dim-stride p 1)))
-               v)]))
+               v)]
+    [(ndarray-set! p type i ... v)
+     (let* ([indices '(i ...)]
+            [offset (for/fold ([sum 0])
+                              ([idx (in-list indices)]
+                               [dim (in-naturals)])
+                      (+ sum (* idx (dim-stride p dim))))])
+       (ptr-set! (NDArray-dataptr p) type 'abs offset v))]))
 
 (define (ndarray-dims->shape nda)
   (for/vector #:length (NDArray-ndim nda)

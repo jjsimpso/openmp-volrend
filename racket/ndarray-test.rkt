@@ -404,6 +404,13 @@
   (check-equal? (ndarray-sub-elems a 2) 1)
   (check-equal? (ndarray-sub-elems a 1) 3)
   (check-equal? (ndarray-sub-elems a 0) 18)
+  ; check ref and set for > 2 dimensions
+  (ndarray-set! a _int32 3 4 0 340)
+  (ndarray-set! a _int32 3 4 1 341)
+  (ndarray-set! a _int32 3 4 2 342)
+  (check-equal? (ndarray-ref a _int32 3 4 0) 340)
+  (check-equal? (ndarray-ref a _int32 3 4 1) 341)
+  (check-equal? (ndarray-ref a _int32 3 4 2) 342)
   (define ita (ndarray_iter_new a #f))
   (check-exn exn:fail? (thunk (ndarray-iter-sub-elems ita 3)))
   (check-equal? (ndarray-iter-sub-elems ita 2) 1)
