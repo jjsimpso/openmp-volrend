@@ -65,19 +65,20 @@
        (printf "]")]
       [else
        (define sub-shape (vector-drop shape-vec 1))
-       (define final-i (sub1 (vector-ref shape-vec 0)))
        (printf "[")
-       (for ([i (in-range 0 (vector-ref shape-vec 0))])
+       (for ([i (in-range 0 (sub1 (vector-ref shape-vec 0)))])
          (print-axis it type sub-shape (add1 depth))
-         (if (= i final-i)
-             (printf "]~n")
-             (begin
-               (printf ",~n")
-               (insert-padding depth))))
-       #;(printf "~n")]))
-  
-  (define it (ndarray_iter_new (tensor-ndarray t) #f))
-  (print-axis it (tensor-type t) (tshape t) 1))
+         (printf ",~n~n")
+         (insert-padding depth))
+       (print-axis it type sub-shape (add1 depth))
+       (printf "]")]))
+
+  (cond
+    [(tensor-iter t)
+     (ndarray_iter_reset (tensor-iter t))
+     (print-axis (tensor-iter t) (tensor-type t) (tshape t) 1)]
+    [else
+     (print-axis (ndarray_iter_new (tensor-ndarray t) #f) (tensor-type t) (tshape t) 1)]))
 
 (define (iter-shape it)
   (for/vector #:length (add1 (NDArrayIter-nd_m1 it))
