@@ -78,6 +78,81 @@ bool ndarray_fill_mat_ident_double(NDArray *a)
 }
 */
 
+#define MAKE_NDARRAY_MAT_TRANSPOSE_FUNC(type)                                                  \
+NDArray *ndarray_mat_transpose_##type(NDArray *a)                                              \
+{                                                                                              \
+    if(a->ndim != 2)                                                                           \
+    {                                                                                          \
+	return NULL;                                                                           \
+    }                                                                                          \
+                                                                                               \
+    /* allocate result array */                                                                \
+    NDArray *b = ndarray_new(2, (intptr_t []){a->dims[1], a->dims[0]}, a->elem_bytes, NULL);   \
+    if(!b)                                                                                     \
+    {                                                                                          \
+	return NULL;                                                                           \
+    }                                                                                          \
+                                                                                               \
+    intptr_t a_cols = a->dims[1];                                                              \
+    intptr_t b_cols = b->dims[1];                                                              \
+    type *adata = (type *)NDARRAY_DATAPTR(a);                                                  \
+    type *bdata = (type *)NDARRAY_DATAPTR(b);                                                  \
+                                                                                               \
+    for(intptr_t i = 0; i < a->dims[0]; i++)                                                   \
+    {                                                                                          \
+	for(intptr_t j = 0; j < a->dims[1]; j++)                                               \
+	{                                                                                      \
+	    bdata[ELEMENT(j, i, b_cols)] = adata[ELEMENT(i, j, a_cols)];                       \
+	}                                                                                      \
+    }                                                                                          \
+                                                                                               \
+    return b;                                                                                  \
+}
+
+MAKE_NDARRAY_MAT_TRANSPOSE_FUNC(float)
+MAKE_NDARRAY_MAT_TRANSPOSE_FUNC(double)
+MAKE_NDARRAY_MAT_TRANSPOSE_FUNC(complex)
+MAKE_NDARRAY_MAT_TRANSPOSE_FUNC(int8_t)
+MAKE_NDARRAY_MAT_TRANSPOSE_FUNC(int16_t)
+MAKE_NDARRAY_MAT_TRANSPOSE_FUNC(int32_t)
+MAKE_NDARRAY_MAT_TRANSPOSE_FUNC(int64_t)
+MAKE_NDARRAY_MAT_TRANSPOSE_FUNC(uint8_t)
+MAKE_NDARRAY_MAT_TRANSPOSE_FUNC(uint16_t)
+MAKE_NDARRAY_MAT_TRANSPOSE_FUNC(uint32_t)
+MAKE_NDARRAY_MAT_TRANSPOSE_FUNC(uint64_t)
+    
+/*    
+NDArray *ndarray_mat_transpose_double(NDArray *a)
+{
+    if(a->ndim != 2)
+    {
+	return NULL;
+    }
+    
+    // allocate result array
+    NDArray *b = ndarray_new(2, (intptr_t []){a->dims[1], a->dims[0]}, a->elem_bytes, NULL);
+    if(!b)
+    {
+	return NULL;
+    }
+
+    intptr_t a_cols = a->dims[1];
+    intptr_t b_cols = b->dims[1];
+    double *adata = (double *)NDARRAY_DATAPTR(a);
+    double *bdata = (double *)NDARRAY_DATAPTR(b);
+    
+    for(intptr_t i = 0; i < a->dims[0]; i++)
+    {
+	for(intptr_t j = 0; j < a->dims[1]; j++)
+	{
+	    bdata[ELEMENT(j, i, b_cols)] = adata[ELEMENT(i, j, a_cols)];
+	}
+    }
+
+    return b;
+}
+*/
+
 #define MAKE_NDARRAY_MATMUL_MP_FUNC(type)                                                                         \
 NDArray *ndarray_matmul_##type##_mp(NDArray *a, NDArray *b)                                                       \
 {                                                                                                                 \

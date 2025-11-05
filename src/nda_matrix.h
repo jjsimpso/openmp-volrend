@@ -12,6 +12,18 @@ bool *ndarray_fill_mat_ident_uint16_t(NDArray *a);
 bool *ndarray_fill_mat_ident_uint32_t(NDArray *a);
 bool *ndarray_fill_mat_ident_uint64_t(NDArray *a);
 
+NDArray *ndarray_mat_transpose_float(NDArray *a);
+NDArray *ndarray_mat_transpose_double(NDArray *a);
+NDArray *ndarray_mat_transpose_complex(NDArray *a);
+NDArray *ndarray_mat_transpose_int8_t(NDArray *a);
+NDArray *ndarray_mat_transpose_int16_t(NDArray *a);
+NDArray *ndarray_mat_transpose_int32_t(NDArray *a);
+NDArray *ndarray_mat_transpose_int64_t(NDArray *a);
+NDArray *ndarray_mat_transpose_uint8_t(NDArray *a);
+NDArray *ndarray_mat_transpose_uint16_t(NDArray *a);
+NDArray *ndarray_mat_transpose_uint32_t(NDArray *a);
+NDArray *ndarray_mat_transpose_uint64_t(NDArray *a);
+
 NDArray *ndarray_matmul_float_mp(NDArray *a, NDArray *b);
 NDArray *ndarray_matmul_double_mp(NDArray *a, NDArray *b);
 NDArray *ndarray_matmul_complex_mp(NDArray *a, NDArray *b);

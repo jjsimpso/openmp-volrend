@@ -5,7 +5,12 @@
 #include <complex.h>
 #include "ndarray.h"
 #include "nda_ops.h"
+#include "nda_matrix.h"
 #include "ppm.h"
+
+/*
+  LD_LIBRARY_PATH=../:$LD_LIBRARY_PATH ./ndarray-test
+ */
 
 void print_iter(NDArrayIter *it)
 {
@@ -247,6 +252,26 @@ void test_complex()
     print_iter_complex(it2);
 }
 
+void test_transpose()
+{
+    double adat[4][3] = { {  0.0,  0.1,  0.2 },
+			  { 1.0, 1.1, 1.2 },
+			  { 2.0, 2.1, 2.2 },
+			  { 3.0, 3.1, 3.2 } };		       
+    double *a = malloc(sizeof(adat));
+    memcpy(a, adat, sizeof(adat));
+    NDArray *nda_a = ndarray_new(2, (intptr_t []){4, 3}, sizeof(double), (uint8_t *)a);
+    NDArray *nda_at = ndarray_mat_transpose_double(nda_a);
+
+    NDArrayIter *it_at = ndarray_iter_new(nda_at, NULL);
+    printf("transpose of 4x3 matrix\n");
+    print_iter_double(it_at);
+    
+    ndarray_iter_free(it_at);
+    ndarray_free(nda_a);
+    ndarray_free(nda_at);
+}
+
 int main(int argc, char **argv)
 {
 
@@ -261,6 +286,8 @@ int main(int argc, char **argv)
     test_bigsum(10);
 
     test_complex();
+
+    test_transpose();
     
     return 0;
 }
