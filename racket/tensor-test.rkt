@@ -12,11 +12,6 @@
 
 (require rackunit)
 
-(define (print-tensor t)
-  (for ([x (in-tensor t)]
-        [i (in-naturals 0)])
-    (printf "t[~a] = ~a~n" i x)))
-
 (define (linspace start stop [num 50] [endpoint? #t])
   (define num-points (if endpoint? (add1 num) num))
   (define shape (vector num-points))

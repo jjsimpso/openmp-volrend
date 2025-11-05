@@ -13,6 +13,7 @@
 
 (provide make-tensor
          build-tensor
+         print-tensor
          tshape
          tlen
          tfill!
