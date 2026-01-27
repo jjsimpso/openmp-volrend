@@ -113,6 +113,33 @@
    (map (lambda (i) (tref t1 i)) '(0 1 2 3 4 5 6 7 8))
    '(0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0)))
 
+(define (test-slice)
+  (define a (make-tensor (vector 3 2 4) 'index))
+  (check-equal? (tshape a) '#(3 2 4))
+  (check-equal? (tshape (tslice a '() #:skip-dim 0)) '#(2 4))
+  (check-equal? (tshape (tslice a '() #:skip-dim 1)) '#(3 4))
+  (check-equal? (tshape (tslice a '() #:skip-dim 2)) '#(3 2))
+
+  (check-equal? (in-tensor (tslice a '() #:skip-dim 0))
+                '#(0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0))
+  (check-equal? (in-tensor (tslice a '() #:skip-dim 1))
+                '#(0.0 1.0 2.0 3.0 8.0 9.0 10.0 11.0 16.0 17.0 18.0 19.0))
+  (check-equal? (in-tensor (tslice a '() #:skip-dim 2))
+                '#(0.0 4.0 8.0 12.0 16.0 20.0))
+
+  (check-equal? (tshape (tslice a '(() (2 3 1)) #:skip-dim 0)) '#(2 2))
+  (check-equal? (in-tensor (tslice a '(() (2 3 1)) #:skip-dim 0))
+                '#(2.0 3.0 6.0 7.0))
+
+  (check-equal? (tshape (tslice a '((0 2 2) ()) #:skip-dim 1)) '#(2 4))
+  (check-equal? (in-tensor (tslice a '((0 2 2) ()) #:skip-dim 1))
+                '#(0.0 1.0 2.0 3.0 16.0 17.0 18.0 19.0))
+
+  (check-equal? (tshape (tslice a '((0 1 1) (1 1 1)) #:skip-dim 2)) '#(2 1))
+  (check-equal? (in-tensor (tslice a '((0 1 1) (1 1 1)) #:skip-dim 2))
+                '#(4.0 12.0))
+  )
+
 (define (test-ops)
   (define a (make-tensor (vector 3 3 3) 'index))
   (define b (make-tensor (vector 3 3 3) 2.0))
@@ -417,6 +444,7 @@
   (test-ppm)
   (test-tmap)
   (test-build-tensor)
+  (test-slice)
   (test-ops)
   (test-matmul)
   (test-geom)

@@ -79,6 +79,7 @@ void ndarray_free(NDArray *nda);
 NDArray *ndarray_copy(NDArray *nda);
 NDArrayIter *ndarray_iter_new(NDArray *nda, Slice *slices);
 NDArrayIter *ndarray_iter_new_all_but_axis(NDArray *nda, Slice *slices, int *dim);
+NDArrayIter *ndarray_iter_new_add_axis(NDArray *nda, Slice *slices, int axis);
 void ndarray_iter_free(NDArrayIter *it);
 bool ndarray_iter_next(NDArrayIter *it);
 void ndarray_iter_reset(NDArrayIter *it);

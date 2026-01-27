@@ -79,6 +79,18 @@ void test_simple_iterator()
     ndarray_iter_free(it2);
 }
 
+void test_iter_add_axis()
+{
+    NDArray *nda = ndarray_new(1, (intptr_t []){5}, sizeof(double), NULL);
+    ndarray_fill_index_double(nda);
+    printf("created ndarray with dimensions %ld, %ld elements\n", nda->dims[0], nda->num_elems);
+    
+    NDArrayIter *it = ndarray_iter_new_add_axis(nda, NULL, 1);
+    printf("added axis to make it 5x1:\n");
+    print_iter_double(it);
+    ndarray_iter_free(it);
+}
+
 void test_ppm()
 {
     int w, h;
@@ -288,6 +300,8 @@ int main(int argc, char **argv)
     test_complex();
 
     test_transpose();
+
+    test_iter_add_axis();
     
     return 0;
 }

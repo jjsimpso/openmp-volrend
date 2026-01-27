@@ -309,6 +309,47 @@ NDArrayIter *ndarray_iter_new_all_but_axis(NDArray *nda, Slice *slices, int *dim
     return iter;
 }
 
+// axis is the dimension to insert a new axis at, first dimension is 0
+// dimensions after axis are shifted up by one
+NDArrayIter *ndarray_iter_new_add_axis(NDArray *nda, Slice *slices, int axis)
+{
+    if(!nda || (nda->ndim == MAX_DIMS))
+    {
+	return NULL;
+    }
+    
+    // create iterator without using the slices (yet)
+    NDArrayIter *iter = ndarray_iter_new(nda, NULL);
+
+    if(!iter)
+    {
+	return NULL;
+    }
+
+    if(slices)
+    {
+
+    }
+    else
+    {
+	iter->nd_m1 += 1;
+	// shift dimensions after new axis by one
+	for(int i = axis+1; i <= iter->nd_m1; i++)
+	{
+	    iter->dims_m1[i] = iter->dims_m1[i-1];
+	    iter->strides[i] = iter->strides[i-1];
+	    iter->backstrides[i] = iter->backstrides[i-1];
+	}
+	// new axis always has one element for now
+	iter->dims_m1[axis] = 0;
+	iter->strides[axis] = 0;
+	iter->backstrides[axis] = 0;
+	iter->contiguous = false;
+    }
+    
+    return iter;
+}
+
 // specify the always_inline attribute so this gets inlined even at -O0
 // prevents linker errors when debugging at -O0
 inline bool ndarray_iter_more(NDArrayIter *it) __attribute__((always_inline));

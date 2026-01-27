@@ -77,9 +77,11 @@
   (cond
     [(tensor-iter t)
      (ndarray_iter_reset (tensor-iter t))
-     (print-axis (tensor-iter t) (tensor-type t) (tshape t) 1)]
+     (print-axis (tensor-iter t) (tensor-type t) (tshape t) 1)
+     (printf "~n")]
     [else
-     (print-axis (ndarray_iter_new (tensor-ndarray t) #f) (tensor-type t) (tshape t) 1)]))
+     (print-axis (ndarray_iter_new (tensor-ndarray t) #f) (tensor-type t) (tshape t) 1)
+     (printf "~n")]))
 
 (define (iter-shape it)
   (for/vector #:length (add1 (NDArrayIter-nd_m1 it))
@@ -87,7 +89,8 @@
     (ndarray-iter-dims it i)))
 
 (define (tshape t)
-  (if (tensor-iter t)
+  (tensor-shape t)
+  #;(if (tensor-iter t)
       (iter-shape (tensor-iter t))
       (tensor-shape t)))
 
@@ -250,12 +253,23 @@
         slice)))
 |#
 
+(define (vector-remove-at v i)
+  (define-values (head tail) (vector-split-at v i))
+  (vector-append head (vector-drop tail 1)))
+
 ;; returns a new tensor that points to the same ndarray
-(define (tslice t slice-list #:skip-dim [skip-dim #f])
-  (define tnew (tensor (tensor-type t) (tensor-shape t) (tensor-ndarray t)))
-  (define nd (if skip-dim
-                 (sub1 (vector-length (tensor-shape tnew)))
-                 (vector-length (tensor-shape tnew))))
+(define (tslice t slice-list #:skip-dim [skip-dim #f] #:add-dim [add-dim #f])
+  (and skip-dim add-dim (error "skip-dim and add-dim keywords are mutually exclusize"))
+  (define tnew (tensor (tensor-type t)
+                       (cond
+                         [skip-dim
+                          (if (= skip-dim -1)
+                              (vector-drop-right (tensor-shape t) 1)
+                              (vector-remove-at (tensor-shape t) skip-dim))]
+                         ;[add-dim ]
+                         [else (tensor-shape t)])
+                       (tensor-ndarray t)))
+  (define nd (vector-length (tensor-shape tnew)))
   
   (unless (or (empty? slice-list)
               (equal? nd (length slice-list)))
@@ -264,11 +278,23 @@
                      #f
                      (make-slice nd (preprocess-slice-list t slice-list skip-dim))))
   (define it
-    (if skip-dim
-        (let ([dim (malloc _int)])
-          (ptr-set! dim _int 0 skip-dim)
-          (ndarray_iter_new_all_but_axis (tensor-ndarray t) slices dim))
-        (ndarray_iter_new (tensor-ndarray t) slices)))
+    (cond
+      [skip-dim
+       (let ([dim (malloc _int)])
+         (ptr-set! dim _int 0 skip-dim)
+         (ndarray_iter_new_all_but_axis (tensor-ndarray t) slices dim))]
+      [else
+       (ndarray_iter_new (tensor-ndarray t) slices)]))
+
+  ;; modify shape vector with new sizes
+  (for/fold ([shape-idx 0])
+            ([it-idx (in-range 0 (add1 (NDArrayIter-nd_m1 it)))])
+    (define dim-size (ndarray-iter-dims it it-idx))
+    (if (equal? it-idx skip-dim)
+        shape-idx
+        (begin
+          (vector-set! (tensor-shape tnew) shape-idx dim-size)
+          (add1 shape-idx))))
   
   (set-tensor-iter! tnew it)
   tnew)

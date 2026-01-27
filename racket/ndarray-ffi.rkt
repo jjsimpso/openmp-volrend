@@ -20,6 +20,7 @@
          ndarray_data_equal
          ndarray_iter_new
          ndarray_iter_new_all_but_axis
+         ndarray_iter_new_add_axis
          ndarray_iter_free
          ndarray_iter_next
          ndarray_iter_reset
@@ -144,6 +145,10 @@
 (define-ndarray ndarray_iter_new_all_but_axis (_fun _NDArray-pointer _Slice-pointer/null _pointer
                                                     -> (p : _NDArrayIter-pointer/null)
                                                     -> (check-null p 'ndarray_iter_new_all_but_axis))
+  #:wrap (allocator #:merely-uninterruptible? #t ndarray_iter_free))
+(define-ndarray ndarray_iter_new_add_axis (_fun _NDArray-pointer _Slice-pointer/null _int
+                                                    -> (p : _NDArrayIter-pointer/null)
+                                                    -> (check-null p 'ndarray_iter_new_add_axis))
   #:wrap (allocator #:merely-uninterruptible? #t ndarray_iter_free))
 
 (define-ndarray ndarray_iter_next (_fun _NDArrayIter-pointer -> _stdbool))
