@@ -286,6 +286,10 @@ NDArrayIter *ndarray_iter_new_all_but_axis(NDArray *nda, Slice *slices, int *dim
 		{
 		    nda_strides[i] = nda->elem_bytes;
 		}
+		else
+		{
+		    nda_strides[i] = nda->dims[i+1] * nda_strides[i+1];
+		}
 		
 		iter->coords[i] = 0;
 		iter->dims_m1[i] = 0;
