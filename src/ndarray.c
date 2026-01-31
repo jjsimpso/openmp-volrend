@@ -123,6 +123,18 @@ bool valid_slice(Slice *slice, int dim_size)
     return true;
 }
 
+intptr_t dims_m1_length(intptr_t *dims_m1, int nd_m1)
+{
+    intptr_t length = 1;
+    
+    for(int i = 0; i <= nd_m1; i++)
+    {
+	length *= dims_m1[i] + 1;
+    }
+
+    return length;
+}
+
 /* 
    Create a new iterator. If slices is NULL, the iterator will iterate over the whole array.
 
@@ -334,7 +346,7 @@ NDArrayIter *ndarray_iter_new_add_axis(NDArray *nda, Slice *slices, int axis)
     {
 	iter->nd_m1 += 1;
 	// shift dimensions after new axis by one
-	for(int i = axis+1; i <= iter->nd_m1; i++)
+	for(int i = iter->nd_m1; i >= axis+1; i--)
 	{
 	    iter->dims_m1[i] = iter->dims_m1[i-1];
 	    iter->strides[i] = iter->strides[i-1];
@@ -524,7 +536,7 @@ NDArrayMultiIter *ndarray_multi_iter_new(int num, ...)
 	    // fill in missing dimensions with broadcast dimensions and 0 strides
 	    for(int j = 0; j < diff; j++)
 	    {
-		iter[i]->dims_m1[j] = 0; //mult_iter->dims_m1[j];
+		iter[i]->dims_m1[j] = 0;
 		iter[i]->strides[j] = 0;
 		iter[i]->backstrides[j] = 0;
 	    }
@@ -532,29 +544,37 @@ NDArrayMultiIter *ndarray_multi_iter_new(int num, ...)
 	    iter[i]->nd_m1 = multi_iter->nd_m1;
 	}
 
-	for(int j = 0; j <= multi_iter->nd_m1; j++)
+	for(int j = 0; j <= iter[i]->nd_m1; j++)
 	{
-	    if(iter[i]->dims_m1[j] != 0)
+	    if(iter[i]->dims_m1[j] > multi_iter->dims_m1[j])
 	    {
-		if(iter[i]->dims_m1[j] != multi_iter->dims_m1[j])
-		{
-		    // size of each dimension must match or be equal to 1
-		    if(multi_iter->dims_m1[j] == 0)
-		    {
-			// set the output dimension size
-			multi_iter->dims_m1[j] = iter[i]->dims_m1[j];
-			multi_iter->length *= iter[i]->dims_m1[j] + 1;
-		    }
-		    else
-		    {
-			free(multi_iter->nda);
-			free(multi_iter->iter);
-			free(multi_iter);
-			return NULL;
-		    }
-		}
+		multi_iter->dims_m1[j] = iter[i]->dims_m1[j];
 	    }
 	}
+    }
+
+    multi_iter->length = dims_m1_length(multi_iter->dims_m1, multi_iter->nd_m1);	
+
+    // now pass through each iterator and update based on the output shape
+    for(int i = 0; i < num; i++)
+    {
+	for(int j = 0; j <= multi_iter->nd_m1; j++)
+	{
+	    if(iter[i]->dims_m1[j] == 0)
+	    {
+		iter[i]->dims_m1[j] = multi_iter->dims_m1[j];
+		iter[i]->strides[j] = 0;
+		iter[i]->backstrides[j] = 0;
+	    }
+	    else if(iter[i]->dims_m1[j] != multi_iter->dims_m1[j])
+	    {
+		ndarray_multi_iter_free(multi_iter);
+		return NULL;
+	    }
+	}
+
+	// recalculate iterator length in case it changed
+	iter[i]->length = dims_m1_length(iter[i]->dims_m1, iter[i]->nd_m1);
     }
 
     return multi_iter;
@@ -626,7 +646,7 @@ NDArrayMultiIter *ndarray_multi_iter_new_from_iter(int num, ...)
 	    // fill in missing dimensions with broadcast dimensions and 0 strides
 	    for(int j = 0; j < diff; j++)
 	    {
-		iter[i]->dims_m1[j] = 0; //mult_iter->dims_m1[j];
+		iter[i]->dims_m1[j] = 0;
 		iter[i]->strides[j] = 0;
 		iter[i]->backstrides[j] = 0;
 	    }
@@ -634,29 +654,37 @@ NDArrayMultiIter *ndarray_multi_iter_new_from_iter(int num, ...)
 	    iter[i]->nd_m1 = multi_iter->nd_m1;
 	}
 
-	for(int j = 0; j <= multi_iter->nd_m1; j++)
+	for(int j = 0; j <= iter[i]->nd_m1; j++)
 	{
-	    if(iter[i]->dims_m1[j] != 0)
+	    if(iter[i]->dims_m1[j] > multi_iter->dims_m1[j])
 	    {
-		if(iter[i]->dims_m1[j] != multi_iter->dims_m1[j])
-		{
-		    // size of each dimension must match or be equal to 1
-		    if(multi_iter->dims_m1[j] == 0)
-		    {
-			// set the output dimension size
-			multi_iter->dims_m1[j] = iter[i]->dims_m1[j];
-			multi_iter->length *= iter[i]->dims_m1[j] + 1;
-		    }
-		    else
-		    {
-			free(multi_iter->nda);
-			free(multi_iter->iter);
-			free(multi_iter);
-			return NULL;
-		    }
-		}
+		multi_iter->dims_m1[j] = iter[i]->dims_m1[j];
 	    }
 	}
+    }
+
+    multi_iter->length = dims_m1_length(multi_iter->dims_m1, multi_iter->nd_m1);	
+
+    // now pass through each iterator and update based on the output shape
+    for(int i = 0; i < num; i++)
+    {
+	for(int j = 0; j <= multi_iter->nd_m1; j++)
+	{
+	    if(iter[i]->dims_m1[j] == 0)
+	    {
+		iter[i]->dims_m1[j] = multi_iter->dims_m1[j];
+		iter[i]->strides[j] = 0;
+		iter[i]->backstrides[j] = 0;
+	    }
+	    else if(iter[i]->dims_m1[j] != multi_iter->dims_m1[j])
+	    {
+		ndarray_multi_iter_free_except_iter(multi_iter);
+		return NULL;
+	    }
+	}
+
+	// recalculate iterator length in case it changed
+	iter[i]->length = dims_m1_length(iter[i]->dims_m1, iter[i]->nd_m1);
     }
 
     return multi_iter;
