@@ -263,6 +263,26 @@
   (check-exn exn:fail? (thunk (tslice result '((-1 7 1) (1 1 1)))))
   )
 
+(define (test-broadcast)
+  (define a (make-tensor (vector 3 1) (vector 1 2 3) #:ctype _int))
+  (define b (make-tensor (vector 4) (vector 4 5 6 7) #:ctype _int))
+
+  ;(print-tensor a)
+  ;(print-tensor b)
+  ;(print-tensor (t* a b))
+
+  (check-equal? (in-tensor (t* a b))
+                #( 4  5  6  7
+                   8 10 12 14
+                   12 15 18 21))
+
+  (define aa (make-tensor (vector 3) (vector 1 2 3) #:ctype _int))
+  (check-equal? (in-tensor (t* (tslice aa '() #:add-dim 1) b))
+                #( 4  5  6  7
+                   8 10 12 14
+                  12 15 18 21))
+  )
+
 (define (test-geom)
   (define row-vectors (make-tensor (vector 2 4) (vector 1.0 0.0 1.0 1.0
                                                         1.0 5.0 1.0 1.0)))
@@ -446,6 +466,7 @@
   (test-build-tensor)
   (test-slice)
   (test-ops)
+  (test-broadcast)
   (test-matmul)
   (test-geom)
   (test-complex))

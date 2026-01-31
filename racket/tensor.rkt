@@ -28,6 +28,7 @@
          t/
          t-
          t**
+         tsqrt
          texpt
          t=?
          tsum
@@ -257,6 +258,10 @@
   (define-values (head tail) (vector-split-at v i))
   (vector-append head (vector-drop tail 1)))
 
+(define (vector-insert-at v i)
+  (define-values (head tail) (vector-split-at v i))
+  (vector-append head (vector 1) tail))
+
 ;; returns a new tensor that points to the same ndarray
 (define (tslice t slice-list #:skip-dim [skip-dim #f] #:add-dim [add-dim #f])
   (and skip-dim add-dim (error "skip-dim and add-dim keywords are mutually exclusize"))
@@ -266,8 +271,10 @@
                           (if (= skip-dim -1)
                               (vector-drop-right (tensor-shape t) 1)
                               (vector-remove-at (tensor-shape t) skip-dim))]
-                         ;[add-dim ]
-                         [else (tensor-shape t)])
+                         [add-dim
+                          (vector-insert-at (tensor-shape t) add-dim)]
+                         [else
+                          (tensor-shape t)])
                        (tensor-ndarray t)))
   (define nd (vector-length (tensor-shape tnew)))
   
@@ -283,6 +290,8 @@
        (let ([dim (malloc _int)])
          (ptr-set! dim _int 0 skip-dim)
          (ndarray_iter_new_all_but_axis (tensor-ndarray t) slices dim))]
+      [add-dim
+       (ndarray_iter_new_add_axis (tensor-ndarray t) slices add-dim)]
       [else
        (ndarray_iter_new (tensor-ndarray t) slices)]))
 
@@ -490,6 +499,21 @@
   (define type (tensor-type a))
   (define iter? (or (tensor-iter a) (tensor-iter b)))
   ((dispatch-equal type iter?) (tensor-ndarray-or-iter a type iter?) (tensor-ndarray-or-iter b type iter?)))
+
+(define (tsqrt t)
+  (define type (tensor-type t))
+  (define shape (tshape t))
+  (if (tensor-iter t)
+      (case (ctype->layout type)
+        [(double) (tensor type shape (ndarray_iter_sqrt_double (tensor-iter t)))]
+        [(float) (tensor type shape (ndarray_iter_sqrt_float (tensor-iter t)))]
+        [else
+         (error "unsupported tensor type" type)])
+      (case (ctype->layout type)
+        [(double) (tensor type shape (ndarray_sqrt_double (tensor-ndarray t)))]
+        [(float) (tensor type shape (ndarray_sqrt_float (tensor-ndarray t)))]
+        [else
+         (error "unsupported tensor type" type)])))
 
 (define (texpt t w)
   (define type (tensor-type t))
