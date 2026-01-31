@@ -198,6 +198,12 @@ NDArray *ndarray_iter_div_uint16_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_div_uint32_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_div_uint64_t(NDArrayIter *a, NDArrayIter *b);
 
+NDArray *ndarray_sqrt_float(NDArray *a);
+NDArray *ndarray_sqrt_double(NDArray *a);
+
+NDArray *ndarray_iter_sqrt_float(NDArrayIter *a);
+NDArray *ndarray_iter_sqrt_double(NDArrayIter *a);
+
 NDArray *ndarray_expt_float(NDArray *a, float y);
 NDArray *ndarray_expt_double(NDArray *a, double y);
 

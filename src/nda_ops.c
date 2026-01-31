@@ -296,43 +296,6 @@ NDArray *ndarray_##name##_##type(NDArray *a, NDArray *b)                        
     return c;                                                                                    \
 }
 
-/* sample expansion
-NDArray *ndarray_mul_double(NDArray *a, NDArray *b)
-{
-    if((a->num_elems > OPENMP_ELEM_THRESHOLD) && ndarray_shape_equal(a, b))
-    {
-        return ndarray_mul_double_mp(a, b);
-    }
-
-    NDArrayMultiIter *mit = ndarray_multi_iter_new(2, a, b);
-
-    if(!mit)
-    {
-	return NULL;
-    }
-
-    // todo: add assert to check A and B elem_bytes are equal to sizeof(double)
-    
-    // allocate result array
-    NDArray *c = ndarray_new_result(mit, sizeof(double));
-    if(!c)
-    {
-	ndarray_multi_iter_free(mit);
-	return NULL;
-    }
-
-    double *result = (double *) NDARRAY_DATAPTR(c);
-    do
-    {
-	*result++ = MULTI_ITER_DATA(mit, 0, double) * MULTI_ITER_DATA(mit, 1, double);
-    } while(ndarray_multi_iter_next(mit));
-
-    ndarray_multi_iter_free(mit);
-    
-    return c;
-}
-*/
-
 /*
   If the NDArrays have the same shape, we can use an algorithm accelerated by openmp. We
   also don't need to use iterators since we won't be broadcasting and NDArrays are contiguous.
@@ -446,6 +409,43 @@ MAKE_NDARRAY_OP_MP_FUNC(div, /, uint16_t)
 MAKE_NDARRAY_OP_MP_FUNC(div, /, uint32_t)
 MAKE_NDARRAY_OP_MP_FUNC(div, /, uint64_t)
 
+/* sample expansion
+NDArray *ndarray_mul_double(NDArray *a, NDArray *b)
+{
+    if((a->num_elems > OPENMP_ELEM_THRESHOLD) && ndarray_shape_equal(a, b))
+    {
+        return ndarray_mul_double_mp(a, b);
+    }
+
+    NDArrayMultiIter *mit = ndarray_multi_iter_new(2, a, b);
+
+    if(!mit)
+    {
+	return NULL;
+    }
+
+    // todo: add assert to check A and B elem_bytes are equal to sizeof(double)
+    
+    // allocate result array
+    NDArray *c = ndarray_new_result(mit, sizeof(double));
+    if(!c)
+    {
+	ndarray_multi_iter_free(mit);
+	return NULL;
+    }
+
+    double *result = (double *) NDARRAY_DATAPTR(c);
+    do
+    {
+	*result++ = MULTI_ITER_DATA(mit, 0, double) * MULTI_ITER_DATA(mit, 1, double);
+    } while(ndarray_multi_iter_next(mit));
+
+    ndarray_multi_iter_free(mit);
+    
+    return c;
+}
+*/
+    
 MAKE_NDARRAY_OP_FUNC(mul, *, float)
 MAKE_NDARRAY_OP_FUNC(mul, *, double)
 MAKE_NDARRAY_OP_FUNC(mul, *, complex)
@@ -610,6 +610,69 @@ MAKE_NDARRAY_ITER_OP_FUNC(div, /, uint8_t)
 MAKE_NDARRAY_ITER_OP_FUNC(div, /, uint16_t)
 MAKE_NDARRAY_ITER_OP_FUNC(div, /, uint32_t)
 MAKE_NDARRAY_ITER_OP_FUNC(div, /, uint64_t)
+
+/* 
+   allocates an NDArray to store the result and returns a pointer to it
+*/    
+#define MAKE_NDARRAY_FUN0_FUNC(name, fun, type)                            \
+NDArray *ndarray_##name##_##type(NDArray *a)                               \
+{                                                                          \
+    /* allocate result array */                                            \
+    NDArray *c = ndarray_new(a->ndim, a->dims, sizeof(type), NULL);        \
+    if(!c)                                                                 \
+    {                                                                      \
+	return NULL;                                                       \
+    }                                                                      \
+                                                                           \
+    type *data = (type *)NDARRAY_DATAPTR(a);                               \
+    type *result = (type *)NDARRAY_DATAPTR(c);                             \
+                                                                           \
+    if(a->num_elems > OPENMP_ELEM_THRESHOLD)                               \
+    {                                                                      \
+        _Pragma("omp parallel for shared(data)")                           \
+	for(int i = 0; i < a->num_elems; i++)                              \
+	{                                                                  \
+	    result[i] = fun(data[i]);                                      \
+	}                                                                  \
+    }                                                                      \
+    else                                                                   \
+    {	                                                                   \
+	for(int i = 0; i < a->num_elems; i++)                              \
+	{                                                                  \
+	    result[i] = fun(data[i]);                                      \
+	}                                                                  \
+    }                                                                      \
+                                                                           \
+    return c;                                                              \
+}
+
+MAKE_NDARRAY_FUN0_FUNC(sqrt, sqrtf, float)
+MAKE_NDARRAY_FUN0_FUNC(sqrt, sqrt, double)
+
+/* 
+   allocates an NDArray to store the result and returns a pointer to it
+*/    
+#define MAKE_NDARRAY_ITER_FUN0_FUNC(name, fun, type)                       \
+NDArray *ndarray_iter_##name##_##type(NDArrayIter *a)                      \
+{                                                                          \
+    /* allocate result array */                                            \
+    NDArray *c = ndarray_new_result_single(a, sizeof(type));               \
+    if(!c)                                                                 \
+    {                                                                      \
+	return NULL;                                                       \
+    }                                                                      \
+                                                                           \
+    type *result = (type *) NDARRAY_DATAPTR(c);                            \
+    do                                                                     \
+    {                                                                      \
+	*result++ = fun(ITER_DATA(a, type));                               \
+    } while(ndarray_iter_next(a));                                         \
+                                                                           \
+    return c;                                                              \
+}
+
+MAKE_NDARRAY_ITER_FUN0_FUNC(sqrt, sqrtf, float)
+MAKE_NDARRAY_ITER_FUN0_FUNC(sqrt, sqrt, double)
 
 /* 
    allocates an NDArray to store the result and returns a pointer to it
