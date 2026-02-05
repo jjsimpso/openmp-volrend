@@ -31,6 +31,7 @@
          tsqrt
          texpt
          t=?
+         tt
          tsum
          (struct-out tensor)
          NDArray?
@@ -479,6 +480,22 @@
          (error "unsupported tensor type")])
       ndarray_equal))
 
+(define (dispatch-transpose type)
+  (case (ctype->layout type)
+    [(double) ndarray_mat_transpose_double]
+    [(float) ndarray_mat_transpose_float]
+    [(complex) ndarray_mat_transpose_complex]
+    [(int8)  ndarray_mat_transpose_int8_t]
+    [(int16) ndarray_mat_transpose_int16_t]
+    [(int32) ndarray_mat_transpose_int32_t]
+    [(int64) ndarray_mat_transpose_int64_t]
+    [(uint8)  ndarray_mat_transpose_uint8_t]
+    [(uint16) ndarray_mat_transpose_uint16_t]
+    [(uint32) ndarray_mat_transpose_uint32_t]
+    [(uint64) ndarray_mat_transpose_uint64_t]
+    [else
+     (error "unsupported tensor type")]))
+
 (define-syntax-rule (define-binary-op name dispatch)
   (define (name a b)
     (define type
@@ -499,6 +516,12 @@
   (define type (tensor-type a))
   (define iter? (or (tensor-iter a) (tensor-iter b)))
   ((dispatch-equal type iter?) (tensor-ndarray-or-iter a type iter?) (tensor-ndarray-or-iter b type iter?)))
+
+(define (tt a)
+  (if (tensor-iter a)
+      (error "transpose doesn't support iterators")
+      (let ([result ((dispatch-transpose (tensor-type a)) (tensor-ndarray a))])
+        (tensor (tensor-type a) (ndarray-dims->shape result) result))))
 
 (define (tsqrt t)
   (define type (tensor-type t))

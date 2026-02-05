@@ -286,11 +286,21 @@
 (define (test-geom)
   (define row-vectors (make-tensor (vector 2 4) (vector 1.0 0.0 1.0 1.0
                                                         1.0 5.0 1.0 1.0)))
+  (define col-vectors (tt row-vectors))
+
+  (check-equal? (in-tensor col-vectors)
+                #(1.0 1.0
+                  0.0 5.0
+                  1.0 1.0
+                  1.0 1.0))
+
   (define a (t** row-vectors (tensor-rotate-z-row-3d 90)))
   (check-within (in-tensor a)
                 #(0.0  1.0 1.0 1.0
                   -5.0 1.0 1.0 1.0)
                 0.0001)
+
+  
   )
 
 (define (sum-columns size)
