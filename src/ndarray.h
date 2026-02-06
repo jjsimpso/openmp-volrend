@@ -83,6 +83,7 @@ NDArrayIter *ndarray_iter_new_add_axis(NDArray *nda, Slice *slices, int axis);
 void ndarray_iter_free(NDArrayIter *it);
 bool ndarray_iter_next(NDArrayIter *it);
 void ndarray_iter_reset(NDArrayIter *it);
+NDArrayIter *ndarray_iter_copy(NDArrayIter *iter);
 int ndarray_iter_write_file(NDArrayIter *it, FILE *out);
 NDArrayMultiIter *ndarray_multi_iter_new(int num, ...);
 NDArrayMultiIter *ndarray_multi_iter_new_from_iter(int num, ...);

@@ -168,7 +168,7 @@
 (define-ndarray ndarray_multi_iter_new_from_iter (_fun #:varargs-after 1 _int _NDArrayIter-pointer _NDArrayIter-pointer
                                              -> (p : _NDArrayMultiIter-pointer/null)
                                              -> (check-null p 'ndarray_multi_iter_new_from_iter))
-  #:wrap (allocator ndarray_multi_iter_free_except_iter))
+  #:wrap (allocator ndarray_multi_iter_free))
 
 
 ;; accessor function for NDArray dims array

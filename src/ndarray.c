@@ -226,7 +226,10 @@ NDArrayIter *ndarray_iter_new(NDArray *nda, Slice *slices)
 
 void ndarray_iter_free(NDArrayIter *it)
 {
-    free(it);
+    if(it)
+    {
+	free(it);
+    }
 }
 
 // dim is a pointer to the dimension/axis to skip over in the iterator. first dimension is 0
@@ -423,6 +426,32 @@ void ndarray_iter_reset(NDArrayIter *it)
     }
 }
 
+NDArrayIter *ndarray_iter_copy(NDArrayIter *iter)
+{
+    NDArrayIter *copy = (NDArrayIter *) malloc(sizeof(NDArrayIter));
+
+    if(!copy)
+    {
+	return NULL;
+    }
+
+    copy->nd_m1 = iter->nd_m1;
+    copy->index = iter->index;
+    copy->length = iter->length;
+
+    memcpy(copy->coords, iter->coords, sizeof(copy->coords));
+    memcpy(copy->dims_m1, iter->dims_m1, sizeof(copy->dims_m1));
+    memcpy(copy->strides, iter->strides, sizeof(copy->strides));
+    memcpy(copy->backstrides, iter->backstrides, sizeof(copy->backstrides));
+    memcpy(copy->slicestarts, iter->slicestarts, sizeof(copy->slicestarts));
+    
+    copy->nda = iter->nda;
+    copy->cursor = copy->nda->dataptr + (iter->cursor - iter->nda->dataptr);
+    copy->contiguous = iter->contiguous;
+    
+    return copy;
+}
+
 int ndarray_iter_write_file(NDArrayIter *it, FILE *out)
 {
     int err = 0;
@@ -580,6 +609,9 @@ NDArrayMultiIter *ndarray_multi_iter_new(int num, ...)
     return multi_iter;
 }
 
+/*
+  Still needs to allocate new iterators because it shouldn't modify iterators passed as args
+*/
 NDArrayMultiIter *ndarray_multi_iter_new_from_iter(int num, ...)
 {
     va_list ap;
@@ -598,7 +630,7 @@ NDArrayMultiIter *ndarray_multi_iter_new_from_iter(int num, ...)
 	return NULL;
     }
     
-    multi_iter->iter = (NDArrayIter **) malloc(sizeof(NDArrayIter*) * num);
+    multi_iter->iter = (NDArrayIter **) calloc(num, sizeof(NDArrayIter*));
     if(!multi_iter->iter)
     {
 	free(multi_iter->nda);
@@ -618,7 +650,13 @@ NDArrayMultiIter *ndarray_multi_iter_new_from_iter(int num, ...)
     va_start(ap, num);
     for(int i = 0; i < num; i++)
     {
-	iter[i] = va_arg(ap, NDArrayIter *);
+	iter[i] = ndarray_iter_copy(va_arg(ap, NDArrayIter *));
+	if(iter[i] == NULL)
+	{
+	    va_end(ap);
+	    ndarray_multi_iter_free(multi_iter);
+	    return NULL;
+	}
 	nda[i] = iter[i]->nda;
 
 	// set iterator to non-contiguous so that it will use strides and backstrides we calculate here
@@ -678,7 +716,7 @@ NDArrayMultiIter *ndarray_multi_iter_new_from_iter(int num, ...)
 	    }
 	    else if(iter[i]->dims_m1[j] != multi_iter->dims_m1[j])
 	    {
-		ndarray_multi_iter_free_except_iter(multi_iter);
+		ndarray_multi_iter_free(multi_iter);
 		return NULL;
 	    }
 	}
