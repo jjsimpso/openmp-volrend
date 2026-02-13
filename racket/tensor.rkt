@@ -203,7 +203,7 @@
        [(int64) (ndarray_fill_index_int64_t nda)]
        [(uint8) (ndarray_fill_index_uint8_t nda)]
        [else
-        (error "unsupported tensor type")])]
+        (error "make-tensor unsupported tensor type for index")])]
     [else
      (set! nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))
      (case (ctype->layout type)
@@ -211,9 +211,15 @@
        [(float) (ndarray_fill_float nda v)]
        ['(double double) (ndarray_fill_complex nda v)]
        [(int64) (ndarray_fill_int64_t nda v)]
-       [(uint8) (ndarray_fill_uint8_t nda v)]
+       [(int32) (ndarray_fill_int32_t nda v)]
+       [(int16) (ndarray_fill_int16_t nda v)]
+       [(int8)  (ndarray_fill_int8_t  nda v)]
+       [(uint64) (ndarray_fill_uint64_t nda v)]
+       [(uint32) (ndarray_fill_uint32_t nda v)]
+       [(uint16) (ndarray_fill_uint16_t nda v)]
+       [(uint8)  (ndarray_fill_uint8_t nda v)]
        [else
-        (error "unsupported tensor type")])])
+        (error "make-tensor unsupported tensor type")])])
   
   (tensor type shape nda))
 
