@@ -41,6 +41,13 @@
          ndarray_iter_sum_int64_t
          ndarray_iter_sum_uint32_t 
          ndarray_iter_sum_uint64_t
+         ndarray_sum_over_axis_float
+         ndarray_sum_over_axis_double
+         ndarray_sum_over_axis_complex
+         ndarray_sum_over_axis_int32_t
+         ndarray_sum_over_axis_int64_t
+         ndarray_sum_over_axis_uint32_t
+         ndarray_sum_over_axis_uint64_t
          ndarray_equal
          ndarray_iter_equal_float
          ndarray_iter_equal_double
@@ -187,6 +194,42 @@
 (define-ndarray ndarray_iter_sum_int64_t (_fun _NDArrayIter-pointer -> _int64))
 (define-ndarray ndarray_iter_sum_uint32_t (_fun _NDArrayIter-pointer -> _uint32))
 (define-ndarray ndarray_iter_sum_uint64_t (_fun _NDArrayIter-pointer -> _uint64))
+
+(define-ndarray ndarray_sum_over_axis_float (_fun _NDArray-pointer _int
+                                                   -> (p : _NDArray-pointer/null)
+                                                   -> (check-null p 'ndarray_sum_over_axis_float))
+  #:wrap (allocator ndarray_free))
+
+(define-ndarray ndarray_sum_over_axis_double (_fun _NDArray-pointer _int
+                                                   -> (p : _NDArray-pointer/null)
+                                                   -> (check-null p 'ndarray_sum_over_axis_double))
+  #:wrap (allocator ndarray_free))
+
+(define-ndarray ndarray_sum_over_axis_complex (_fun _NDArray-pointer _int
+                                                   -> (p : _NDArray-pointer/null)
+                                                   -> (check-null p 'ndarray_sum_over_axis_complex))
+  #:wrap (allocator ndarray_free))
+
+(define-ndarray ndarray_sum_over_axis_int32_t (_fun _NDArray-pointer _int
+                                                   -> (p : _NDArray-pointer/null)
+                                                   -> (check-null p 'ndarray_sum_over_axis_int32_t))
+  #:wrap (allocator ndarray_free))
+
+(define-ndarray ndarray_sum_over_axis_int64_t (_fun _NDArray-pointer _int
+                                                   -> (p : _NDArray-pointer/null)
+                                                   -> (check-null p 'ndarray_sum_over_axis_int64_t))
+  #:wrap (allocator ndarray_free))
+
+(define-ndarray ndarray_sum_over_axis_uint32_t (_fun _NDArray-pointer _int
+                                                   -> (p : _NDArray-pointer/null)
+                                                   -> (check-null p 'ndarray_sum_over_axis_uint32_t))
+  #:wrap (allocator ndarray_free))
+
+(define-ndarray ndarray_sum_over_axis_uint64_t (_fun _NDArray-pointer _int
+                                                   -> (p : _NDArray-pointer/null)
+                                                   -> (check-null p 'ndarray_sum_over_axis_uint64_t))
+  #:wrap (allocator ndarray_free))
+
 
 ;; Equality operations
 ;;------------------------------

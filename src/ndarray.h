@@ -71,6 +71,7 @@ typedef struct {
 
 #define MULTI_ITER_DATAPTR(mit, n) (mit->iter[n]->cursor)
 #define MULTI_ITER_DATA(mit, n, type) (*((type *)mit->iter[n]->cursor))
+#define MULTI_ITER_LVAL(mit, n, type) *((type *)mit->iter[n]->cursor)
 
 /* function API */
 NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes, uint8_t *ptr);

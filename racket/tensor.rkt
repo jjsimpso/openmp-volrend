@@ -558,7 +558,34 @@
         [(float) (tensor type shape (ndarray_expt_float (tensor-ndarray t) (exact->inexact w)))]
         [else
          (error "unsupported tensor type" type)])))
+#|
+>>> a
+array([[[ 1,  2,  3],
+        [ 4,  8, 12]],
 
+       [[ 2,  4,  6],
+        [ 8, 16, 24]],
+
+       [[ 3,  6,  9],
+        [12, 24, 36]]])
+>>> np.sum(a)
+180
+
+>>> np.sum(a, axis=0)
+array([[ 6, 12, 18],
+       [24, 48, 72]])
+
+>>> np.sum(a, axis=1)
+array([[ 5, 10, 15],
+       [10, 20, 30],
+       [15, 30, 45]])
+
+>>> np.sum(a, axis=2)
+array([[ 6, 24],
+       [12, 48],
+       [18, 72]])
+
+|#
 (define (tsum t #:axis [axis #f])
   (cond
     [(false? axis)
@@ -583,37 +610,25 @@
            [(uint64) (ndarray_sum_uint64_t (tensor-ndarray t))]
            [else
             (error "unsupported tensor type" (tensor-type t))]))]
-    [(>= axis (sub1 (NDArray-ndim (tensor-ndarray t))))
-     (error "axis exceeds tensor dimensions minus one")]
-    [(false? (tensor-iter t))
-     (define axis-sub-elems (tlen t axis))
-     (define dataptr (NDArray-dataptr (tensor-ndarray t)))
-     (define type (tensor-type t))
-     (define result-shape (vector-take (tshape t) (add1 axis)))
-     (define result (make-tensor result-shape #:ctype type))
-     (define (fill-result shape-to-fill sub-shape result-idx src-idx)
-       (cond
-         [(= (vector-length shape-to-fill) 1)
-          (printf "~a ~a ~a ~a~n" shape-to-fill sub-shape result-idx src-idx)
-          (for ([i (in-range result-idx (+ result-idx (vector-ref shape-to-fill 0)))]
-                [j (in-naturals 0)])
-            (define offset (+ src-idx (* j axis-sub-elems)))
-            (printf "  ~a~n" offset)
-            (tset! result i
-                   (for/sum ([k (in-range 0 axis-sub-elems)])
-                     (ptr-ref dataptr type (+ offset k)))))
-          result]
-         [else
-          (for ([i (vector-ref shape-to-fill 0)])
-            (fill-result (vector-drop shape-to-fill 1)
-                         (vector-drop sub-shape 1)
-                         (* i (vector-ref shape-to-fill (sub1 (vector-length shape-to-fill))))
-                         (* i (apply * (vector->list sub-shape)))))
-          result]))
-     (fill-result result-shape (vector-drop (tshape t) 1) 0 0)]
-    [(tensor-iter t)
-     (error "tsum on iterators not currently supported")]
+    [(>= axis (NDArray-ndim (tensor-ndarray t)))
+     (error "axis tensor dimensions")]
     [else
-     (error "unsupported argument")]))
+     (define result-shape (vector-remove-at (tshape t) axis))
+     (if (tensor-iter t)
+         (error "tsum sum over axis iterator not supported")
+         #;(case (ctype->layout (tensor-type t))
+           [(double) (ndarray_iter_sum_double (tensor-iter t))]
+           [(float)  (ndarray_iter_sum_float (tensor-iter t))]
+           ['(double double) (ndarray_iter_sum_complex (tensor-iter t))]
+           [(int32)  (ndarray_iter_sum_int32_t (tensor-iter t))]
+           [(int64)  (ndarray_iter_sum_int64_t (tensor-iter t))]
+           [(uint32) (ndarray_iter_sum_uint32_t (tensor-iter t))]
+           [(uint64) (ndarray_iter_sum_uint64_t (tensor-iter t))]
+           [else
+            (error "unsupported tensor type" (tensor-type t))])
+         (case (ctype->layout (tensor-type t))
+           [(int32) (make-tensor result-shape (ndarray_sum_over_axis_int32_t (tensor-ndarray t) axis) #:ctype _int32)]
+           [else
+            (error "unsupported tensor type" (tensor-type t))]))]))
 
 

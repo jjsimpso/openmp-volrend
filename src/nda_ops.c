@@ -156,6 +156,126 @@ double ndarray_sum_double(NDArray *a)
 }
 */
 
+#define MAKE_NDARRAY_SUM_OVER_AXIS_FUNC(type)                                                      \
+NDArray *ndarray_sum_over_axis_##type(NDArray *a, int axis)                                        \
+{                                                                                                  \
+    intptr_t result_dims[MAX_DIMS-1];                                                              \
+    int cursor = 0;                                                                                \
+    for(int i = 0; i < a->ndim; i++)                                                               \
+    {                                                                                              \
+	if(i != axis)                                                                              \
+	{                                                                                          \
+	    result_dims[cursor++] = a->dims[i];                                                    \
+	}                                                                                          \
+    }                                                                                              \
+                                                                                                   \
+    NDArray *result = ndarray_new(a->ndim - 1, (intptr_t *)&result_dims, a->elem_bytes, NULL);     \
+    if(!result)                                                                                    \
+    {                                                                                              \
+	return NULL;                                                                               \
+    }                                                                                              \
+    ndarray_fill_##type(result, 0);                                                                \
+                                                                                                   \
+    NDArrayIter *ait = ndarray_iter_new(a, NULL);                                                  \
+    if(!ait)                                                                                       \
+    {                                                                                              \
+	ndarray_free(result);                                                                      \
+	return NULL;                                                                               \
+    }                                                                                              \
+                                                                                                   \
+    NDArrayIter *rit = ndarray_iter_new_add_axis(result, NULL, axis);                              \
+    if(!rit)                                                                                       \
+    {                                                                                              \
+	ndarray_free(result);                                                                      \
+	ndarray_iter_free(ait);                                                                    \
+	return NULL;                                                                               \
+    }                                                                                              \
+                                                                                                   \
+    NDArrayMultiIter *mit = ndarray_multi_iter_new_from_iter(2, ait, rit);                         \
+    if(!mit)                                                                                       \
+    {                                                                                              \
+	ndarray_free(result);                                                                      \
+	ndarray_iter_free(ait);                                                                    \
+	ndarray_iter_free(rit);                                                                    \
+	return NULL;                                                                               \
+    }                                                                                              \
+                                                                                                   \
+    do                                                                                             \
+    {                                                                                              \
+	MULTI_ITER_LVAL(mit, 1, type) += MULTI_ITER_DATA(mit, 0, type);                            \
+    } while(ndarray_multi_iter_next(mit));                                                         \
+                                                                                                   \
+    ndarray_iter_free(ait);                                                                        \
+    ndarray_iter_free(rit);                                                                        \
+    ndarray_multi_iter_free(mit);                                                                  \
+                                                                                                   \
+    return result;                                                                                 \
+}
+
+MAKE_NDARRAY_SUM_OVER_AXIS_FUNC(float)
+MAKE_NDARRAY_SUM_OVER_AXIS_FUNC(double)
+MAKE_NDARRAY_SUM_OVER_AXIS_FUNC(complex)
+MAKE_NDARRAY_SUM_OVER_AXIS_FUNC(int32_t)
+MAKE_NDARRAY_SUM_OVER_AXIS_FUNC(int64_t)
+MAKE_NDARRAY_SUM_OVER_AXIS_FUNC(uint32_t)
+MAKE_NDARRAY_SUM_OVER_AXIS_FUNC(uint64_t)
+
+/*
+NDArray *ndarray_sum_over_axis_int32_t(NDArray *a, int axis)
+{
+    intptr_t result_dims[MAX_DIMS-1];
+    int cursor = 0;
+    for(int i = 0; i < a->ndim; i++)
+    {
+	if(i != axis)
+	{
+	    result_dims[cursor++] = a->dims[i];
+	}
+    }
+    
+    NDArray *result = ndarray_new(a->ndim - 1, (intptr_t *)&result_dims, a->elem_bytes, NULL);
+    if(!result)
+    {
+	return NULL;
+    }
+    ndarray_fill_int32_t(result, 0);
+    
+    NDArrayIter *ait = ndarray_iter_new(a, NULL);
+    if(!ait)
+    {
+	ndarray_free(result);
+	return NULL;
+    }
+    
+    NDArrayIter *rit = ndarray_iter_new_add_axis(result, NULL, axis);
+    if(!rit)
+    {
+	ndarray_free(result);
+	ndarray_iter_free(ait);
+	return NULL;
+    }
+
+    NDArrayMultiIter *mit = ndarray_multi_iter_new_from_iter(2, ait, rit);
+    if(!mit)
+    {
+	ndarray_free(result);
+	ndarray_iter_free(ait);
+	ndarray_iter_free(rit);
+	return NULL;
+    }
+    
+    do
+    {
+	MULTI_ITER_LVAL(mit, 1, int32_t) += MULTI_ITER_DATA(mit, 0, int32_t);
+    } while(ndarray_multi_iter_next(mit));
+
+    ndarray_iter_free(ait);
+    ndarray_iter_free(rit);
+    ndarray_multi_iter_free(mit);
+    
+    return result;
+}
+*/
 #define MAKE_NDARRAY_ITER_SUM_FUNC(type)                             \
 type ndarray_iter_sum_##type(NDArrayIter *a)                         \
 {                                                                    \

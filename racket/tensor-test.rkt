@@ -459,14 +459,41 @@
   (check-equal? (tref a 0 1 4) 14.0))
   
 (define (test-sum)
-  (define x (make-tensor (vector 5 3)
-                         (vector 8.54  1.54  8.12
-                                 3.13  8.76  5.29
-                                 7.73  6.71  1.31
-                                 6.44  9.64  8.44
-                                 7.27  8.42  5.2)
-                         #:ctype _double))
-  void)
+  (define x (make-tensor (vector 3 2 3)
+                         (vector 1  2  3
+                                 4  8 12
+
+                                 2  4  6
+                                 8 16 24
+
+                                 3  6  9
+                                12 24 36)
+                         #:ctype _int32))
+
+  (define r1 (make-tensor (vector 2 3)
+                          (vector 6 12 18
+                                  24 48 72)
+                          #:ctype _int32))
+
+  (define r2 (make-tensor (vector 3 3)
+                          (vector 5 10 15
+                                  10 20 30
+                                  15 30 45)
+                          #:ctype _int32))
+
+  (define r3 (make-tensor (vector 3 2)
+                          (vector 6 24
+                                  12 48
+                                  18 72)
+                          #:ctype _int32))
+  
+  ;(print-tensor (tsum x #:axis 0))
+  ;(print-tensor (tsum x #:axis 1))
+  ;(print-tensor (tsum x #:axis 2))
+
+  (check-equal? (t=? (tsum x #:axis 0) r1) #t)
+  (check-equal? (t=? (tsum x #:axis 1) r2) #t)
+  (check-equal? (t=? (tsum x #:axis 2) r3) #t))
 
 (define (run-tests)
   (test-basic)
@@ -476,6 +503,7 @@
   (test-build-tensor)
   (test-slice)
   (test-ops)
+  (test-sum)
   (test-broadcast)
   (test-matmul)
   (test-geom)

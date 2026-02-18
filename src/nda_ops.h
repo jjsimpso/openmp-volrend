@@ -41,6 +41,14 @@ int64_t ndarray_iter_sum_int64_t(NDArrayIter *a);
 uint32_t ndarray_iter_sum_uint32_t(NDArrayIter *a);
 uint64_t ndarray_iter_sum_uint64_t(NDArrayIter *a);
 
+NDArray *ndarray_sum_over_axis_float(NDArray *a, int axis);
+NDArray *ndarray_sum_over_axis_double(NDArray *a, int axis);
+NDArray *ndarray_sum_over_axis_complex(NDArray *a, int axis);
+NDArray *ndarray_sum_over_axis_int32_t(NDArray *a, int axis);
+NDArray *ndarray_sum_over_axis_int64_t(NDArray *a, int axis);
+NDArray *ndarray_sum_over_axis_uint32_t(NDArray *a, int axis);
+NDArray *ndarray_sum_over_axis_uint64_t(NDArray *a, int axis);
+
 bool ndarray_equal(NDArray *a, NDArray *b);
 
 bool ndarray_iter_equal_float(NDArrayIter *a, NDArrayIter *b);
