@@ -631,7 +631,14 @@ array([[ 6, 24],
            [else
             (error "unsupported tensor type" (tensor-type t))])
          (case (ctype->layout (tensor-type t))
+           [(double) (make-tensor result-shape (ndarray_sum_over_axis_double (tensor-ndarray t) axis) #:ctype _double)]
+           [(float) (make-tensor result-shape (ndarray_sum_over_axis_float (tensor-ndarray t) axis) #:ctype _float)]
+           ['(double double) (make-tensor result-shape (ndarray_sum_over_axis_complex (tensor-ndarray t) axis) #:ctype _complex)]
+           [(int64) (make-tensor result-shape (ndarray_sum_over_axis_int64_t (tensor-ndarray t) axis) #:ctype _int64)]
            [(int32) (make-tensor result-shape (ndarray_sum_over_axis_int32_t (tensor-ndarray t) axis) #:ctype _int32)]
+           [(int64) (make-tensor result-shape (ndarray_sum_over_axis_int64_t (tensor-ndarray t) axis) #:ctype _int64)]
+           [(uint32) (make-tensor result-shape (ndarray_sum_over_axis_uint32_t (tensor-ndarray t) axis) #:ctype _uint32)]
+           [(uint64) (make-tensor result-shape (ndarray_sum_over_axis_uint64_t (tensor-ndarray t) axis) #:ctype _uint64)]
            [else
             (error "unsupported tensor type" (tensor-type t))]))]))
 
