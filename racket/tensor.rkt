@@ -46,17 +46,21 @@
   #:auto-value #f
   #:prefab)
 
-(define (print-tensor t)
+(define (print-tensor t #:precision [precision #f])
   (define (insert-padding n)
     (for ([i (in-range 0 n)])
       (display " ")))
+  (define (format-number v)
+    (if (and precision (inexact? v))
+        (real->decimal-string v precision)
+        v))
   (define (print-axis it type shape-vec depth)
     (cond
       [(= (vector-length shape-vec) 1)
        (printf "[")
        (for ([i (in-range 0 (sub1 (vector-ref shape-vec 0)))])
-         (printf "~a, " (ndarray-iter-data-advance it type)))
-       (printf "~a]" (ndarray-iter-data-advance it type))]
+         (printf "~a, " (format-number (ndarray-iter-data-advance it type))))
+       (printf "~a]" (format-number (ndarray-iter-data-advance it type)))]
       [(= (vector-length shape-vec) 2)
        (define row-shape (vector-drop shape-vec 1))
        (printf "[")
