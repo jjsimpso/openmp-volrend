@@ -103,10 +103,11 @@
   #;(for* ([y (in-range height)]
          [x (in-range width)])
     (printf "(~a,~a) = ~a~n" x y (tref c y x)))
-  
-  (define m (make-tensor (vector height width) (make-flrectangular 0.0 0.0) #:ctype _complex))
-  (for ([i (in-range escape-iter)])
-    (set! m (t+ (t* m m) c)))
+
+  (define m
+    (for/fold ([m (make-tensor (vector height width) (make-flrectangular 0.0 0.0) #:ctype _complex)])
+              ([i (in-range escape-iter)])
+      (t+ (t* m m) c)))
 
   (for* ([y (in-range height)]
          [x (in-range width)])

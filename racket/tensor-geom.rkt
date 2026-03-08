@@ -7,9 +7,11 @@
 
 (require "ndarray-ffi.rkt"
          "ndarray-ops-ffi.rkt"
+         "ndarray-matrix-ffi.rkt"
          "tensor.rkt")
 
-(provide tensor-scale-3d
+(provide tensor-identity-3d
+         tensor-scale-3d
          tensor-translate-3d
          tensor-rotate-x-3d
          tensor-rotate-y-3d
@@ -23,10 +25,20 @@
          tensor-rotate-z-row-3d
          tensor-ortho-proj-row-3d
          tensor-persp-proj-row-3d
-         tensor-ray-transform-row-3d)
+         tensor-ray-transform-row-3d
+         tensor-lu-decomp
+         tensor-mat-inverse)
 
 (define (radians->degress x)
   (* (/ x 180) pi))
+
+(define (tensor-identity-3d #:ctype [ctype _double])
+  (make-tensor (vector 4 4)
+               (vector 1.0 0.0 0.0 0.0
+                       0.0 1.0 0.0 0.0
+                       0.0 0.0 1.0 0.0
+                       0.0 0.0 0.0 1.0)
+               #:ctype ctype))
 
 ;; create a homogeneous transformation matrix to scale an array of vectors by x y z
 ;;
@@ -219,3 +231,32 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; END row vector versions of the transformation matrices
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; todo: return the row permutations as well
+(define (tensor-lu-decomp t)
+  (define type (tensor-type t))
+  (define shape (tshape t))
+  (when (not (= (vector-length shape) 2))
+    (error "tensor must be two dimensional matrix"))
+  (when (tensor-iter t)
+    (error "cannot take inverse of tensor slice"))
+  (case (ctype->layout type)
+    [(double)
+     (define nda (ndarray_lu_decomp_double (tensor-ndarray t) (box 1.0)))
+     (tensor type shape nda)]
+    ;[(float) (tensor type shape (ndarray_mat_inverse_float (tensor-ndarray t)))]
+    [else
+     (error "unsupported tensor type" type)]))
+
+(define (tensor-mat-inverse t)
+  (define type (tensor-type t))
+  (define shape (tshape t))
+  (when (not (= (vector-length shape) 2))
+    (error "tensor must be two dimensional matrix"))
+  (when (tensor-iter t)
+    (error "cannot take inverse of tensor slice"))
+  (case (ctype->layout type)
+    [(double) (tensor type shape (ndarray_mat_inverse_double (tensor-ndarray t)))]
+    ;[(float) (tensor type shape (ndarray_mat_inverse_float (tensor-ndarray t)))]
+    [else
+     (error "unsupported tensor type" type)]))

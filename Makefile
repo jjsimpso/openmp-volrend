@@ -12,6 +12,11 @@ LIB_NAME        := libvolrend
 
 #---------------------------------------------------------------------------------
 # options for code generation
+#
+# To enable the address sanitizer, uncomment SAN_FLAGS and the relevant LDFLAGS
+# Can run with racket code by preloading libasan:
+#    LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libasan.so.5 racket tensor-test.rkt
+#
 #---------------------------------------------------------------------------------
 CC = gcc
 COMPILERFLAGS = -Wall -std=gnu11 -O3

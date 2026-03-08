@@ -294,13 +294,49 @@
                   1.0 1.0
                   1.0 1.0))
 
-  (define a (t** row-vectors (tensor-rotate-z-row-3d 90)))
-  (check-within (in-tensor a)
+  ;; do some tests to compare operations with row and column vectors
+  (check-within (in-tensor (t** row-vectors (tensor-rotate-z-row-3d 90)))
                 #(0.0  1.0 1.0 1.0
                   -5.0 1.0 1.0 1.0)
                 0.0001)
 
+  (check-within (in-tensor (t** (tensor-rotate-z-3d 90) col-vectors))
+                #(0.0 -5.0
+                  1.0  1.0
+                  1.0  1.0
+                  1.0  1.0)
+                0.0001)
+  ;(print-tensor (t** (tensor-rotate-z-3d 90) col-vectors))
   
+  (check-within (in-tensor (t** (tensor-rotate-z-3d 90) (tslice col-vectors '(() (0 0 1)))))
+                #(0.0
+                  1.0
+                  1.0
+                  1.0)
+                0.0001)
+
+  (check-within (in-tensor (t** (tensor-rotate-z-3d 90) (tslice col-vectors '(() (1 1 1)))))
+                #(-5.0
+                  1.0
+                  1.0
+                  1.0)
+                0.0001)
+
+  (define a (t** (tensor-rotate-x-3d 60)
+                 (t** (tensor-rotate-y-3d 45)
+                      (t** (tensor-rotate-z-3d 30)
+                           (tensor-identity-3d)))))
+                           ;(tensor-translate-3d -2.0 4.0 0.5)))))
+  (check-within (in-tensor (t** a (tensor-mat-inverse a))) (in-tensor (tensor-identity-3d)) 0.0001)
+  (print-tensor a #:precision 3)
+  (print-tensor (tensor-mat-inverse a) #:precision 3)
+  (print-tensor (t** a (tensor-mat-inverse a)) #:precision 3)
+
+  (define aforlu (make-tensor (vector 4 4) (vector 2.0 8.0 1.0 1.0
+                                                   4.0 13.0 3.0 -1.0
+                                                   -2.0 -5.0 -3.0 3.0
+                                                   -6.0 -18.0 -1.0 1.0)))
+  (print-tensor (tensor-lu-decomp aforlu))
   )
 
 (define (sum-columns size)

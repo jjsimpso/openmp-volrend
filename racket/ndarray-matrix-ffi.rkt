@@ -49,7 +49,9 @@
          ndarray_iter_matmul_uint8_t
          ndarray_iter_matmul_uint16_t
          ndarray_iter_matmul_uint32_t
-         ndarray_iter_matmul_uint64_t)
+         ndarray_iter_matmul_uint64_t
+         ndarray_lu_decomp_double
+         ndarray_mat_inverse_double)
 
 (define-ndarray ndarray_fill_mat_ident_float (_fun _NDArray-pointer -> _stdbool))
 (define-ndarray ndarray_fill_mat_ident_double (_fun _NDArray-pointer -> _stdbool))
@@ -229,4 +231,18 @@
 (define-ndarray ndarray_iter_matmul_uint64_t (_fun _NDArrayIter-pointer _NDArrayIter-pointer 
                                             -> (p : _NDArray-pointer/null)
                                             -> (check-null p 'ndarray_iter_matmul_uint64_t))
+  #:wrap (allocator ndarray_free))
+
+
+;; todo: return row-perm as well
+(define-ndarray ndarray_lu_decomp_double (_fun [a : _NDArray-pointer]
+                                               [row-perm : (_vector o _int (ndarray-dims a 0))]
+                                               [d : (_box _double)]
+                                            -> (p : _NDArray-pointer/null)
+                                            -> (check-null p 'ndarray_lu_decomp_double))
+  #:wrap (allocator ndarray_free))
+
+(define-ndarray ndarray_mat_inverse_double (_fun _NDArray-pointer 
+                                            -> (p : _NDArray-pointer/null)
+                                            -> (check-null p 'ndarray_mat_inverse_double))
   #:wrap (allocator ndarray_free))

@@ -59,3 +59,7 @@ NDArray *ndarray_iter_matmul_uint8_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_matmul_uint16_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_matmul_uint32_t(NDArrayIter *a, NDArrayIter *b);
 NDArray *ndarray_iter_matmul_uint64_t(NDArrayIter *a, NDArrayIter *b);
+
+void ndarray_lu_backsub_double(NDArray *a, int *row_perm, double *b);
+NDArray *ndarray_lu_decomp_double(NDArray *a, int *row_perm, double *d);
+NDArray *ndarray_mat_inverse_double(NDArray *a);

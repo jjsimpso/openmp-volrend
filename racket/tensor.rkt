@@ -333,7 +333,7 @@
     [(> (* (add1 i) ...) (tlen t))
      (error "tset! index out of bounds")]
     [(tensor-iter t)
-     (error "tref doesn't support iterators")]
+     (error "tset! doesn't support iterators")]
     [else
      (ndarray-set! (tensor-ndarray t) (tensor-type t) i ... v)]))
 
@@ -641,5 +641,3 @@ array([[ 6, 24],
            [(uint64) (make-tensor result-shape (ndarray_sum_over_axis_uint64_t (tensor-ndarray t) axis) #:ctype _uint64)]
            [else
             (error "unsupported tensor type" (tensor-type t))]))]))
-
-

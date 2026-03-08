@@ -500,8 +500,205 @@ NDArray *ndarray_iter_matmul_int64_t(NDArrayIter *a, NDArrayIter *b)
 }
 */
 
+#define TINY 1.0e-20;
+
+/* 
+   Adapted from Numerical Recipes in C, 2nd edition
+   arg a must be the result of ndarray_lu_decomp_double 
+   
+*/    
+void ndarray_lu_backsub_double(NDArray *a, int *row_perm, double *b)
+{
+    if((a->ndim != 2) || (a->dims[0] != a->dims[1]))
+    {
+	return;
+    }
+
+    double *aa = (double *)NDARRAY_DATAPTR(a);
+    int n = a->dims[0];
+    int ii = 0;
+    double sum;
+    int ip;
+    for(int i = 0; i < n; i++)
+    {
+	ip = row_perm[i];
+	sum = b[ip];
+	b[ip] = b[i];
+	if(ii)
+	{
+	    for(int j = ii; j <= i-1; j++)
+	    {
+		sum -= aa[ELEMENT(i, j, n)] * b[j];
+	    }
+	}
+	else if(sum)
+	{
+	    /* a non-zero element was encountered, so we will have to do the sum in the loop above from now on */
+	    ii=i;
+	}
+	b[i] = sum;
+    }
+
+    for(int i = (n-1); i >= 0; i--)
+    {
+	sum = b[i];
+	for(int j = i+1; j < n; j++)
+	{
+	    sum -= aa[ELEMENT(i, j, n)] * b[j];
+	}
+	/* store a component of the solution vector x */
+	b[i] = sum / aa[ELEMENT(i, i, n)];
+    }
+}
+
+/*
+     Adapted from Numerical Recipes in C, 2nd edition
+*/
+NDArray *ndarray_lu_decomp_double(NDArray *a, int *row_perm, double *d)
+{
+    if((a->ndim != 2) || (a->dims[0] != a->dims[1]))
+    {
+	return NULL;
+    }
+
+    /* aa will hold the LU decomposition so we don't destructively modify a */
+    NDArray *aa = ndarray_copy(a);
+    if(!aa)
+    {
+	return NULL;
+    }
+
+    double *aad = (double *)NDARRAY_DATAPTR(aa);
+    int n = a->dims[0];
+    double *vv = (double *)malloc(n * sizeof(double));     /* the implicit scaling of each row */
+    if(!vv)
+    {
+	ndarray_free(aa);
+	return NULL;
+    }
+
+    *d = 1.0;
+
+    /* find the largest value in each row for implicit scaling */
+    for(int i = 0; i < n; i++)
+    {
+	double big = 0.0, temp = 0.0;
+	for(int j = 0; j < n; j++)
+	{
+	    if((temp = fabs(aad[ELEMENT(i, j, n)])) > big)
+	    {
+		big = temp;
+	    }
+	}
+
+	if(big == 0.0)
+	{
+	    ndarray_free(aa);
+	    free(vv);
+	    return NULL;
+	}
+
+	vv[i] = 1.0 / big;
+    }
+
+    /* loop over columns of Crout's method */
+    double sum, dum;
+    int imax;
+    for(int j = 0; j < n; j++)
+    {
+	for(int i = 0; i < j; i++)
+	{
+	    sum = aad[ELEMENT(i, j, n)];
+	    for(int k = 0; k < i; k++) sum -= aad[ELEMENT(i, k, n)] * aad[ELEMENT(k, j, n)];
+	    aad[ELEMENT(i, j, n)] = sum;
+	}
+	/* search for largest pivot element */
+	double big = 0.0;
+	for(int i = j; i < n; i++)
+	{
+	    sum = aad[ELEMENT(i, j, n)];
+	    for(int k = 0; k < j; k++) sum -= aad[ELEMENT(i, k, n)] * aad[ELEMENT(k, j, n)];
+	    aad[ELEMENT(i, j, n)] = sum;
+	    if((dum = vv[i] * fabs(sum)) >= big)
+	    {
+		big = dum;
+		imax = i;
+	    }
+	}
+
+	if(j != imax)
+	{
+	    /* interchange rows */
+	    for(int k = 0; k < n; k++)
+	    {
+		dum = aad[ELEMENT(imax, k, n)];
+		aad[ELEMENT(imax, k, n)] = aad[ELEMENT(j, k, n)];
+		aad[ELEMENT(j, k, n)] = dum;
+	    }
+	    /* change parity of d */
+	    *d = -(*d);
+	    /* also interchange scale factor */
+	    vv[imax] = vv[j];
+	}
+	
+	row_perm[j] = imax;
+	//if(aad[ELEMENT(j, j, n)] = 0.0) aad[ELEMENT(j, j, n)] = TINY;
+	if(j != (n-1))
+	{
+	    /* divide by the pivot element */
+	    dum = 1.0 / aad[ELEMENT(j, j, n)];
+	    for(int i = j+1; i < n; i++) aad[ELEMENT(i, j, n)] *= dum;
+	}
+    }
+
+    free(vv);
+    return aa;
+}
+
+/*
+     Adapted from Numerical Recipes in C, 2nd edition
+*/
 NDArray *ndarray_mat_inverse_double(NDArray *a)
 {
+    double d;
+    int n = a->dims[0];
+    
+    int *row_perm = (int *)malloc(n * sizeof(int));
+    if(!row_perm) return NULL;
+    
+    NDArray *lu_a = ndarray_lu_decomp_double(a, row_perm, &d);
+    if(!lu_a)
+    {
+	free(row_perm);
+	return NULL;
+    }
+    
+    NDArray *y = ndarray_new(2, (intptr_t []){a->dims[0], a->dims[1]}, sizeof(double), NULL);
+    if(!y)
+    {
+	free(row_perm);
+	ndarray_free(lu_a);
+	return NULL;
+    }
+    
+    double *col = malloc(n * sizeof(double));
+    if(!col)
+    {
+	free(row_perm);
+	ndarray_free(lu_a);
+	ndarray_free(y);
+	return NULL;
+    }
 
-    return NULL;
+    double *yd = (double *)NDARRAY_DATAPTR(y);
+    /* find inverse by columns */
+    for(int j = 0; j < n; j++)
+    {
+	for(int i = 0; i < n; i++) col[i] = 0.0;
+	col[j] = 1.0;
+	ndarray_lu_backsub_double(lu_a, row_perm, col);
+	for(int i = 0; i < n; i++) yd[ELEMENT(i, j, n)] = col[i];
+    }
+    
+    return y;
 }
