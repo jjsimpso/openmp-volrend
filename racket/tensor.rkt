@@ -193,7 +193,8 @@
   ;; initialize tensor
   (cond
     [(NDArray? v)
-     ;; todo: add shape check
+     (when (not (equal? shape (ndarray-dims->shape v)))
+       (error "make-tensor given shape doesn't match provided NDArray's"))
      (set! nda v)]
     [(vector? v)
      (set! nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))

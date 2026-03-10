@@ -19,6 +19,8 @@
          tensor-ortho-proj-3d
          tensor-persp-proj-3d
          tensor-ray-transform-3d
+         tensor-inverse-transrot-3d
+         tensor-inverse-3d
          tensor-translate-row-3d
          tensor-rotate-x-row-3d
          tensor-rotate-y-row-3d
@@ -31,6 +33,11 @@
 
 (define (radians->degress x)
   (* (/ x 180) pi))
+
+(define (dot3 u v)
+  (fl+ (fl* (vector-ref u 0) (vector-ref v 0))
+       (fl* (vector-ref u 1) (vector-ref v 1))
+       (fl* (vector-ref u 2) (vector-ref v 2))))
 
 (define (tensor-identity-3d #:ctype [ctype _double])
   (make-tensor (vector 4 4)
@@ -137,6 +144,115 @@
                            0.0 0.0     0.0 1.0)
                #:ctype ctype))
 
+;; find inverse of a 4x4 affine transformation matrix using shortcut:
+;; [ inv(M)   -inv(M)*b ]
+;; [   0           1    ]
+;; M is 3x3 rotation part of matrix t
+;; b is 3x1 translation part of matrix t
+;; t must represent rotations + translation only
+(define (tensor-inverse-transrot-3d t)
+  (define type (tensor-type t))
+  (define t-inv (make-tensor #(4 4) 0.0 #:ctype type))
+  (define a (tensor-ndarray t))
+  (define a-inv (tensor-ndarray t-inv))
+
+  ;; 3x3 in upper left corner is just a transpose of t's upper left
+  (ndarray-set! a-inv type 0 0 (ndarray-ref a type 0 0))
+  (ndarray-set! a-inv type 1 0 (ndarray-ref a type 0 1))
+  (ndarray-set! a-inv type 2 0 (ndarray-ref a type 0 2))
+  
+  (ndarray-set! a-inv type 0 1 (ndarray-ref a type 1 0))
+  (ndarray-set! a-inv type 1 1 (ndarray-ref a type 1 1))
+  (ndarray-set! a-inv type 2 1 (ndarray-ref a type 1 2))
+  
+  (ndarray-set! a-inv type 0 2 (ndarray-ref a type 2 0))
+  (ndarray-set! a-inv type 1 2 (ndarray-ref a type 2 1))
+  (ndarray-set! a-inv type 2 2 (ndarray-ref a type 2 2))
+
+  ;; 3x1 in upper right is the inverse of 
+  (define b (vector (ndarray-ref a type 0 3) (ndarray-ref a type 1 3) (ndarray-ref a type 2 3)))
+  (ndarray-set! a-inv type 0 3 (dot3 (vector (* -1.0 (ndarray-ref a-inv type 0 0)) (* -1.0 (ndarray-ref a-inv type 0 1)) (* -1.0 (ndarray-ref a-inv type 0 2))) b))
+  (ndarray-set! a-inv type 1 3 (dot3 (vector (* -1.0 (ndarray-ref a-inv type 1 0)) (* -1.0 (ndarray-ref a-inv type 1 1)) (* -1.0 (ndarray-ref a-inv type 1 2))) b))
+  (ndarray-set! a-inv type 2 3 (dot3 (vector (* -1.0 (ndarray-ref a-inv type 2 0)) (* -1.0 (ndarray-ref a-inv type 2 1)) (* -1.0 (ndarray-ref a-inv type 2 2))) b))
+
+  ;; bottom row is 0 0 0 1
+  (ndarray-set! a-inv type 3 3 1.0)
+
+  t-inv)
+
+;; invert a 3x3 matrix using cofactors
+(define (tensor-inverse-3x3 t)
+  (define type (tensor-type t))
+  (define a (tensor-ndarray t))
+
+  (define adjA (make-tensor #(3 3) 0.0 #:ctype type))
+  (define adjA-a (tensor-ndarray adjA))
+  (ndarray-set! adjA-a type 0 0 (- (* (ndarray-ref a type 1 1) (ndarray-ref a type 2 2))
+                                   (* (ndarray-ref a type 1 2) (ndarray-ref a type 2 1))))
+  (ndarray-set! adjA-a type 0 1 (- (* (ndarray-ref a type 0 2) (ndarray-ref a type 2 1))
+                                   (* (ndarray-ref a type 0 1) (ndarray-ref a type 2 2))))
+  (ndarray-set! adjA-a type 0 2 (- (* (ndarray-ref a type 0 1) (ndarray-ref a type 1 2))
+                                   (* (ndarray-ref a type 0 2) (ndarray-ref a type 1 1))))
+  
+  (ndarray-set! adjA-a type 1 0 (- (* (ndarray-ref a type 1 2) (ndarray-ref a type 2 0))
+                                   (* (ndarray-ref a type 1 0) (ndarray-ref a type 2 2))))
+  (ndarray-set! adjA-a type 1 1 (- (* (ndarray-ref a type 0 0) (ndarray-ref a type 2 2))
+                                   (* (ndarray-ref a type 0 2) (ndarray-ref a type 2 0))))
+  (ndarray-set! adjA-a type 1 2 (- (* (ndarray-ref a type 0 2) (ndarray-ref a type 1 0))
+                                   (* (ndarray-ref a type 0 0) (ndarray-ref a type 1 2))))
+  
+  (ndarray-set! adjA-a type 2 0 (- (* (ndarray-ref a type 1 0) (ndarray-ref a type 2 1))
+                                   (* (ndarray-ref a type 1 1) (ndarray-ref a type 2 0))))
+  (ndarray-set! adjA-a type 2 1 (- (* (ndarray-ref a type 0 1) (ndarray-ref a type 2 0))
+                                   (* (ndarray-ref a type 0 0) (ndarray-ref a type 2 1))))
+  (ndarray-set! adjA-a type 2 2 (- (* (ndarray-ref a type 0 0) (ndarray-ref a type 1 1))
+                                   (* (ndarray-ref a type 0 1) (ndarray-ref a type 1 0))))
+
+  (define detA (+ (* (ndarray-ref a type 0 0) (- (* (ndarray-ref a type 1 1) (ndarray-ref a type 2 2))
+                                                 (* (ndarray-ref a type 1 2) (ndarray-ref a type 2 1))))
+                  (* (ndarray-ref a type 0 1) (- (* (ndarray-ref a type 1 2) (ndarray-ref a type 2 0))
+                                                 (* (ndarray-ref a type 1 0) (ndarray-ref a type 2 2))))
+                  (* (ndarray-ref a type 0 2) (- (* (ndarray-ref a type 1 0) (ndarray-ref a type 2 1))
+                                                 (* (ndarray-ref a type 1 1) (ndarray-ref a type 2 0))))))
+
+  (t* (/ 1.0 detA) adjA))
+
+;; find inverse of a 4x4 affine transformation matrix using shortcut:
+;; [ inv(M)   -inv(M)*b ]
+;; [   0           1    ]
+;; M is 3x3 transformation part of matrix t
+;; b is 3x1 translation part of matrix t
+(define (tensor-inverse-3d t)
+  (define type (tensor-type t))
+  (define t-inv (make-tensor #(4 4) 0.0 #:ctype type))
+  (define a (tensor-ndarray t))
+  (define a-inv (tensor-ndarray t-inv))
+
+  (define inv-m (tensor-ndarray (tensor-inverse-3x3 t)))
+  
+  ;; 3x3 in upper left corner is M
+  (ndarray-set! a-inv type 0 0 (ndarray-ref inv-m type 0 0))
+  (ndarray-set! a-inv type 0 1 (ndarray-ref inv-m type 0 1))
+  (ndarray-set! a-inv type 0 2 (ndarray-ref inv-m type 0 2))
+  
+  (ndarray-set! a-inv type 1 0 (ndarray-ref inv-m type 1 0))
+  (ndarray-set! a-inv type 1 1 (ndarray-ref inv-m type 1 1))
+  (ndarray-set! a-inv type 1 2 (ndarray-ref inv-m type 1 2))
+  
+  (ndarray-set! a-inv type 2 0 (ndarray-ref inv-m type 2 0))
+  (ndarray-set! a-inv type 2 1 (ndarray-ref inv-m type 2 1))
+  (ndarray-set! a-inv type 2 2 (ndarray-ref inv-m type 2 2))
+
+  ;; 3x1 in upper right is -(inverse of m) * b
+  (define b (vector (ndarray-ref a type 0 3) (ndarray-ref a type 1 3) (ndarray-ref a type 2 3)))
+  (ndarray-set! a-inv type 0 3 (dot3 (vector (* -1.0 (ndarray-ref inv-m type 0 0)) (* -1.0 (ndarray-ref inv-m type 0 1)) (* -1.0 (ndarray-ref inv-m type 0 2))) b))
+  (ndarray-set! a-inv type 1 3 (dot3 (vector (* -1.0 (ndarray-ref inv-m type 1 0)) (* -1.0 (ndarray-ref inv-m type 1 1)) (* -1.0 (ndarray-ref inv-m type 1 2))) b))
+  (ndarray-set! a-inv type 2 3 (dot3 (vector (* -1.0 (ndarray-ref inv-m type 2 0)) (* -1.0 (ndarray-ref inv-m type 2 1)) (* -1.0 (ndarray-ref inv-m type 2 2))) b))
+
+  ;; bottom row is 0 0 0 1
+  (ndarray-set! a-inv type 3 3 1.0)
+
+  t-inv)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; These are row vector versions of the transformation matrices
@@ -260,3 +376,5 @@
     ;[(float) (tensor type shape (ndarray_mat_inverse_float (tensor-ndarray t)))]
     [else
      (error "unsupported tensor type" type)]))
+
+

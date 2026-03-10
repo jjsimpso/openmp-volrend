@@ -325,18 +325,30 @@
   (define a (t** (tensor-rotate-x-3d 60)
                  (t** (tensor-rotate-y-3d 45)
                       (t** (tensor-rotate-z-3d 30)
-                           (tensor-identity-3d)))))
-                           ;(tensor-translate-3d -2.0 4.0 0.5)))))
-  (check-within (in-tensor (t** a (tensor-mat-inverse a))) (in-tensor (tensor-identity-3d)) 0.0001)
+                           (tensor-translate-3d -2.0 4.0 0.5)))))
   (print-tensor a #:precision 3)
-  (print-tensor (tensor-mat-inverse a) #:precision 3)
-  (print-tensor (t** a (tensor-mat-inverse a)) #:precision 3)
 
-  (define aforlu (make-tensor (vector 4 4) (vector 2.0 8.0 1.0 1.0
+  (check-within (in-tensor (t** a (tensor-inverse-transrot-3d a))) (in-tensor (tensor-identity-3d)) 0.0001)
+  (check-within (in-tensor (t** a (tensor-inverse-3d a))) (in-tensor (tensor-identity-3d)) 0.0001)
+  ;(check-within (in-tensor (t** a (tensor-mat-inverse a))) (in-tensor (tensor-identity-3d)) 0.0001)
+
+  (print-tensor (tensor-inverse-transrot-3d a) #:precision 3)
+  ;(print-tensor (tensor-mat-inverse a) #:precision 3)
+
+
+  ;; inverse a matrix that can't be inversed with the shortcut method in tensor-inverse-transrot-3d
+  (define b (t** (tensor-scale-3d 0.2 2.0 1.5)
+                 (t** (tensor-rotate-x-3d 60)
+                      (t** (tensor-rotate-y-3d 45)
+                           (t** (tensor-rotate-z-3d 30)
+                                (tensor-translate-3d -2.0 4.0 0.5))))))
+  (check-within (in-tensor (t** b (tensor-inverse-3d b))) (in-tensor (tensor-identity-3d)) 0.0001)
+  
+  #;(define aforlu (make-tensor (vector 4 4) (vector 2.0 8.0 1.0 1.0
                                                    4.0 13.0 3.0 -1.0
                                                    -2.0 -5.0 -3.0 3.0
                                                    -6.0 -18.0 -1.0 1.0)))
-  (print-tensor (tensor-lu-decomp aforlu))
+  ;(print-tensor (tensor-lu-decomp aforlu))
   )
 
 (define (sum-columns size)
