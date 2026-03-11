@@ -171,9 +171,9 @@
 
   ;; 3x1 in upper right is the inverse of 
   (define b (vector (ndarray-ref a type 0 3) (ndarray-ref a type 1 3) (ndarray-ref a type 2 3)))
-  (ndarray-set! a-inv type 0 3 (dot3 (vector (* -1.0 (ndarray-ref a-inv type 0 0)) (* -1.0 (ndarray-ref a-inv type 0 1)) (* -1.0 (ndarray-ref a-inv type 0 2))) b))
-  (ndarray-set! a-inv type 1 3 (dot3 (vector (* -1.0 (ndarray-ref a-inv type 1 0)) (* -1.0 (ndarray-ref a-inv type 1 1)) (* -1.0 (ndarray-ref a-inv type 1 2))) b))
-  (ndarray-set! a-inv type 2 3 (dot3 (vector (* -1.0 (ndarray-ref a-inv type 2 0)) (* -1.0 (ndarray-ref a-inv type 2 1)) (* -1.0 (ndarray-ref a-inv type 2 2))) b))
+  (ndarray-set! a-inv type 0 3 (dot3 (vector (fl* -1.0 (ndarray-ref a-inv type 0 0)) (fl* -1.0 (ndarray-ref a-inv type 0 1)) (fl* -1.0 (ndarray-ref a-inv type 0 2))) b))
+  (ndarray-set! a-inv type 1 3 (dot3 (vector (fl* -1.0 (ndarray-ref a-inv type 1 0)) (fl* -1.0 (ndarray-ref a-inv type 1 1)) (fl* -1.0 (ndarray-ref a-inv type 1 2))) b))
+  (ndarray-set! a-inv type 2 3 (dot3 (vector (fl* -1.0 (ndarray-ref a-inv type 2 0)) (fl* -1.0 (ndarray-ref a-inv type 2 1)) (fl* -1.0 (ndarray-ref a-inv type 2 2))) b))
 
   ;; bottom row is 0 0 0 1
   (ndarray-set! a-inv type 3 3 1.0)
@@ -187,33 +187,33 @@
 
   (define adjA (make-tensor #(3 3) 0.0 #:ctype type))
   (define adjA-a (tensor-ndarray adjA))
-  (ndarray-set! adjA-a type 0 0 (- (* (ndarray-ref a type 1 1) (ndarray-ref a type 2 2))
-                                   (* (ndarray-ref a type 1 2) (ndarray-ref a type 2 1))))
-  (ndarray-set! adjA-a type 0 1 (- (* (ndarray-ref a type 0 2) (ndarray-ref a type 2 1))
-                                   (* (ndarray-ref a type 0 1) (ndarray-ref a type 2 2))))
-  (ndarray-set! adjA-a type 0 2 (- (* (ndarray-ref a type 0 1) (ndarray-ref a type 1 2))
-                                   (* (ndarray-ref a type 0 2) (ndarray-ref a type 1 1))))
+  (ndarray-set! adjA-a type 0 0 (fl- (fl* (ndarray-ref a type 1 1) (ndarray-ref a type 2 2))
+                                     (fl* (ndarray-ref a type 1 2) (ndarray-ref a type 2 1))))
+  (ndarray-set! adjA-a type 0 1 (fl- (fl* (ndarray-ref a type 0 2) (ndarray-ref a type 2 1))
+                                     (fl* (ndarray-ref a type 0 1) (ndarray-ref a type 2 2))))
+  (ndarray-set! adjA-a type 0 2 (fl- (fl* (ndarray-ref a type 0 1) (ndarray-ref a type 1 2))
+                                     (fl* (ndarray-ref a type 0 2) (ndarray-ref a type 1 1))))
   
-  (ndarray-set! adjA-a type 1 0 (- (* (ndarray-ref a type 1 2) (ndarray-ref a type 2 0))
-                                   (* (ndarray-ref a type 1 0) (ndarray-ref a type 2 2))))
-  (ndarray-set! adjA-a type 1 1 (- (* (ndarray-ref a type 0 0) (ndarray-ref a type 2 2))
-                                   (* (ndarray-ref a type 0 2) (ndarray-ref a type 2 0))))
-  (ndarray-set! adjA-a type 1 2 (- (* (ndarray-ref a type 0 2) (ndarray-ref a type 1 0))
-                                   (* (ndarray-ref a type 0 0) (ndarray-ref a type 1 2))))
+  (ndarray-set! adjA-a type 1 0 (fl- (fl* (ndarray-ref a type 1 2) (ndarray-ref a type 2 0))
+                                     (fl* (ndarray-ref a type 1 0) (ndarray-ref a type 2 2))))
+  (ndarray-set! adjA-a type 1 1 (fl- (fl* (ndarray-ref a type 0 0) (ndarray-ref a type 2 2))
+                                     (fl* (ndarray-ref a type 0 2) (ndarray-ref a type 2 0))))
+  (ndarray-set! adjA-a type 1 2 (fl- (fl* (ndarray-ref a type 0 2) (ndarray-ref a type 1 0))
+                                     (fl* (ndarray-ref a type 0 0) (ndarray-ref a type 1 2))))
   
-  (ndarray-set! adjA-a type 2 0 (- (* (ndarray-ref a type 1 0) (ndarray-ref a type 2 1))
-                                   (* (ndarray-ref a type 1 1) (ndarray-ref a type 2 0))))
-  (ndarray-set! adjA-a type 2 1 (- (* (ndarray-ref a type 0 1) (ndarray-ref a type 2 0))
-                                   (* (ndarray-ref a type 0 0) (ndarray-ref a type 2 1))))
-  (ndarray-set! adjA-a type 2 2 (- (* (ndarray-ref a type 0 0) (ndarray-ref a type 1 1))
-                                   (* (ndarray-ref a type 0 1) (ndarray-ref a type 1 0))))
+  (ndarray-set! adjA-a type 2 0 (fl- (fl* (ndarray-ref a type 1 0) (ndarray-ref a type 2 1))
+                                     (fl* (ndarray-ref a type 1 1) (ndarray-ref a type 2 0))))
+  (ndarray-set! adjA-a type 2 1 (fl- (fl* (ndarray-ref a type 0 1) (ndarray-ref a type 2 0))
+                                     (fl* (ndarray-ref a type 0 0) (ndarray-ref a type 2 1))))
+  (ndarray-set! adjA-a type 2 2 (fl- (fl* (ndarray-ref a type 0 0) (ndarray-ref a type 1 1))
+                                     (fl* (ndarray-ref a type 0 1) (ndarray-ref a type 1 0))))
 
-  (define detA (+ (* (ndarray-ref a type 0 0) (- (* (ndarray-ref a type 1 1) (ndarray-ref a type 2 2))
-                                                 (* (ndarray-ref a type 1 2) (ndarray-ref a type 2 1))))
-                  (* (ndarray-ref a type 0 1) (- (* (ndarray-ref a type 1 2) (ndarray-ref a type 2 0))
-                                                 (* (ndarray-ref a type 1 0) (ndarray-ref a type 2 2))))
-                  (* (ndarray-ref a type 0 2) (- (* (ndarray-ref a type 1 0) (ndarray-ref a type 2 1))
-                                                 (* (ndarray-ref a type 1 1) (ndarray-ref a type 2 0))))))
+  (define detA (+ (fl* (ndarray-ref a type 0 0) (fl- (fl* (ndarray-ref a type 1 1) (ndarray-ref a type 2 2))
+                                                     (fl* (ndarray-ref a type 1 2) (ndarray-ref a type 2 1))))
+                  (fl* (ndarray-ref a type 0 1) (fl- (fl* (ndarray-ref a type 1 2) (ndarray-ref a type 2 0))
+                                                     (fl* (ndarray-ref a type 1 0) (ndarray-ref a type 2 2))))
+                  (fl* (ndarray-ref a type 0 2) (fl- (fl* (ndarray-ref a type 1 0) (ndarray-ref a type 2 1))
+                                                     (fl* (ndarray-ref a type 1 1) (ndarray-ref a type 2 0))))))
 
   (t* (/ 1.0 detA) adjA))
 
@@ -245,9 +245,9 @@
 
   ;; 3x1 in upper right is -(inverse of m) * b
   (define b (vector (ndarray-ref a type 0 3) (ndarray-ref a type 1 3) (ndarray-ref a type 2 3)))
-  (ndarray-set! a-inv type 0 3 (dot3 (vector (* -1.0 (ndarray-ref inv-m type 0 0)) (* -1.0 (ndarray-ref inv-m type 0 1)) (* -1.0 (ndarray-ref inv-m type 0 2))) b))
-  (ndarray-set! a-inv type 1 3 (dot3 (vector (* -1.0 (ndarray-ref inv-m type 1 0)) (* -1.0 (ndarray-ref inv-m type 1 1)) (* -1.0 (ndarray-ref inv-m type 1 2))) b))
-  (ndarray-set! a-inv type 2 3 (dot3 (vector (* -1.0 (ndarray-ref inv-m type 2 0)) (* -1.0 (ndarray-ref inv-m type 2 1)) (* -1.0 (ndarray-ref inv-m type 2 2))) b))
+  (ndarray-set! a-inv type 0 3 (dot3 (vector (fl* -1.0 (ndarray-ref inv-m type 0 0)) (fl* -1.0 (ndarray-ref inv-m type 0 1)) (fl* -1.0 (ndarray-ref inv-m type 0 2))) b))
+  (ndarray-set! a-inv type 1 3 (dot3 (vector (fl* -1.0 (ndarray-ref inv-m type 1 0)) (fl* -1.0 (ndarray-ref inv-m type 1 1)) (fl* -1.0 (ndarray-ref inv-m type 1 2))) b))
+  (ndarray-set! a-inv type 2 3 (dot3 (vector (fl* -1.0 (ndarray-ref inv-m type 2 0)) (fl* -1.0 (ndarray-ref inv-m type 2 1)) (fl* -1.0 (ndarray-ref inv-m type 2 2))) b))
 
   ;; bottom row is 0 0 0 1
   (ndarray-set! a-inv type 3 3 1.0)
