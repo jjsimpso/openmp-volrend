@@ -516,7 +516,6 @@ void ndarray_lu_backsub_double(NDArray *a, int *row_perm, double *b)
 
     double *aa = (double *)NDARRAY_DATAPTR(a);
     int n = a->dims[0];
-    int ii = 0;
     double sum;
     int ip;
     for(int i = 0; i < n; i++)
@@ -524,17 +523,9 @@ void ndarray_lu_backsub_double(NDArray *a, int *row_perm, double *b)
 	ip = row_perm[i];
 	sum = b[ip];
 	b[ip] = b[i];
-	if(ii)
+	for(int j = 0; j <= i-1; j++)
 	{
-	    for(int j = ii; j <= i-1; j++)
-	    {
-		sum -= aa[ELEMENT(i, j, n)] * b[j];
-	    }
-	}
-	else if(sum)
-	{
-	    /* a non-zero element was encountered, so we will have to do the sum in the loop above from now on */
-	    ii=i;
+	    sum -= aa[ELEMENT(i, j, n)] * b[j];
 	}
 	b[i] = sum;
     }
@@ -553,6 +544,10 @@ void ndarray_lu_backsub_double(NDArray *a, int *row_perm, double *b)
 
 /*
      Adapted from Numerical Recipes in C, 2nd edition
+
+     Not sure if I completely trust the pivoting and the destructive modification
+     of AA as it is decomposed. This also will not parallelize well because it
+     modifies shared memory.
 */
 NDArray *ndarray_lu_decomp_double(NDArray *a, int *row_perm, double *d)
 {
@@ -601,7 +596,7 @@ NDArray *ndarray_lu_decomp_double(NDArray *a, int *row_perm, double *d)
 	vv[i] = 1.0 / big;
     }
 
-    /* loop over columns of Crout's method */
+    /* loop over columns using Crout's method */
     double sum, dum;
     int imax;
     for(int j = 0; j < n; j++)
@@ -625,7 +620,7 @@ NDArray *ndarray_lu_decomp_double(NDArray *a, int *row_perm, double *d)
 		imax = i;
 	    }
 	}
-
+	
 	if(j != imax)
 	{
 	    /* interchange rows */
@@ -642,7 +637,7 @@ NDArray *ndarray_lu_decomp_double(NDArray *a, int *row_perm, double *d)
 	}
 	
 	row_perm[j] = imax;
-	//if(aad[ELEMENT(j, j, n)] = 0.0) aad[ELEMENT(j, j, n)] = TINY;
+	if(aad[ELEMENT(j, j, n)] == 0.0) aad[ELEMENT(j, j, n)] = TINY;
 	if(j != (n-1))
 	{
 	    /* divide by the pivot element */
@@ -661,8 +656,13 @@ NDArray *ndarray_lu_decomp_double(NDArray *a, int *row_perm, double *d)
 NDArray *ndarray_mat_inverse_double(NDArray *a)
 {
     double d;
+
+    if((a->ndim != 2) || (a->dims[0] != a->dims[1]))
+    {
+	return NULL;
+    }
+
     int n = a->dims[0];
-    
     int *row_perm = (int *)malloc(n * sizeof(int));
     if(!row_perm) return NULL;
     
@@ -673,7 +673,7 @@ NDArray *ndarray_mat_inverse_double(NDArray *a)
 	return NULL;
     }
     
-    NDArray *y = ndarray_new(2, (intptr_t []){a->dims[0], a->dims[1]}, sizeof(double), NULL);
+    NDArray *y = ndarray_new(2, (intptr_t []){n, n}, sizeof(double), NULL);
     if(!y)
     {
 	free(row_perm);
