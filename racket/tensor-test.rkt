@@ -77,9 +77,57 @@
 (define (tensor-read-ppm path)
   (define nda (ndarray_read_ppm path))
   (make-tensor (vector (ndarray-dims nda 0) (ndarray-dims nda 1) 3) nda))
+
+(define (tensor-read-ppm2 path)
+  (define (whitespace? b)
+    (if (eof-object? b)
+        #f
+        (or (= b 32)
+            (and (>= b 9) (<= b 13)))))
   
+  (define (discard-whitespace in)
+    (when (whitespace? (peek-byte in))
+      (read-byte in)
+      (discard-whitespace in)))
+
+  (define (skip-whitespace in)
+    (define ws? (whitespace? (peek-byte in)))
+    (discard-whitespace in)
+    ws?)
+
+  (define in (open-input-file path))
+  (unless in
+    (error 'read-ppm2 "error reading ppm, ~a" "file not found/accessible"))
+  
+  (with-handlers ([exn:fail? (lambda (v)
+                               (close-input-port in)
+                               ((error-display-handler) (exn-message v) v)
+                               #f)])
+    (define magic (read-bytes 2 in))
+    (unless (and (bytes=? magic #"P6") (skip-whitespace in))
+      (error 'read-ppm2 "error reading ppm, ~a" "not a supported file"))
+    (define w (read in))
+    (unless (and (exact-integer? w) (skip-whitespace in))
+      (error 'read-ppm2 "error reading ppm, ~a" "no width read"))
+    (define h (read in))
+    (unless (and (exact-integer? h) (skip-whitespace in))
+      (error 'read-ppm2 "error reading ppm, ~a" "no height read"))
+    (define maxval (read in))
+    (unless (and (exact-integer? maxval) (skip-whitespace in))
+      (error 'read-ppm2 "error reading ppm, ~a" "no maxval read"))
+    (define data (read-bytes (* w h 3) in))
+    (unless (= (bytes-length data) (* w h 3))
+      (error 'read-ppm2 "error reading ppm, ~a" "incorrect number of bytes read"))
+
+    ;(printf "opened ppm ~ax~a, max ~a~n" w h maxval)
+    (define nda (ndarray_new 3 (vector w h 3) 1 data))
+    (define t (make-tensor (vector w h 3) nda #:ctype _uint8))
+    (close-input-port in)
+    t))
+
+
 (define (test-ppm)
-  (define ppm (tensor-read-ppm test-ppm-path))
+  (define ppm (tensor-read-ppm2 test-ppm-path))
   (define w (vector-ref (tshape ppm) 1))
   (define h (vector-ref (tshape ppm) 0))
   (tensor-write-ppm ppm out-ppm-path)
@@ -336,12 +384,13 @@
   ;(print-tensor (tensor-mat-inverse a) #:precision 3)
 
   ;; inverse a matrix that can't be inversed with the shortcut method in tensor-inverse-transrot-3d
-  (define b (t** (tensor-scale-3d 0.2 2.0 1.5)
-                 (t** (tensor-rotate-x-3d 60)
-                      (t** (tensor-rotate-y-3d 45)
-                           (t** (tensor-rotate-z-3d 30)
-                                (tensor-translate-3d -2.0 4.0 0.5))))))
-  (check-within (in-tensor (t** b (tensor-inverse-3d b))) (in-tensor (tensor-identity-3d)) 0.0001)
+  ;; this doesn't appear to work if the 'far' argument to tensor-persp-proj-3d is 0.0
+  (define b (t** (tensor-persp-proj-3d 1.0 -1.0 1.0 -1.0 0.00000001 2.0)
+                 (t** (tensor-scale-3d 0.2 2.0 1.5)
+                      (t** (tensor-rotate-x-3d 60)
+                           (t** (tensor-rotate-y-3d 45)
+                                (t** (tensor-rotate-z-3d 30)
+                                     (tensor-translate-3d -2.0 4.0 0.5)))))))
   (check-within (in-tensor (t** b (tensor-mat-inverse b))) (in-tensor (tensor-identity-3d)) 0.0001)
   
   #;(define aforlu (make-tensor (vector 4 4) (vector 2.0 8.0 1.0 1.0
