@@ -370,12 +370,17 @@ NDArrayIter *ndarray_iter_new_add_axis(NDArray *nda, Slice *slices, int axis)
 inline bool ndarray_iter_more(NDArrayIter *it) __attribute__((always_inline));
 inline bool ndarray_iter_more(NDArrayIter *it)
 {
-    return (it->index < it->length);
+    return ((it->index + 1) < it->length);
 }
 
 // return false if iterator is finished
 bool ndarray_iter_next(NDArrayIter *it)
 {
+    if(!ndarray_iter_more(it))
+    {
+	return false;
+    }
+    
     if(it->contiguous)
     {
 	it->cursor += it->nda->elem_bytes;
@@ -400,8 +405,7 @@ bool ndarray_iter_next(NDArrayIter *it)
 	it->index++;
     }
 
-    return ndarray_iter_more(it);
-    //return (it->index < it->length);
+    return true;
 }
 
 void ndarray_iter_reset(NDArrayIter *it)
