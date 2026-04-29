@@ -84,6 +84,7 @@
     [(tensor-iter t)
      (ndarray_iter_reset (tensor-iter t))
      (print-axis (tensor-iter t) (tensor-type t) (tshape t) 1)
+     (ndarray_iter_reset (tensor-iter t))
      (printf "~n")]
     [else
      (print-axis (ndarray_iter_new (tensor-ndarray t) #f) (tensor-type t) (tshape t) 1)
@@ -188,29 +189,35 @@
   (define v (if (and (equal? val 0.0) (not (eq? type 'double)))
                 (guess-default-value type)
                 val))
-  (define nda #f)
   
   ;; initialize tensor
   (cond
     [(NDArray? v)
      (when (not (equal? shape (ndarray-dims->shape v)))
        (error "make-tensor given shape doesn't match provided NDArray's"))
-     (set! nda v)]
+     (tensor type shape v)]
     [(vector? v)
-     (set! nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))
+     (define nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))
      (for ([i (in-range 0 (NDArray-num_elems nda))])
-       (ndarray-set! nda type i (vector-ref v i)))]
+       (ndarray-set! nda type i (vector-ref v i)))
+     (tensor type shape nda)]
     [(eq? v 'index)
-     (set! nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))
+     (define nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))
      (case (ctype->layout type)
        [(double) (ndarray_fill_index_double nda)]
        [(float) (ndarray_fill_index_float nda)]
        [(int64) (ndarray_fill_index_int64_t nda)]
        [(uint8) (ndarray_fill_index_uint8_t nda)]
        [else
-        (error "make-tensor unsupported tensor type for index")])]
+        (error "make-tensor unsupported tensor type for index")])
+     (tensor type shape nda)]
+    [(bytes? val)
+     (define data (malloc _uint8 (bytes-length val) val 'raw 'failok))
+     (define t (tensor type shape (ndarray_new (vector-length shape) shape (ctype-sizeof type) data)))
+     (ndarray_set_freedata (tensor-ndarray t) #t)
+     t]
     [else
-     (set! nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))
+     (define nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))
      (case (ctype->layout type)
        [(double) (ndarray_fill_double nda v)]
        [(float) (ndarray_fill_float nda v)]
@@ -224,9 +231,8 @@
        [(uint16) (ndarray_fill_uint16_t nda v)]
        [(uint8)  (ndarray_fill_uint8_t nda v)]
        [else
-        (error "make-tensor unsupported tensor type")])])
-  
-  (tensor type shape nda))
+        (error "make-tensor unsupported tensor type")])
+     (tensor type shape nda)]))
 
 (define (build-tensor shape proc ctype)
   (define t (make-tensor shape #:ctype ctype))
@@ -347,12 +353,13 @@
   (lambda (stx)
     (syntax-parse stx
       [[(val) (_ expr)]
+       #:with t #'expr
        #'[(val)
           (:do-in
-           ([(it) (if (tensor-iter expr)
-                      (tensor-iter expr)
-                      (ndarray_iter_new (tensor-ndarray expr) #f))]
-            [(type) (tensor-type expr)])
+           ([(it) (if (tensor-iter t)
+                      (tensor-iter t)
+                      (ndarray_iter_new (tensor-ndarray t) #f))]
+            [(type) (tensor-type t)])
            (unless (NDArrayIter? it)
              (raise-argument-error 'in-iter "NDArrayiter?" it))
            ([n it])
@@ -364,6 +371,7 @@
                #t
                (begin
                  (ndarray_iter_reset n)
+                 (black-box t)
                  #f))
            [n])]]
       [_ #false])))

@@ -45,7 +45,7 @@
          (struct-out NDArrayIter)
          (struct-out Slice))
 
-(define-ffi-definer define-ndarray (ffi-lib "../libvolrend"))
+(define-ffi-definer define-ndarray (ffi-lib "../libvolrend" #:custodian (current-custodian)))
 
 (define MAX-DIMS 32)
 
@@ -285,7 +285,8 @@
   (lambda () #'in-iter/proc)
   (lambda (stx)
     (syntax-parse stx
-      [[(val) (_ expr type)]
+      [[(val) (_ expr type-expr)]
+       #:with type #'type-expr
        #'[(val)
           (:do-in
            ([(it) expr])

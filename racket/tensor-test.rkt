@@ -120,8 +120,7 @@
       (error 'read-ppm2 "error reading ppm, ~a" "incorrect number of bytes read"))
 
     ;(printf "opened ppm ~ax~a, max ~a~n" w h maxval)
-    (define nda (ndarray_new 3 (vector w h 3) 1 data))
-    (define t (make-tensor (vector w h 3) nda #:ctype _uint8))
+    (define t (make-tensor (vector h w 3) data #:ctype _uint8))
     (close-input-port in)
     t))
 
