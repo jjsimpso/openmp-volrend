@@ -45,7 +45,7 @@
          (struct-out NDArrayIter)
          (struct-out Slice))
 
-(define-ffi-definer define-ndarray (ffi-lib "../libvolrend" #:custodian (current-custodian)))
+(define-ffi-definer define-ndarray (ffi-lib "../libvolrend"))
 
 (define MAX-DIMS 32)
 
