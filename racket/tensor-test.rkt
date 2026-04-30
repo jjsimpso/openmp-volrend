@@ -131,6 +131,7 @@
   (define h (vector-ref (tshape ppm) 0))
   (tensor-write-ppm ppm out-ppm-path)
   ;(print-tensor ppm)
+  ;(in-tensor ppm)
   ;; writing a ppm with skip dim set like this is no longer supported by ndarray_iter_write_file
   #;(tensor-write-ppm (tslice ppm '() #:skip-dim -1) out2-ppm-path)
   (tensor-write-ppm (tslice ppm `((0 ,(sub1 h)  2)

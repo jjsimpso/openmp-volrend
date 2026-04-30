@@ -361,7 +361,7 @@
                       (ndarray_iter_new (tensor-ndarray t) #f))]
             [(type) (tensor-type t)])
            (unless (NDArrayIter? it)
-             (raise-argument-error 'in-iter "NDArrayiter?" it))
+             (raise-argument-error 'in-tensor "NDArrayiter?" it))
            ([n it])
            #t
            ([(val) (ndarray-iter-data n type)])
