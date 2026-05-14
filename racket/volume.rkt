@@ -2,9 +2,20 @@
 
 (require racket/runtime-path
          ffi/unsafe
+         ffi/unsafe/alloc
          plot
-         "tensor.rkt")
+         "ndarray-ffi.rkt"
+         "tensor.rkt"
+         "tensor-geom.rkt")
 
+(define-ndarray ndarray_vol_render_uint8_t (_fun _NDArray-pointer _int _int _int _NDArray-pointer _pointer _pointer _pointer _pointer
+                                                 -> (p : _NDArray-pointer/null)
+                                                 -> (check-null p 'ndarray_vol_render_uint8_t))
+  #:wrap (allocator ndarray_free))
+
+(define (tensor-vol-render vol trans)
+  (define shape (tensor-shape vol))
+  (ndarray_vol_render_uint8_t (tensor-ndarray vol) (vector-ref shape 2) (vector-ref shape 1) (vector-ref shape 0) (tensor-ndarray trans) #f #f #f #f))
 
 (define (read-volume path)
   (define (read-int in [signed? #t])
@@ -67,3 +78,14 @@
                #:when (>= i xstart))
       (if (> v m) v m)))
   (plot (lines pts #:x-min xstart #:x-max 255 #:y-min 0 #:y-max max)))
+
+(define (volume-render path)
+  (define vol (read-volume path))
+  (define trans
+    (t** (tensor-rotate-x-3d 60)
+         (t** (tensor-rotate-y-3d 45)
+              (t** (tensor-rotate-z-3d 30)
+                   (tensor-translate-3d -2.0 4.0 0.5)))))
+  (print-tensor (t** trans (tensor-inverse-transrot-3d trans)) #:precision 2)
+  (print-tensor (t** trans (tensor-mat-inverse trans)) #:precision 2)
+  (make-tensor (vector 4 4) (tensor-vol-render vol trans)))

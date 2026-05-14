@@ -5,6 +5,7 @@
 #include <math.h>
 
 #include "ndarray.h"
+#include "nda_matrix.h"
 #include "nda_volume.h"
 
 #define ELEMENT(x, y, z, w, h) ((x) + ((y) * (w)) + ((z) * (w) * (h)))
@@ -23,6 +24,19 @@ double mag_double(double *elems, int n)
     }
 
     return sqrt(sum);
+}
+
+void vec4_matmul(Vec4_double *v, Mat4x4_double m, Vec4_double *result)
+{
+    result->x = (m[0][0] * v->x) + (m[0][1] * v->y) + (m[0][2] * v->z) + (m[0][4] * v->w);
+    result->y = (m[1][0] * v->x) + (m[1][1] * v->y) + (m[1][2] * v->z) + (m[1][4] * v->w);
+    result->z = (m[2][0] * v->x) + (m[2][1] * v->y) + (m[2][2] * v->z) + (m[2][4] * v->w);
+    result->w = (m[3][0] * v->x) + (m[3][1] * v->y) + (m[3][2] * v->z) + (m[3][4] * v->w);
+}
+
+void mat4x4mul(Mat4x4_double a, Mat4x4_double b, Mat4x4_double c)
+{
+
 }
 
 /*************************** gradient functions ***************************/
@@ -108,15 +122,15 @@ double ndarray_vol_interp_linear_uint8(NDArray *v, Vec3_double *p)
     double dz = p->z - z;
 
     /* interpolated values 1 and 2 are interpolated across the x-axis in the plane below the sample */
-    double iv1 = data[ELEMENT(x-1, y-1, z-1, w, h)];
-    iv1 +=      (data[ELEMENT(x+1, y-1, z-1, w, h)] - iv1) * dx;
-    double iv2 = data[ELEMENT(x-1, y-1, z+1, w, h)];
-    iv2 +=      (data[ELEMENT(x+1, y-1, z+1, w, h)] - iv2) * dx;
+    double iv1 = data[ELEMENT(x,   y, z,   w, h)];
+    iv1 +=      (data[ELEMENT(x+1, y, z,   w, h)] - iv1) * dx;
+    double iv2 = data[ELEMENT(x,   y, z+1, w, h)];
+    iv2 +=      (data[ELEMENT(x+1, y, z+1, w, h)] - iv2) * dx;
 
     /* interpolated values 3 and 4 are interpolated across the x-axis in the plane above the sample */
-    double iv3 = data[ELEMENT(x-1, y+1, z-1, w, h)];
-    iv3 +=      (data[ELEMENT(x+1, y+1, z-1, w, h)] - iv3) * dx;
-    double iv4 = data[ELEMENT(x-1, y+1, z+1, w, h)];
+    double iv3 = data[ELEMENT(x,   y+1, z,   w, h)];
+    iv3 +=      (data[ELEMENT(x+1, y+1, z,   w, h)] - iv3) * dx;
+    double iv4 = data[ELEMENT(x,   y+1, z+1, w, h)];
     iv4 +=      (data[ELEMENT(x+1, y+1, z+1, w, h)] - iv4) * dx;
 
     /* interpolate between 1 and 3 and between 2 and 4 */
@@ -143,7 +157,43 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
     uint8_t *data = (uint8_t *)NDARRAY_DATAPTR(v);
     intptr_t w = v->dims[2];
     intptr_t h = v->dims[1];
+    intptr_t d = v->dims[0];
     //uint8_t val = data[ELEMENT(x, y, z, w, h)];
+
+    /* 
+       Transform the 8 corners of the volume from object to view space using trans.
+       This will determine the bounds of the volume in view space 
+    */
+    Vec4_double corner_obj[8] = {{.x=0.0, .y=0.0, .z=0.0, .w=1.0}};
+    Vec4_double corner_view[8] = {{.x=0.0, .y=0.0, .z=0.0, .w=1.0}};
+
+    /* set y values for top plane of the cube */
+    for(int i = 4; i < 8; i++)
+    {
+	corner_obj[i].z = (double)h - 1.0;
+    }
+
+    /* set x and z values where they are != 0 */
+    corner_obj[1].x = (double)w - 1.0;
+    corner_obj[2].x = (double)w - 1.0;
+    corner_obj[2].z = (double)d - 1.0;
+    corner_obj[3].z = (double)d - 1.0;
+
+    corner_obj[5].x = (double)w - 1.0;
+    corner_obj[6].x = (double)w - 1.0;
+    corner_obj[6].z = (double)d - 1.0;
+    corner_obj[7].z = (double)d - 1.0;
+
+    /* transform corners to view space */
+    for(int i = 0; i < 8; i++)
+    {
+	vec4_matmul(&corner_obj[i], (double (*)[4])trans->dataptr, &corner_view[i]);
+    }
+
+    NDArray *inv_trans = ndarray_mat_inverse_double(trans);
+    
+    ndarray_free(out);
+    out = ndarray_matmul_double(trans, inv_trans);
     
     return out;
 }

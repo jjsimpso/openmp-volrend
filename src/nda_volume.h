@@ -1,14 +1,12 @@
+typedef double Mat4x4_double[4][4];
+
 typedef struct {
     double x, y, z;
 } Vec3_double;
 
 typedef struct {
-    float x, y, z;
-} Vec3_float;
-
-typedef struct {
-    intptr_t x, y, z;
-} Vec3_int;
+    double x, y, z, w;
+} Vec4_double;
 
 typedef struct {
     double r, g, b, a;
