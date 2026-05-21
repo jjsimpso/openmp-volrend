@@ -194,7 +194,7 @@
   (cond
     [(NDArray? v)
      (when (not (equal? shape (ndarray-dims->shape v)))
-       (error "make-tensor given shape doesn't match provided NDArray's"))
+       (error (printf "make-tensor shape ~a doesn't match provided NDArray's shape ~a" shape (ndarray-dims->shape v))))
      (tensor type shape v)]
     [(vector? v)
      (define nda (ndarray_new (vector-length shape) shape (ctype-sizeof type) #f))

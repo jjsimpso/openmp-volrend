@@ -147,13 +147,15 @@
       (if (> v m) v m)))
   (plot (lines pts #:x-min xstart #:x-max 255 #:y-min 0 #:y-max max)))
 
-(define (volume-render path)
+(define (volume-render path trans)
   (define vol (read-volume path))
-  (define trans
-    (t** (tensor-rotate-x-3d 60)
-         (t** (tensor-rotate-y-3d 45)
-              (t** (tensor-rotate-z-3d 30)
-                   (tensor-translate-3d -2.0 4.0 0.5)))))
-  (print-tensor (t** trans (tensor-inverse-transrot-3d trans)) #:precision 2)
-  (print-tensor (t** trans (tensor-mat-inverse trans)) #:precision 2)
-  (make-tensor (vector 4 4) (tensor-vol-render vol trans)))
+  (define vol-shape (tshape vol))
+  (make-tensor (vector (vector-ref vol-shape 1) (vector-ref vol-shape 2) 3) (tensor-vol-render vol trans)))
+
+(define trans
+  (t** (tensor-translate-3d 75.0 75.0 150.0)
+       (t** (tensor-rotate-x-3d 150)
+            (t** (tensor-rotate-y-3d -20)
+                 (tensor-translate-3d -75.0 -75.0 -75.0)))))
+
+(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" (tensor-identity-3d)))

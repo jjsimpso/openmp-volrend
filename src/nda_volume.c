@@ -8,7 +8,10 @@
 #include "nda_matrix.h"
 #include "nda_volume.h"
 
-#define ELEMENT(x, y, z, w, h) ((x) + ((y) * (w)) + ((z) * (w) * (h)))
+#define ELEMENT3D(x, y, z, w, h) ((x) + ((y) * (w)) + ((z) * (w) * (h)))
+
+/* index at ith row and jth column */
+#define ELEMENT2D(i, j, cols) ((j) + ((i) * (cols)))
 
 typedef Vec3_double grad_fun(NDArray *v, intptr_t x, intptr_t y, intptr_t z);
 typedef Rgba class_fun(int value, Vec3_double gradient, ClassifyInfo *cinfo);
@@ -26,7 +29,7 @@ double mag_double(double *elems, int n)
     return sqrt(sum);
 }
 
-void vec4_matmul(Vec4_double *v, Mat4x4_double m, Vec4_double *result)
+void vec4_matmul(Mat4x4_double m, Vec4_double *v, Vec4_double *result)
 {
     result->x = (m[0][0] * v->x) + (m[0][1] * v->y) + (m[0][2] * v->z) + (m[0][4] * v->w);
     result->y = (m[1][0] * v->x) + (m[1][1] * v->y) + (m[1][2] * v->z) + (m[1][4] * v->w);
@@ -47,9 +50,9 @@ Vec3_double ndarray_vol_central_diff_uint8_t(NDArray *v, intptr_t x, intptr_t y,
     intptr_t w = v->dims[2];
     intptr_t h = v->dims[1];
 
-    gradient.x = data[ELEMENT(x-1, y, z, w, h)] - data[ELEMENT(x+1, y, z, w, h)];
-    gradient.y = data[ELEMENT(x, y-1, z, w, h)] - data[ELEMENT(x, y+1, z, w, h)];
-    gradient.z = data[ELEMENT(x, y, z-1, w, h)] - data[ELEMENT(x, y, z+1, w, h)];
+    gradient.x = data[ELEMENT3D(x-1, y, z, w, h)] - data[ELEMENT3D(x+1, y, z, w, h)];
+    gradient.y = data[ELEMENT3D(x, y-1, z, w, h)] - data[ELEMENT3D(x, y+1, z, w, h)];
+    gradient.z = data[ELEMENT3D(x, y, z-1, w, h)] - data[ELEMENT3D(x, y, z+1, w, h)];
     
     return gradient;
 }
@@ -104,7 +107,7 @@ double ndarray_vol_interp_nearest_uint8(NDArray *v, Vec3_double *p)
     intptr_t y = (uint8_t)p->y + 0.5;
     intptr_t z = (uint8_t)p->z + 0.5;
     
-    return (double)data[ELEMENT(x, y, z, w, h)];
+    return (double)data[ELEMENT3D(x, y, z, w, h)];
 }
 
 double ndarray_vol_interp_linear_uint8(NDArray *v, Vec3_double *p)
@@ -122,16 +125,16 @@ double ndarray_vol_interp_linear_uint8(NDArray *v, Vec3_double *p)
     double dz = p->z - z;
 
     /* interpolated values 1 and 2 are interpolated across the x-axis in the plane below the sample */
-    double iv1 = data[ELEMENT(x,   y, z,   w, h)];
-    iv1 +=      (data[ELEMENT(x+1, y, z,   w, h)] - iv1) * dx;
-    double iv2 = data[ELEMENT(x,   y, z+1, w, h)];
-    iv2 +=      (data[ELEMENT(x+1, y, z+1, w, h)] - iv2) * dx;
+    double iv1 = data[ELEMENT3D(x,   y, z,   w, h)];
+    iv1 +=      (data[ELEMENT3D(x+1, y, z,   w, h)] - iv1) * dx;
+    double iv2 = data[ELEMENT3D(x,   y, z+1, w, h)];
+    iv2 +=      (data[ELEMENT3D(x+1, y, z+1, w, h)] - iv2) * dx;
 
     /* interpolated values 3 and 4 are interpolated across the x-axis in the plane above the sample */
-    double iv3 = data[ELEMENT(x,   y+1, z,   w, h)];
-    iv3 +=      (data[ELEMENT(x+1, y+1, z,   w, h)] - iv3) * dx;
-    double iv4 = data[ELEMENT(x,   y+1, z+1, w, h)];
-    iv4 +=      (data[ELEMENT(x+1, y+1, z+1, w, h)] - iv4) * dx;
+    double iv3 = data[ELEMENT3D(x,   y+1, z,   w, h)];
+    iv3 +=      (data[ELEMENT3D(x+1, y+1, z,   w, h)] - iv3) * dx;
+    double iv4 = data[ELEMENT3D(x,   y+1, z+1, w, h)];
+    iv4 +=      (data[ELEMENT3D(x+1, y+1, z+1, w, h)] - iv4) * dx;
 
     /* interpolate between 1 and 3 and between 2 and 4 */
     double iv5 = ((iv3 - iv1) * dy) + iv1;
@@ -158,8 +161,9 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
     intptr_t w = v->dims[2];
     intptr_t h = v->dims[1];
     intptr_t d = v->dims[0];
-    //uint8_t val = data[ELEMENT(x, y, z, w, h)];
 
+    uint8_t *out_data = (uint8_t *)NDARRAY_DATAPTR(out);
+    
     /* 
        Transform the 8 corners of the volume from object to view space using trans.
        This will determine the bounds of the volume in view space 
@@ -170,7 +174,7 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
     /* set y values for top plane of the cube */
     for(int i = 4; i < 8; i++)
     {
-	corner_obj[i].z = (double)h - 1.0;
+	corner_obj[i].y = (double)h - 1.0;
     }
 
     /* set x and z values where they are != 0 */
@@ -187,13 +191,76 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
     /* transform corners to view space */
     for(int i = 0; i < 8; i++)
     {
-	vec4_matmul(&corner_obj[i], (double (*)[4])trans->dataptr, &corner_view[i]);
+	vec4_matmul((double (*)[4])trans->dataptr, &corner_obj[i], &corner_view[i]);
     }
 
-    NDArray *inv_trans = ndarray_mat_inverse_double(trans);
+    /* find the min/max range of the cube in view space */
+    int minx = corner_view[0].x;
+    int maxx = corner_view[0].x;
+    int miny = corner_view[0].y;
+    int maxy = corner_view[0].y;
+    int minz = corner_view[0].z;
+    int maxz = corner_view[0].z;
+    for(int i = 1; i < 8; i++)
+    {
+	if(corner_view[i].x < minx) minx = corner_view[i].x;
+	if(corner_view[i].y < miny) miny = corner_view[i].y;
+	if(corner_view[i].z < minz) minz = corner_view[i].z;
+	if(corner_view[i].x > maxx) maxx = corner_view[i].x;
+	if(corner_view[i].y > maxy) maxy = corner_view[i].y;
+	if(corner_view[i].z > maxz) maxz = corner_view[i].z;
+    }
     
-    ndarray_free(out);
-    out = ndarray_matmul_double(trans, inv_trans);
+    maxx++;
+    maxy++;
+    maxz++;
+
+    /* inverse transform to go from view space to object/voxel space */
+    NDArray *inv_trans = ndarray_mat_inverse_double(trans);
+
+    Vec4_double pos = { .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 };
+    Vec4_double obj_pos = { .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 };
+    uint8_t val, maxval;
+    
+    /* step in y direction */
+    for(int j = miny; j < maxy; j++)
+    {
+	pos.y = (double)j;
+	
+	/* step in x direction */
+	for(int i = minx; i < maxx; i++)
+	{
+	    pos.x = (double)i;
+
+	    bool in_volume = false;
+	    val = maxval = 0;
+	    
+	    /* step along ray in z direction */
+	    for(int k = minz; k < maxz; k++)
+	    {
+		pos.z = (double)k;
+		vec4_matmul((double (*)[4])inv_trans->dataptr, &pos, &obj_pos);
+		
+		if( ((intptr_t)obj_pos.x > 1) && ((intptr_t)obj_pos.x < (w - 1)) &&
+		    ((intptr_t)obj_pos.y > 1) && ((intptr_t)obj_pos.y < (h - 1)) &&
+		    ((intptr_t)obj_pos.z > 1) && ((intptr_t)obj_pos.z < (d - 1)) )
+		{
+		    val = data[ELEMENT3D((intptr_t)obj_pos.x, (intptr_t)obj_pos.y, (intptr_t)obj_pos.z, w, h)];
+		    if(val > maxval) maxval = val;
+		    in_volume = true;
+		}
+		else
+		{
+		    if(in_volume) break;
+		}
+	    }
+
+	    int idx = ELEMENT2D((intptr_t)pos.y, (intptr_t)pos.x, w) * 3;
+	    out_data[idx++] = maxval;
+	    out_data[idx++] = maxval;
+	    out_data[idx++] = maxval;
+	}
+    }
     
     return out;
 }
