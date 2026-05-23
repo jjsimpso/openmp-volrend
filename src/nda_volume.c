@@ -31,10 +31,10 @@ double mag_double(double *elems, int n)
 
 void vec4_matmul(Mat4x4_double m, Vec4_double *v, Vec4_double *result)
 {
-    result->x = (m[0][0] * v->x) + (m[0][1] * v->y) + (m[0][2] * v->z) + (m[0][4] * v->w);
-    result->y = (m[1][0] * v->x) + (m[1][1] * v->y) + (m[1][2] * v->z) + (m[1][4] * v->w);
-    result->z = (m[2][0] * v->x) + (m[2][1] * v->y) + (m[2][2] * v->z) + (m[2][4] * v->w);
-    result->w = (m[3][0] * v->x) + (m[3][1] * v->y) + (m[3][2] * v->z) + (m[3][4] * v->w);
+    result->x = (m[0][0] * v->x) + (m[0][1] * v->y) + (m[0][2] * v->z) + (m[0][3] * v->w);
+    result->y = (m[1][0] * v->x) + (m[1][1] * v->y) + (m[1][2] * v->z) + (m[1][3] * v->w);
+    result->z = (m[2][0] * v->x) + (m[2][1] * v->y) + (m[2][2] * v->z) + (m[2][3] * v->w);
+    result->w = (m[3][0] * v->x) + (m[3][1] * v->y) + (m[3][2] * v->z) + (m[3][3] * v->w);
 }
 
 void mat4x4mul(Mat4x4_double a, Mat4x4_double b, Mat4x4_double c)
@@ -210,10 +210,14 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 	if(corner_view[i].y > maxy) maxy = corner_view[i].y;
 	if(corner_view[i].z > maxz) maxz = corner_view[i].z;
     }
-    
-    maxx++;
-    maxy++;
-    maxz++;
+
+    minx = (minx < 1) ? 1 : minx;
+    miny = (miny < 1) ? 1 : miny;
+    minz = (minz < 1) ? 1 : minz;
+
+    maxx = (maxx > image_width) ? image_width : (maxx + 1);
+    maxy = (maxy > image_height) ? image_height : (maxy + 1);
+    maxz = (maxz > samples) ? samples : (maxz + 1);
 
     /* inverse transform to go from view space to object/voxel space */
     NDArray *inv_trans = ndarray_mat_inverse_double(trans);
