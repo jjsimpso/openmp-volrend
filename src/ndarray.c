@@ -45,6 +45,8 @@ NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes, uint8_t *ptr)
 	    free(nda);
 	    return NULL;
 	}
+	/* seems safest to always memset allocated data */
+	memset(nda->dataptr, 0, nda->size);
     }
     
     nda->dims = malloc(n * sizeof(intptr_t));
@@ -67,8 +69,10 @@ void ndarray_set_freedata(NDArray *nda, bool freedata)
 
 void ndarray_free(NDArray *nda)
 {
+    printf("ndarray_free\n");
     if(nda)
     {
+	printf("ndarray_free do it!\n");
     	if(nda->free_data && nda->dataptr) free(nda->dataptr);
 	if(nda->dims) free(nda->dims);
 	free(nda);

@@ -23,10 +23,18 @@ double mag_double(double *elems, int n)
     double sum = 0.0;
     for(int i = 0; i < n; i++)
     {
-	sum += elems[i];
+	sum += elems[i] * elems[i];
     }
 
     return sqrt(sum);
+}
+
+void vec4_normalize_double(Vec4_double *v)
+{
+    double mag = sqrt((v->x * v->x) + (v->y * v->y) + (v->z * v->z));
+    v->x /= mag;
+    v->y /= mag;
+    v->z /= mag;
 }
 
 void vec4_matmul(Mat4x4_double m, Vec4_double *v, Vec4_double *result)
@@ -40,6 +48,30 @@ void vec4_matmul(Mat4x4_double m, Vec4_double *v, Vec4_double *result)
 void mat4x4mul(Mat4x4_double a, Mat4x4_double b, Mat4x4_double c)
 {
 
+}
+
+bool slab_intersect(Vec4_double *o, Vec4_double *d_inv, Vec3_double *min, Vec3_double *max, double *tnear, double *tfar)
+{
+    double t1, t2, t3, t4, t5, t6;
+    t1 = (min->x - o->x) * d_inv->x;
+    t2 = (max->x - o->x) * d_inv->x;
+    t3 = (min->y - o->y) * d_inv->y;
+    t4 = (max->y - o->y) * d_inv->y;
+    t5 = (min->z - o->z) * d_inv->z;
+    t6 = (max->z - o->z) * d_inv->z;
+
+    double tmin, tmax;
+    tmin = fmax(fmin(t1, t2), fmax(fmin(t3, t4), fmin(t5, t6)));
+    tmax = fmin(fmax(t1, t2), fmin(fmax(t3, t4), fmax(t5, t6)));
+
+    if(tmin < tmax)
+    {
+	*tnear = tmin;
+	*tfar = tmax;
+	return true;
+    }
+
+    return false;
 }
 
 /*************************** gradient functions ***************************/
@@ -164,102 +196,80 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 
     uint8_t *out_data = (uint8_t *)NDARRAY_DATAPTR(out);
     
-    /* 
-       Transform the 8 corners of the volume from object to view space using trans.
-       This will determine the bounds of the volume in view space 
-    */
-    Vec4_double corner_obj[8] = {{.x=0.0, .y=0.0, .z=0.0, .w=1.0}};
-    Vec4_double corner_view[8] = {{.x=0.0, .y=0.0, .z=0.0, .w=1.0}};
-
-    /* set y values for top plane of the cube */
-    for(int i = 4; i < 8; i++)
-    {
-	corner_obj[i].y = (double)h - 1.0;
-    }
-
-    /* set x and z values where they are != 0 */
-    corner_obj[1].x = (double)w - 1.0;
-    corner_obj[2].x = (double)w - 1.0;
-    corner_obj[2].z = (double)d - 1.0;
-    corner_obj[3].z = (double)d - 1.0;
-
-    corner_obj[5].x = (double)w - 1.0;
-    corner_obj[6].x = (double)w - 1.0;
-    corner_obj[6].z = (double)d - 1.0;
-    corner_obj[7].z = (double)d - 1.0;
-
-    /* transform corners to view space */
-    for(int i = 0; i < 8; i++)
-    {
-	vec4_matmul((double (*)[4])trans->dataptr, &corner_obj[i], &corner_view[i]);
-    }
-
-    /* find the min/max range of the cube in view space */
-    int minx = corner_view[0].x;
-    int maxx = corner_view[0].x;
-    int miny = corner_view[0].y;
-    int maxy = corner_view[0].y;
-    int minz = corner_view[0].z;
-    int maxz = corner_view[0].z;
-    for(int i = 1; i < 8; i++)
-    {
-	if(corner_view[i].x < minx) minx = corner_view[i].x;
-	if(corner_view[i].y < miny) miny = corner_view[i].y;
-	if(corner_view[i].z < minz) minz = corner_view[i].z;
-	if(corner_view[i].x > maxx) maxx = corner_view[i].x;
-	if(corner_view[i].y > maxy) maxy = corner_view[i].y;
-	if(corner_view[i].z > maxz) maxz = corner_view[i].z;
-    }
-
-    minx = (minx < 1) ? 1 : minx;
-    miny = (miny < 1) ? 1 : miny;
-    minz = (minz < 1) ? 1 : minz;
-
-    maxx = (maxx > image_width) ? image_width : (maxx + 1);
-    maxy = (maxy > image_height) ? image_height : (maxy + 1);
-    maxz = (maxz > samples) ? samples : (maxz + 1);
+    /* find the min/max range of the cube in obj space */
+    int minx = 0;
+    int maxx = w - 1;
+    int miny = 0;
+    int maxy = h - 1;
+    int minz = 0;
+    int maxz = d - 1;
 
     /* inverse transform to go from view space to object/voxel space */
     NDArray *inv_trans = ndarray_mat_inverse_double(trans);
 
-    Vec4_double pos = { .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 };
-    Vec4_double obj_pos = { .x = 0.0, .y = 0.0, .z = 0.0, .w = 1.0 };
+    /* 
+       cast a ray in view space from each pixel on the viewing plane
+       translate the ray to obj space and calculate intersection with volume in obj space
+       step along ray in obj space
+    */
+    Vec4_double ray_o = { .x = 0.0, .y = 0.0, .z = 1024.0, .w = 1.0 };
+    Vec4_double ray_d = { .x = 0.0, .y = 0.0, .z = -1.0, .w = 0.0 };
+    Vec4_double ray_obj_o = { 0.0 };
+    Vec4_double ray_obj_d = { 0.0 };
     uint8_t val, maxval;
-    
-    /* step in y direction */
-    for(int j = miny; j < maxy; j++)
-    {
-	pos.y = (double)j;
-	
-	/* step in x direction */
-	for(int i = minx; i < maxx; i++)
-	{
-	    pos.x = (double)i;
 
-	    bool in_volume = false;
+    /* calculate ray direction in object space and normalize it */
+    vec4_matmul((double (*)[4])inv_trans->dataptr, &ray_d, &ray_obj_d);
+    vec4_normalize_double(&ray_obj_d);
+
+    /* precalculate 1/d to save on division ops */
+    Vec4_double ray_obj_d_inv = { .x = 1.0 / ray_obj_d.x, .y = 1.0 / ray_obj_d.y, .z = 1.0 / ray_obj_d.z, .w = 1.0 };
+    
+    /* step along image in y direction (rows) */
+    for(int j = 0; j < image_height; j++)
+    {
+	ray_o.y = (double)j;
+	
+	/* step along image in x direction (columns) */
+	for(int i = 0; i < image_width; i++)
+	{
 	    val = maxval = 0;
-	    
-	    /* step along ray in z direction */
-	    for(int k = minz; k < maxz; k++)
+
+	    ray_o.x = (double)i;
+	    vec4_matmul((double (*)[4])inv_trans->dataptr, &ray_o, &ray_obj_o);
+
+	    /* calc intersection in object space */
+	    Vec3_double min = { minx, miny, minz };
+	    Vec3_double max = { maxx, maxy, maxz };
+	    double tnear, tfar;
+
+	    if(slab_intersect(&ray_obj_o, &ray_obj_d_inv, &min, &max, &tnear, &tfar))
 	    {
-		pos.z = (double)k;
-		vec4_matmul((double (*)[4])inv_trans->dataptr, &pos, &obj_pos);
+		/* point of intersection where ray exits volume (we are compositing back to front) */
+		Vec4_double obj_pos;
+		obj_pos.x = ray_obj_o.x + tfar * ray_obj_d.x;
+		obj_pos.y = ray_obj_o.y + tfar * ray_obj_d.y;
+		obj_pos.z = ray_obj_o.z + tfar * ray_obj_d.z;
+		obj_pos.w = 1.0;
+
+		//printf("obj_pos = (%f, %f, %f)\n", obj_pos.x, obj_pos.y, obj_pos.z);
 		
-		if( ((intptr_t)obj_pos.x > 1) && ((intptr_t)obj_pos.x < (w - 1)) &&
-		    ((intptr_t)obj_pos.y > 1) && ((intptr_t)obj_pos.y < (h - 1)) &&
-		    ((intptr_t)obj_pos.z > 1) && ((intptr_t)obj_pos.z < (d - 1)) )
+		/* step back along ray towards front */
+		while( ((intptr_t)obj_pos.x >= 0) && ((intptr_t)obj_pos.x <= (w - 1)) &&
+		       ((intptr_t)obj_pos.y >= 0) && ((intptr_t)obj_pos.y <= (h - 1)) &&
+		       ((intptr_t)obj_pos.z >= 0) && ((intptr_t)obj_pos.z <= (d - 1)) )
 		{
 		    val = data[ELEMENT3D((intptr_t)obj_pos.x, (intptr_t)obj_pos.y, (intptr_t)obj_pos.z, w, h)];
 		    if(val > maxval) maxval = val;
-		    in_volume = true;
-		}
-		else
-		{
-		    if(in_volume) break;
+		    
+		    obj_pos.x -= ray_obj_d.x;
+		    obj_pos.y -= ray_obj_d.y;
+		    obj_pos.z -= ray_obj_d.z;
 		}
 	    }
 
-	    int idx = ELEMENT2D((intptr_t)pos.y, (intptr_t)pos.x, w) * 3;
+	    /* set pixel even if the ray didn't intersect */
+	    int idx = ELEMENT2D((intptr_t)j, (intptr_t)i, image_width) * 3;
 	    out_data[idx++] = maxval;
 	    out_data[idx++] = maxval;
 	    out_data[idx++] = maxval;

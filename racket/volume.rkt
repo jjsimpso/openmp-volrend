@@ -1,10 +1,8 @@
 #lang racket
 
 (require racket/gui/base
-         racket/runtime-path
          ffi/unsafe
          ffi/unsafe/alloc
-         ffi/unsafe/cvector
          plot
          "ndarray-ffi.rkt"
          "tensor.rkt"
@@ -29,6 +27,7 @@
   (for ([off (in-range 0 (* height width 4) 4)])
     (memcpy argb-pixels (add1 off) dataptr 0 3)
     (ptr-add! dataptr 3))
+  (black-box t)
   argb-pixels)
   
 (define (draw-tensor t)
@@ -153,9 +152,16 @@
   (make-tensor (vector (vector-ref vol-shape 1) (vector-ref vol-shape 2) 3) (tensor-vol-render vol trans)))
 
 (define trans
-  (t** (tensor-translate-3d 75.0 75.0 150.0)
+  (t** (tensor-translate-3d 128.0 128.0 55.0)
        (t** (tensor-rotate-x-3d 150)
             (t** (tensor-rotate-y-3d -20)
-                 (tensor-translate-3d -75.0 -75.0 -75.0)))))
+                 (tensor-translate-3d -128.0 -128.0 -55.0)))))
 
-(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" (tensor-identity-3d)))
+(define roty (t** (tensor-translate-3d 128.0 128.0 55.0)
+                  (t** (tensor-rotate-y-3d 90)
+                       (tensor-translate-3d -128.0 -128.0 -55.0))))
+
+;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" (tensor-identity-3d)))
+;(collect-garbage 'major)
+;(volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" trans)
+;(collect-garbage 'major)
