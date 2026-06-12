@@ -13,10 +13,6 @@
 /* index at ith row and jth column */
 #define ELEMENT2D(i, j, cols) ((j) + ((i) * (cols)))
 
-typedef Vec3_double grad_fun(NDArray *v, intptr_t x, intptr_t y, intptr_t z);
-typedef Rgba class_fun(int value, Vec3_double gradient, ClassifyInfo *cinfo);
-typedef double interp_fun(NDArray *v, Vec3_double *p);
-
 /* calculate the magnitude of the vector in elems */
 double mag_double(double *elems, int n)
 {
@@ -178,7 +174,118 @@ double ndarray_vol_interp_linear_uint8(NDArray *v, Vec3_double *p)
     return final;
 }
 
+/* 
+   Calculate maximum intensity projection of the volume 'v'
+   Uses a hard-coded orthographic projection
+   'image_width', 'image_height', and 'samples' will generally match the dimensions of the volume
+   'trans' is a 4x4 transformation matrix from object to view space
+*/
+NDArray *ndarray_vol_mip_uint8_t(NDArray *v, int image_width, int image_height, int samples, NDArray *trans)
+{
+    // 2D RGB image 
+    NDArray *out = ndarray_new(3, (intptr_t []){image_height, image_width, 3}, 1, NULL);
 
+    if(!out)
+    {
+	return NULL;
+    }
+
+    uint8_t *data = (uint8_t *)NDARRAY_DATAPTR(v);
+    intptr_t w = v->dims[2];
+    intptr_t h = v->dims[1];
+    intptr_t d = v->dims[0];
+
+    uint8_t *out_data = (uint8_t *)NDARRAY_DATAPTR(out);
+    
+    /* find the min/max range of the cube in obj space */
+    int minx = 0;
+    int maxx = w - 1;
+    int miny = 0;
+    int maxy = h - 1;
+    int minz = 0;
+    int maxz = d - 1;
+
+    /* inverse transform to go from view space to object/voxel space */
+    NDArray *inv_trans = ndarray_mat_inverse_double(trans);
+
+    /* 
+       cast a ray in view space from each pixel on the viewing plane
+       translate the ray to obj space and calculate intersection with volume in obj space
+       step along ray in obj space
+    */
+    Vec4_double ray_o = { .x = 0.0, .y = 0.0, .z = 1024.0, .w = 1.0 };
+    Vec4_double ray_d = { .x = 0.0, .y = 0.0, .z = -1.0, .w = 0.0 };
+    Vec4_double ray_obj_o = { 0.0 };
+    Vec4_double ray_obj_d = { 0.0 };
+    uint8_t val, maxval;
+
+    /* calculate ray direction in object space and normalize it */
+    vec4_matmul((double (*)[4])inv_trans->dataptr, &ray_d, &ray_obj_d);
+    vec4_normalize_double(&ray_obj_d);
+
+    /* precalculate 1/d to save on division ops */
+    Vec4_double ray_obj_d_inv = { .x = 1.0 / ray_obj_d.x, .y = 1.0 / ray_obj_d.y, .z = 1.0 / ray_obj_d.z, .w = 1.0 };
+    
+    /* step along image in y direction (rows) */
+    for(int j = 0; j < image_height; j++)
+    {
+	ray_o.y = (double)j;
+	
+	/* step along image in x direction (columns) */
+	for(int i = 0; i < image_width; i++)
+	{
+	    val = maxval = 0;
+
+	    ray_o.x = (double)i;
+	    vec4_matmul((double (*)[4])inv_trans->dataptr, &ray_o, &ray_obj_o);
+
+	    /* calc intersection in object space */
+	    Vec3_double min = { minx, miny, minz };
+	    Vec3_double max = { maxx, maxy, maxz };
+	    double tnear, tfar;
+
+	    if(slab_intersect(&ray_obj_o, &ray_obj_d_inv, &min, &max, &tnear, &tfar))
+	    {
+		/* point of intersection where ray exits volume (we are compositing back to front) */
+		Vec4_double obj_pos;
+		obj_pos.x = ray_obj_o.x + tfar * ray_obj_d.x;
+		obj_pos.y = ray_obj_o.y + tfar * ray_obj_d.y;
+		obj_pos.z = ray_obj_o.z + tfar * ray_obj_d.z;
+		obj_pos.w = 1.0;
+
+		//printf("obj_pos = (%f, %f, %f)\n", obj_pos.x, obj_pos.y, obj_pos.z);
+		
+		/* step back along ray towards front */
+		while( ((intptr_t)obj_pos.x >= 0) && ((intptr_t)obj_pos.x <= (w - 1)) &&
+		       ((intptr_t)obj_pos.y >= 0) && ((intptr_t)obj_pos.y <= (h - 1)) &&
+		       ((intptr_t)obj_pos.z >= 0) && ((intptr_t)obj_pos.z <= (d - 1)) )
+		{
+		    val = data[ELEMENT3D((intptr_t)obj_pos.x, (intptr_t)obj_pos.y, (intptr_t)obj_pos.z, w, h)];
+		    if(val > maxval) maxval = val;
+		    
+		    obj_pos.x -= ray_obj_d.x;
+		    obj_pos.y -= ray_obj_d.y;
+		    obj_pos.z -= ray_obj_d.z;
+		}
+	    }
+
+	    /* set pixel even if the ray didn't intersect */
+	    int idx = ELEMENT2D((intptr_t)j, (intptr_t)i, image_width) * 3;
+	    out_data[idx++] = maxval;
+	    out_data[idx++] = maxval;
+	    out_data[idx++] = maxval;
+	}
+    }
+    
+    return out;
+}
+
+/* 
+   Calculate a volume rendering of the volume 'v'
+   Uses a hard-coded orthographic projection
+   'image_width', 'image_height', and 'samples' will generally match the dimensions of the volume
+   'trans' is a 4x4 transformation matrix from object to view space
+*/
 NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_height, int samples, NDArray *trans, grad_fun *grad, class_fun *classify, ClassifyInfo *cinfo, interp_fun *interpolate)
 {
     // 2D RGB image 

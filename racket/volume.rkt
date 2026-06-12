@@ -8,10 +8,20 @@
          "tensor.rkt"
          "tensor-geom.rkt")
 
+(define-ndarray ndarray_vol_mip_uint8_t (_fun _NDArray-pointer _int _int _int _NDArray-pointer
+                                                 -> (p : _NDArray-pointer/null)
+                                                 -> (check-null p 'ndarray_vol_mip_uint8_t))
+  #:wrap (allocator ndarray_free))
+
 (define-ndarray ndarray_vol_render_uint8_t (_fun _NDArray-pointer _int _int _int _NDArray-pointer _pointer _pointer _pointer _pointer
                                                  -> (p : _NDArray-pointer/null)
                                                  -> (check-null p 'ndarray_vol_render_uint8_t))
   #:wrap (allocator ndarray_free))
+
+
+(define (tensor-vol-mip vol trans)
+  (define shape (tensor-shape vol))
+  (ndarray_vol_mip_uint8_t (tensor-ndarray vol) (vector-ref shape 2) (vector-ref shape 1) (vector-ref shape 0) (tensor-ndarray trans)))
 
 (define (tensor-vol-render vol trans)
   (define shape (tensor-shape vol))
@@ -145,6 +155,11 @@
                #:when (>= i xstart))
       (if (> v m) v m)))
   (plot (lines pts #:x-min xstart #:x-max 255 #:y-min 0 #:y-max max)))
+
+(define (volume-mip path trans)
+  (define vol (read-volume path))
+  (define vol-shape (tshape vol))
+  (make-tensor (vector (vector-ref vol-shape 1) (vector-ref vol-shape 2) 3) (tensor-vol-mip vol trans)))
 
 (define (volume-render path trans)
   (define vol (read-volume path))
