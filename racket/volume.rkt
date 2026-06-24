@@ -8,12 +8,50 @@
          "tensor.rkt"
          "tensor-geom.rkt")
 
+(define-cstruct _Vec3_double
+  ([x _double]
+   [y _double]
+   [z _double]))
+
+(define-cstruct _Vec4_double
+  ([x _double]
+   [y _double]
+   [z _double]
+   [w _double]))
+
+(define-cstruct _Rgba
+  ([r _double]
+   [g _double]
+   [b _double]
+   [a _double]))
+
+(define-cstruct _Material
+  ([min _int]
+   [max _int]
+   [r _double]
+   [g _double]
+   [b _double]
+   [a _double]))
+
+(define-cstruct _ClassifyInfo
+  ([num_mat _int]
+   [mat _Material-pointer]))
+
+(define _grad_fun (_fun _NDArray-pointer _intptr _intptr _intptr -> _Vec3_double))
+(define _class_fun (_fun _int _Vec3_double _ClassifyInfo-pointer -> _Rgba))
+(define _interp_fun (_fun _NDArray-pointer _Vec4_double-pointer -> _uint8))
+
+(define-ndarray ndarray_vol_central_diff_uint8_t (_fun _NDArray-pointer _intptr _intptr _intptr -> _Vec3_double))
+(define-ndarray ndarray_vol_classify_simple_uint8_t (_fun _uint8 _Vec3_double _ClassifyInfo-pointer -> _Rgba))
+(define-ndarray ndarray_vol_interp_nearest_uint8_t (_fun _NDArray-pointer _Vec4_double-pointer -> _uint8))
+(define-ndarray ndarray_vol_interp_linear_uint8_t (_fun _NDArray-pointer _Vec4_double-pointer -> _uint8))
+
 (define-ndarray ndarray_vol_mip_uint8_t (_fun _NDArray-pointer _int _int _int _NDArray-pointer
                                                  -> (p : _NDArray-pointer/null)
                                                  -> (check-null p 'ndarray_vol_mip_uint8_t))
   #:wrap (allocator ndarray_free))
 
-(define-ndarray ndarray_vol_render_uint8_t (_fun _NDArray-pointer _int _int _int _NDArray-pointer _pointer _pointer _pointer _pointer
+(define-ndarray ndarray_vol_render_uint8_t (_fun _NDArray-pointer _int _int _int _NDArray-pointer _grad_fun _class_fun _ClassifyInfo-pointer _interp_fun
                                                  -> (p : _NDArray-pointer/null)
                                                  -> (check-null p 'ndarray_vol_render_uint8_t))
   #:wrap (allocator ndarray_free))
@@ -25,7 +63,19 @@
 
 (define (tensor-vol-render vol trans)
   (define shape (tensor-shape vol))
-  (ndarray_vol_render_uint8_t (tensor-ndarray vol) (vector-ref shape 2) (vector-ref shape 1) (vector-ref shape 0) (tensor-ndarray trans) #f #f #f #f))
+  (define mats (malloc _Material 5)) ;; 0 - 99 0.0, 100 - 170 0.1, 171 - 184 0.0, 185 - 235 0.9, 236 - 255 0.0
+  (ptr-set! mats _Material 0 (make-Material 0    99 0.0 0.0 0.0 0.0))
+  (ptr-set! mats _Material 1 (make-Material 100 170 0.5 0.5 0.5 0.1))
+  (ptr-set! mats _Material 2 (make-Material 171 184 0.0 0.0 0.0 0.0))
+  (ptr-set! mats _Material 3 (make-Material 185 235 0.8 0.0 0.0 0.9))
+  (ptr-set! mats _Material 4 (make-Material 236 255 0.0 0.0 0.0 0.0))
+  (set-cpointer-tag! mats 'Material)
+  (define cinfo (make-ClassifyInfo 5 mats))
+  (ndarray_vol_render_uint8_t (tensor-ndarray vol) (vector-ref shape 2) (vector-ref shape 1) (vector-ref shape 0) (tensor-ndarray trans)
+                              ndarray_vol_central_diff_uint8_t
+                              ndarray_vol_classify_simple_uint8_t
+                              cinfo
+                              ndarray_vol_interp_nearest_uint8_t))
 
 (define (tensor->argb-pixels t)
   (define shape (tensor-shape t))
@@ -176,6 +226,8 @@
                   (t** (tensor-rotate-y-3d 90)
                        (tensor-translate-3d -128.0 -128.0 -55.0))))
 
+;(draw-tensor (volume-mip "/home/jonathan/coding/volume_rendering/data/engine.vol" roty))
+;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" roty))
 ;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" (tensor-identity-3d)))
 ;(collect-garbage 'major)
 ;(volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" trans)

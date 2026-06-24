@@ -25,6 +25,16 @@ double mag_double(double *elems, int n)
     return sqrt(sum);
 }
 
+/* destructive */
+void vec3_normalize_double(Vec3_double *v)
+{
+    double mag = sqrt((v->x * v->x) + (v->y * v->y) + (v->z * v->z));
+    v->x /= mag;
+    v->y /= mag;
+    v->z /= mag;
+}
+
+/* destructive */
 void vec4_normalize_double(Vec4_double *v)
 {
     double mag = sqrt((v->x * v->x) + (v->y * v->y) + (v->z * v->z));
@@ -44,6 +54,22 @@ void vec4_matmul(Mat4x4_double m, Vec4_double *v, Vec4_double *result)
 void mat4x4mul(Mat4x4_double a, Mat4x4_double b, Mat4x4_double c)
 {
 
+}
+
+uint8_t clamp_double(double v)
+{
+    if(v < 0.0)
+    {
+	return 0;
+    }
+    else if(v > 1.0)
+    {
+	return 255;
+    }
+    else
+    {
+	return v * 255;
+    }
 }
 
 bool slab_intersect(Vec4_double *o, Vec4_double *d_inv, Vec3_double *min, Vec3_double *max, double *tnear, double *tfar)
@@ -104,7 +130,7 @@ NDArray *ndarray_vol_gradient(NDArray *v, grad_fun *func)
 }
 
 /*************************** classification functions ***************************/
-Rgba ndarray_vol_classify_simple_uint8(uint8_t value, Vec3_double gradient, ClassifyInfo *cinfo)
+Rgba ndarray_vol_classify_simple_uint8_t(uint8_t value, Vec3_double gradient, ClassifyInfo *cinfo)
 {
     Rgba color = {.r = 0.0, .g = 0.0, .b = 0.0, .a = 0.0};
     
@@ -125,7 +151,7 @@ Rgba ndarray_vol_classify_simple_uint8(uint8_t value, Vec3_double gradient, Clas
 }
 
 /*************************** interpolation functions ***************************/
-double ndarray_vol_interp_nearest_uint8(NDArray *v, Vec3_double *p)
+uint8_t ndarray_vol_interp_nearest_uint8_t(NDArray *v, Vec4_double *p)
 {
     uint8_t *data = (uint8_t *)NDARRAY_DATAPTR(v);
     intptr_t w = v->dims[2];
@@ -138,7 +164,7 @@ double ndarray_vol_interp_nearest_uint8(NDArray *v, Vec3_double *p)
     return (double)data[ELEMENT3D(x, y, z, w, h)];
 }
 
-double ndarray_vol_interp_linear_uint8(NDArray *v, Vec3_double *p)
+uint8_t ndarray_vol_interp_linear_uint8_t(NDArray *v, Vec4_double *p)
 {
     uint8_t *data = (uint8_t *)NDARRAY_DATAPTR(v);
     intptr_t w = v->dims[2];
@@ -172,6 +198,26 @@ double ndarray_vol_interp_linear_uint8(NDArray *v, Vec3_double *p)
     double final = ((iv6 - iv5) * dz) + iv5;
     
     return final;
+}
+
+/* 
+   Simple shading function. Diffuse and ambient light only. Single hard-coded light source.
+
+   Returns intensity.
+*/
+double shade_simple(Vec3_double gradient)
+{
+    Vec3_double light = { .x = 2.0, .y = -1.25, .z = 2.0 };
+    double ambient = 0.1;
+    double diffuse = 0.9;
+
+    vec3_normalize_double(&gradient);
+    vec3_normalize_double(&light);
+
+    double dot = (gradient.x * light.x) + (gradient.y * light.y) + (gradient.z * light.z);
+    if(dot < 0.0) dot = 0.0;
+
+    return ambient + (diffuse * dot);
 }
 
 /* 
@@ -296,20 +342,22 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 	return NULL;
     }
 
-    uint8_t *data = (uint8_t *)NDARRAY_DATAPTR(v);
     intptr_t w = v->dims[2];
     intptr_t h = v->dims[1];
     intptr_t d = v->dims[0];
 
     uint8_t *out_data = (uint8_t *)NDARRAY_DATAPTR(out);
     
-    /* find the min/max range of the cube in obj space */
-    int minx = 0;
-    int maxx = w - 1;
-    int miny = 0;
-    int maxy = h - 1;
-    int minz = 0;
-    int maxz = d - 1;
+    /* 
+       set the min/max range of the cube in obj space 
+       use values one voxel inside the bounds of the cube to prevent sampling outside the memory block 
+    */
+    int minx = 1;
+    int maxx = w - 2;
+    int miny = 1;
+    int maxy = h - 2;
+    int minz = 1;
+    int maxz = d - 2;
 
     /* inverse transform to go from view space to object/voxel space */
     NDArray *inv_trans = ndarray_mat_inverse_double(trans);
@@ -323,8 +371,13 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
     Vec4_double ray_d = { .x = 0.0, .y = 0.0, .z = -1.0, .w = 0.0 };
     Vec4_double ray_obj_o = { 0.0 };
     Vec4_double ray_obj_d = { 0.0 };
-    uint8_t val, maxval;
 
+    /* per voxel working values */
+    Vec3_double gradient;
+    uint8_t val;
+    double attenuate;
+    Rgba c;
+    
     /* calculate ray direction in object space and normalize it */
     vec4_matmul((double (*)[4])inv_trans->dataptr, &ray_d, &ray_obj_d);
     vec4_normalize_double(&ray_obj_d);
@@ -340,11 +393,12 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 	/* step along image in x direction (columns) */
 	for(int i = 0; i < image_width; i++)
 	{
-	    val = maxval = 0;
-
 	    ray_o.x = (double)i;
 	    vec4_matmul((double (*)[4])inv_trans->dataptr, &ray_o, &ray_obj_o);
 
+	    /* default to black */
+	    Rgba color = { .r = 0.0, .g = 0.0, .b = 0.0, .a = 0.0 };
+	    
 	    /* calc intersection in object space */
 	    Vec3_double min = { minx, miny, minz };
 	    Vec3_double max = { maxx, maxy, maxz };
@@ -361,13 +415,28 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 
 		//printf("obj_pos = (%f, %f, %f)\n", obj_pos.x, obj_pos.y, obj_pos.z);
 		
-		/* step back along ray towards front */
-		while( ((intptr_t)obj_pos.x >= 0) && ((intptr_t)obj_pos.x <= (w - 1)) &&
-		       ((intptr_t)obj_pos.y >= 0) && ((intptr_t)obj_pos.y <= (h - 1)) &&
-		       ((intptr_t)obj_pos.z >= 0) && ((intptr_t)obj_pos.z <= (d - 1)) )
+		/* step back along ray towards front while sample point is within bounds of data. */
+		while( ((intptr_t)obj_pos.x > 0) && ((intptr_t)obj_pos.x < (w - 1)) &&
+		       ((intptr_t)obj_pos.y > 0) && ((intptr_t)obj_pos.y < (h - 1)) &&
+		       ((intptr_t)obj_pos.z > 0) && ((intptr_t)obj_pos.z < (d - 1)) )
 		{
-		    val = data[ELEMENT3D((intptr_t)obj_pos.x, (intptr_t)obj_pos.y, (intptr_t)obj_pos.z, w, h)];
-		    if(val > maxval) maxval = val;
+		    /* perform classification and shading operations per voxel */
+		    //val = interpolate(v, &obj_pos);
+		    //gradient = grad(v, obj_pos.x + 0.5, obj_pos.y + 0.5, obj_pos.z + 0.5);
+		    //c = classify(val, gradient, cinfo);
+		    val = ndarray_vol_interp_nearest_uint8_t(v, &obj_pos);
+		    gradient = ndarray_vol_central_diff_uint8_t(v, obj_pos.x + 0.5, obj_pos.y + 0.5, obj_pos.z + 0.5);
+		    c = ndarray_vol_classify_simple_uint8_t(val, gradient, cinfo);
+		    attenuate = shade_simple(gradient);
+
+		    c.r *= attenuate;
+		    c.g *= attenuate;
+		    c.b *= attenuate;
+
+		    /* composite back-to-front using opacity(alpha) */
+		    color.r = (c.r * c.a) + (color.r * (1.0 - c.a));
+		    color.g = (c.g * c.a) + (color.g * (1.0 - c.a));
+		    color.b = (c.b * c.a) + (color.b * (1.0 - c.a));
 		    
 		    obj_pos.x -= ray_obj_d.x;
 		    obj_pos.y -= ray_obj_d.y;
@@ -377,9 +446,9 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 
 	    /* set pixel even if the ray didn't intersect */
 	    int idx = ELEMENT2D((intptr_t)j, (intptr_t)i, image_width) * 3;
-	    out_data[idx++] = maxval;
-	    out_data[idx++] = maxval;
-	    out_data[idx++] = maxval;
+	    out_data[idx++] = clamp_double(color.r);
+	    out_data[idx++] = clamp_double(color.g);
+	    out_data[idx++] = clamp_double(color.b);
 	}
     }
     
