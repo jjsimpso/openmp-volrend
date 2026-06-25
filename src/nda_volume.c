@@ -29,18 +29,26 @@ double mag_double(double *elems, int n)
 void vec3_normalize_double(Vec3_double *v)
 {
     double mag = sqrt((v->x * v->x) + (v->y * v->y) + (v->z * v->z));
-    v->x /= mag;
-    v->y /= mag;
-    v->z /= mag;
+
+    if(mag > 0.0)
+    {
+	v->x /= mag;
+	v->y /= mag;
+	v->z /= mag;
+    }
 }
 
 /* destructive */
 void vec4_normalize_double(Vec4_double *v)
 {
     double mag = sqrt((v->x * v->x) + (v->y * v->y) + (v->z * v->z));
-    v->x /= mag;
-    v->y /= mag;
-    v->z /= mag;
+
+    if(mag > 0.0)
+    {    
+	v->x /= mag;
+	v->y /= mag;
+	v->z /= mag;
+    }
 }
 
 void vec4_matmul(Mat4x4_double m, Vec4_double *v, Vec4_double *result)
@@ -424,7 +432,7 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 		    //val = interpolate(v, &obj_pos);
 		    //gradient = grad(v, obj_pos.x + 0.5, obj_pos.y + 0.5, obj_pos.z + 0.5);
 		    //c = classify(val, gradient, cinfo);
-		    val = ndarray_vol_interp_nearest_uint8_t(v, &obj_pos);
+		    val = ndarray_vol_interp_linear_uint8_t(v, &obj_pos);
 		    gradient = ndarray_vol_central_diff_uint8_t(v, obj_pos.x + 0.5, obj_pos.y + 0.5, obj_pos.z + 0.5);
 		    c = ndarray_vol_classify_simple_uint8_t(val, gradient, cinfo);
 		    attenuate = shade_simple(gradient);
