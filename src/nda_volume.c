@@ -429,12 +429,12 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 		       ((intptr_t)obj_pos.z > 0) && ((intptr_t)obj_pos.z < (d - 1)) )
 		{
 		    /* perform classification and shading operations per voxel */
-		    //val = interpolate(v, &obj_pos);
-		    //gradient = grad(v, obj_pos.x + 0.5, obj_pos.y + 0.5, obj_pos.z + 0.5);
-		    //c = classify(val, gradient, cinfo);
-		    val = ndarray_vol_interp_linear_uint8_t(v, &obj_pos);
-		    gradient = ndarray_vol_central_diff_uint8_t(v, obj_pos.x + 0.5, obj_pos.y + 0.5, obj_pos.z + 0.5);
-		    c = ndarray_vol_classify_simple_uint8_t(val, gradient, cinfo);
+		    val = interpolate(v, &obj_pos);
+		    gradient = grad(v, obj_pos.x + 0.5, obj_pos.y + 0.5, obj_pos.z + 0.5);
+		    c = classify(val, gradient, cinfo);
+		    //val = ndarray_vol_interp_linear_uint8_t(v, &obj_pos);
+		    //gradient = ndarray_vol_central_diff_uint8_t(v, obj_pos.x + 0.5, obj_pos.y + 0.5, obj_pos.z + 0.5);
+		    //c = ndarray_vol_classify_simple_uint8_t(val, gradient, cinfo);
 		    attenuate = shade_simple(gradient);
 
 		    c.r *= attenuate;

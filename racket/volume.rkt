@@ -41,17 +41,27 @@
 (define _class_fun (_fun _int _Vec3_double _ClassifyInfo-pointer -> _Rgba))
 (define _interp_fun (_fun _NDArray-pointer _Vec4_double-pointer -> _uint8))
 
+;; get the addresses of these functions to use as function pointers
+(define libvolrend (ffi-lib "../libvolrend"))
+(define ndarray_vol_central_diff_uint8_t (get-ffi-obj "ndarray_vol_central_diff_uint8_t" libvolrend _fpointer))
+(define ndarray_vol_classify_simple_uint8_t (get-ffi-obj "ndarray_vol_classify_simple_uint8_t" libvolrend _fpointer))
+(define ndarray_vol_interp_nearest_uint8_t (get-ffi-obj "ndarray_vol_interp_nearest_uint8_t" libvolrend _fpointer))
+(define ndarray_vol_interp_linear_uint8_t (get-ffi-obj "ndarray_vol_interp_linear_uint8_t" libvolrend _fpointer))
+
+#| 
+;; don't want to call these directly. use function pointers above.
 (define-ndarray ndarray_vol_central_diff_uint8_t (_fun _NDArray-pointer _intptr _intptr _intptr -> _Vec3_double))
 (define-ndarray ndarray_vol_classify_simple_uint8_t (_fun _uint8 _Vec3_double _ClassifyInfo-pointer -> _Rgba))
 (define-ndarray ndarray_vol_interp_nearest_uint8_t (_fun _NDArray-pointer _Vec4_double-pointer -> _uint8))
 (define-ndarray ndarray_vol_interp_linear_uint8_t (_fun _NDArray-pointer _Vec4_double-pointer -> _uint8))
+|#
 
 (define-ndarray ndarray_vol_mip_uint8_t (_fun _NDArray-pointer _int _int _int _NDArray-pointer
                                                  -> (p : _NDArray-pointer/null)
                                                  -> (check-null p 'ndarray_vol_mip_uint8_t))
   #:wrap (allocator ndarray_free))
 
-(define-ndarray ndarray_vol_render_uint8_t (_fun _NDArray-pointer _int _int _int _NDArray-pointer _grad_fun _class_fun _ClassifyInfo-pointer _interp_fun
+(define-ndarray ndarray_vol_render_uint8_t (_fun _NDArray-pointer _int _int _int _NDArray-pointer _pointer _pointer _ClassifyInfo-pointer _pointer
                                                  -> (p : _NDArray-pointer/null)
                                                  -> (check-null p 'ndarray_vol_render_uint8_t))
   #:wrap (allocator ndarray_free))
@@ -65,7 +75,7 @@
   (define shape (tensor-shape vol))
   (define mats (malloc _Material 5)) ;; 0 - 99 0.0, 100 - 170 0.1, 171 - 184 0.0, 185 - 235 0.9, 236 - 255 0.0
   (ptr-set! mats _Material 0 (make-Material 0    99 0.0 0.0 0.0 0.0))
-  (ptr-set! mats _Material 1 (make-Material 100 170 0.5 0.5 0.5 0.1))
+  (ptr-set! mats _Material 1 (make-Material 100 170 0.7 0.7 0.7 0.03))
   (ptr-set! mats _Material 2 (make-Material 171 184 0.0 0.0 0.0 0.0))
   (ptr-set! mats _Material 3 (make-Material 185 235 0.8 0.0 0.0 0.9))
   (ptr-set! mats _Material 4 (make-Material 236 255 0.0 0.0 0.0 0.0))
@@ -75,7 +85,7 @@
                               ndarray_vol_central_diff_uint8_t
                               ndarray_vol_classify_simple_uint8_t
                               cinfo
-                              ndarray_vol_interp_nearest_uint8_t))
+                              ndarray_vol_interp_linear_uint8_t))
 
 (define (tensor->argb-pixels t)
   (define shape (tensor-shape t))
