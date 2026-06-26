@@ -209,19 +209,12 @@ uint8_t ndarray_vol_interp_linear_uint8_t(NDArray *v, Vec4_double *p)
 }
 
 /* 
-   Simple shading function. Diffuse and ambient light only. Single hard-coded light source.
+   Simple shading function. Diffuse and ambient light only. Single light source.
 
    Returns intensity.
 */
-double shade_simple(Vec3_double gradient)
+double shade_simple(Vec3_double gradient, Vec3_double light, double ambient, double diffuse)
 {
-    Vec3_double light = { .x = 2.0, .y = -1.25, .z = 2.0 };
-    double ambient = 0.1;
-    double diffuse = 0.9;
-
-    vec3_normalize_double(&gradient);
-    vec3_normalize_double(&light);
-
     double dot = (gradient.x * light.x) + (gradient.y * light.y) + (gradient.z * light.z);
     if(dot < 0.0) dot = 0.0;
 
@@ -355,7 +348,12 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
     intptr_t d = v->dims[0];
 
     uint8_t *out_data = (uint8_t *)NDARRAY_DATAPTR(out);
-    
+
+    /* shading parameters */
+    Vec3_double light = { .x = 2.0, .y = -1.25, .z = 2.0 };
+
+    vec3_normalize_double(&light);
+
     /* 
        set the min/max range of the cube in obj space 
        use values one voxel inside the bounds of the cube to prevent sampling outside the memory block 
@@ -432,10 +430,9 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 		    val = interpolate(v, &obj_pos);
 		    gradient = grad(v, obj_pos.x + 0.5, obj_pos.y + 0.5, obj_pos.z + 0.5);
 		    c = classify(val, gradient, cinfo);
-		    //val = ndarray_vol_interp_linear_uint8_t(v, &obj_pos);
-		    //gradient = ndarray_vol_central_diff_uint8_t(v, obj_pos.x + 0.5, obj_pos.y + 0.5, obj_pos.z + 0.5);
-		    //c = ndarray_vol_classify_simple_uint8_t(val, gradient, cinfo);
-		    attenuate = shade_simple(gradient);
+		    
+		    vec3_normalize_double(&gradient);
+		    attenuate = shade_simple(gradient, light, 0.1, 0.9);
 
 		    c.r *= attenuate;
 		    c.g *= attenuate;

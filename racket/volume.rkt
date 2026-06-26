@@ -71,16 +71,14 @@
   (define shape (tensor-shape vol))
   (ndarray_vol_mip_uint8_t (tensor-ndarray vol) (vector-ref shape 2) (vector-ref shape 1) (vector-ref shape 0) (tensor-ndarray trans)))
 
-(define (tensor-vol-render vol trans)
+(define (tensor-vol-render vol trans mat-list)
   (define shape (tensor-shape vol))
-  (define mats (malloc _Material 5)) ;; 0 - 99 0.0, 100 - 170 0.1, 171 - 184 0.0, 185 - 235 0.9, 236 - 255 0.0
-  (ptr-set! mats _Material 0 (make-Material 0    99 0.0 0.0 0.0 0.0))
-  (ptr-set! mats _Material 1 (make-Material 100 170 0.7 0.7 0.7 0.03))
-  (ptr-set! mats _Material 2 (make-Material 171 184 0.0 0.0 0.0 0.0))
-  (ptr-set! mats _Material 3 (make-Material 185 235 0.8 0.0 0.0 0.9))
-  (ptr-set! mats _Material 4 (make-Material 236 255 0.0 0.0 0.0 0.0))
+  (define mats (malloc _Material (length mat-list))) ;; 0 - 99 0.0, 100 - 170 0.1, 171 - 184 0.0, 185 - 235 0.9, 236 - 255 0.0
+  (for ([e (in-list mat-list)]
+        [i (in-naturals)])
+    (ptr-set! mats _Material i e))
   (set-cpointer-tag! mats 'Material)
-  (define cinfo (make-ClassifyInfo 5 mats))
+  (define cinfo (make-ClassifyInfo (length mat-list) mats))
   (ndarray_vol_render_uint8_t (tensor-ndarray vol) (vector-ref shape 2) (vector-ref shape 1) (vector-ref shape 0) (tensor-ndarray trans)
                               ndarray_vol_central_diff_uint8_t
                               ndarray_vol_classify_simple_uint8_t
@@ -221,10 +219,11 @@
   (define vol-shape (tshape vol))
   (make-tensor (vector (vector-ref vol-shape 1) (vector-ref vol-shape 2) 3) (tensor-vol-mip vol trans)))
 
-(define (volume-render path trans)
+(define (volume-render path trans mat-list)
   (define vol (read-volume path))
   (define vol-shape (tshape vol))
-  (make-tensor (vector (vector-ref vol-shape 1) (vector-ref vol-shape 2) 3) (tensor-vol-render vol trans)))
+  ;; make tensor representing an RGB image of the rendered volume
+  (make-tensor (vector (vector-ref vol-shape 1) (vector-ref vol-shape 2) 3) (tensor-vol-render vol trans mat-list)))
 
 (define trans
   (t** (tensor-translate-3d 128.0 128.0 55.0)
@@ -236,9 +235,24 @@
                   (t** (tensor-rotate-y-3d 90)
                        (tensor-translate-3d -128.0 -128.0 -55.0))))
 
+(define engine-mats (list 
+                     (make-Material 0    99 0.0 0.0 0.0 0.0)
+                     (make-Material 100 170 0.7 0.7 0.7 0.03)
+                     (make-Material 171 184 0.0 0.0 0.0 0.0)
+                     (make-Material 185 235 0.8 0.0 0.0 0.9)
+                     (make-Material 236 255 0.0 0.0 0.0 0.0)))
+
+(define cthead-mats (list
+                     (make-Material 0    75 0.0 0.0 0.0 0.0)
+                     (make-Material 76   95 0.5 0.5 0.5 0.5)
+                     (make-Material 96  255 0.0 0.0 0.0 0.0)))
+
+(define mrbrain-mats (list
+                      (make-Material 0    45 0.0 0.0 0.0 0.0)
+                      (make-Material 46   90 0.5 0.5 0.5 0.5)
+                      (make-Material 91  105 0.0 0.7 0.0 0.5)
+                      (make-Material 106 255 0.0 0.0 0.0 0.0)))
+
 ;(draw-tensor (volume-mip "/home/jonathan/coding/volume_rendering/data/engine.vol" roty))
-;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" roty))
+;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" roty engine-mats))
 ;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" (tensor-identity-3d)))
-;(collect-garbage 'major)
-;(volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" trans)
-;(collect-garbage 'major)
