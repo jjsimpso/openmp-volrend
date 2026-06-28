@@ -28,6 +28,9 @@
 (define-cstruct _Material
   ([min _int]
    [max _int]
+   [amb _double]
+   [diff _double]
+   [spec _double]
    [r _double]
    [g _double]
    [b _double]
@@ -38,7 +41,7 @@
    [mat _Material-pointer]))
 
 (define _grad_fun (_fun _NDArray-pointer _intptr _intptr _intptr -> _Vec3_double))
-(define _class_fun (_fun _int _Vec3_double _ClassifyInfo-pointer -> _Rgba))
+(define _class_fun (_fun _int _Vec3_double _ClassifyInfo-pointer -> _Material-pointer/null))
 (define _interp_fun (_fun _NDArray-pointer _Vec4_double-pointer -> _uint8))
 
 ;; get the addresses of these functions to use as function pointers
@@ -51,7 +54,7 @@
 #| 
 ;; don't want to call these directly. use function pointers above.
 (define-ndarray ndarray_vol_central_diff_uint8_t (_fun _NDArray-pointer _intptr _intptr _intptr -> _Vec3_double))
-(define-ndarray ndarray_vol_classify_simple_uint8_t (_fun _uint8 _Vec3_double _ClassifyInfo-pointer -> _Rgba))
+(define-ndarray ndarray_vol_classify_simple_uint8_t (_fun _uint8 _Vec3_double _ClassifyInfo-pointer -> _Material-pointer/null))
 (define-ndarray ndarray_vol_interp_nearest_uint8_t (_fun _NDArray-pointer _Vec4_double-pointer -> _uint8))
 (define-ndarray ndarray_vol_interp_linear_uint8_t (_fun _NDArray-pointer _Vec4_double-pointer -> _uint8))
 |#
@@ -236,23 +239,24 @@
                        (tensor-translate-3d -128.0 -128.0 -55.0))))
 
 (define engine-mats (list 
-                     (make-Material 0    99 0.0 0.0 0.0 0.0)
-                     (make-Material 100 170 0.7 0.7 0.7 0.03)
-                     (make-Material 171 184 0.0 0.0 0.0 0.0)
-                     (make-Material 185 235 0.8 0.0 0.0 0.9)
-                     (make-Material 236 255 0.0 0.0 0.0 0.0)))
+                     (make-Material 0    99 0.1 0.9 0.0 0.0 0.0 0.0 0.0)
+                     (make-Material 100 170 0.1 0.9 0.0 0.5 0.5 0.5 0.05)
+                     ;(make-Material 171 184 0.1 0.9 0.0 0.0 0.0 0.0 0.0)
+                     (make-Material 171 235 0.1 0.9 0.0 0.5 0.0 0.0 0.9)
+                     (make-Material 236 255 0.1 0.9 0.0 0.0 0.0 0.0 0.0)))
 
 (define cthead-mats (list
-                     (make-Material 0    75 0.0 0.0 0.0 0.0)
-                     (make-Material 76   95 0.5 0.5 0.5 0.5)
-                     (make-Material 96  255 0.0 0.0 0.0 0.0)))
+                     (make-Material 0    75 0.1 0.9 0.0 0.0 0.0 0.0 0.0)
+                     (make-Material 76   95 0.1 0.9 0.0 0.5 0.5 0.5 0.5)
+                     (make-Material 96  255 0.1 0.9 0.0 0.0 0.0 0.0 0.0)))
 
 (define mrbrain-mats (list
-                      (make-Material 0    45 0.0 0.0 0.0 0.0)
-                      (make-Material 46   90 0.5 0.5 0.5 0.5)
-                      (make-Material 91  105 0.0 0.7 0.0 0.5)
-                      (make-Material 106 255 0.0 0.0 0.0 0.0)))
+                      (make-Material 0    45 0.1 0.9 0.0 0.0 0.0 0.0 0.0)
+                      (make-Material 46   90 0.1 0.9 0.0 0.5 0.5 0.5 0.5)
+                      (make-Material 91  105 0.1 0.9 0.0 0.0 0.7 0.0 0.5)
+                      (make-Material 106 255 0.1 0.9 0.0 0.0 0.0 0.0 0.0)))
 
 ;(draw-tensor (volume-mip "/home/jonathan/coding/volume_rendering/data/engine.vol" roty))
 ;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" roty engine-mats))
 ;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" (tensor-identity-3d)))
+;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/physics/gvs/datasets/3dhead.vol" (tensor-identity-3d)))

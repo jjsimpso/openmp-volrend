@@ -138,24 +138,18 @@ NDArray *ndarray_vol_gradient(NDArray *v, grad_fun *func)
 }
 
 /*************************** classification functions ***************************/
-Rgba ndarray_vol_classify_simple_uint8_t(uint8_t value, Vec3_double gradient, ClassifyInfo *cinfo)
+Material *ndarray_vol_classify_simple_uint8_t(uint8_t value, Vec3_double gradient, ClassifyInfo *cinfo)
 {
-    Rgba color = {.r = 0.0, .g = 0.0, .b = 0.0, .a = 0.0};
-    
     for(int i = 0; i < cinfo->num_mat; i++)
     {
 	Material *mat = &(cinfo->mat[i]);
 	if((value >= mat->min) && (value <= mat->max))
 	{
-	    color.r = mat->r;
-	    color.g = mat->g;
-	    color.b = mat->b;
-	    color.a = mat->a;
-	    break;
+	    return mat;
 	}
     }
     
-    return color;
+    return NULL;
 }
 
 /*************************** interpolation functions ***************************/
@@ -382,6 +376,7 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
     Vec3_double gradient;
     uint8_t val;
     double attenuate;
+    Material *mat;
     Rgba c;
     
     /* calculate ray direction in object space and normalize it */
@@ -429,19 +424,28 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 		    /* perform classification and shading operations per voxel */
 		    val = interpolate(v, &obj_pos);
 		    gradient = grad(v, obj_pos.x + 0.5, obj_pos.y + 0.5, obj_pos.z + 0.5);
-		    c = classify(val, gradient, cinfo);
-		    
-		    vec3_normalize_double(&gradient);
-		    attenuate = shade_simple(gradient, light, 0.1, 0.9);
+		    mat = classify(val, gradient, cinfo);
 
-		    c.r *= attenuate;
-		    c.g *= attenuate;
-		    c.b *= attenuate;
-
-		    /* composite back-to-front using opacity(alpha) */
-		    color.r = (c.r * c.a) + (color.r * (1.0 - c.a));
-		    color.g = (c.g * c.a) + (color.g * (1.0 - c.a));
-		    color.b = (c.b * c.a) + (color.b * (1.0 - c.a));
+		    /* classify should return a material if there aren't any gaps in the material table, but just in case */
+		    if(mat)
+		    {
+			c.r = mat->r;
+			c.g = mat->g;
+			c.b = mat->b;
+			c.a = mat->a;
+			
+			vec3_normalize_double(&gradient);
+			attenuate = shade_simple(gradient, light, mat->amb, mat->diff);
+			
+			c.r *= attenuate;
+			c.g *= attenuate;
+			c.b *= attenuate;
+			
+			/* composite back-to-front using opacity(alpha) */
+			color.r = (c.r * c.a) + (color.r * (1.0 - c.a));
+			color.g = (c.g * c.a) + (color.g * (1.0 - c.a));
+			color.b = (c.b * c.a) + (color.b * (1.0 - c.a));
+		    }
 		    
 		    obj_pos.x -= ray_obj_d.x;
 		    obj_pos.y -= ray_obj_d.y;
