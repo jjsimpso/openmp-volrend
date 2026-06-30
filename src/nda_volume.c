@@ -61,8 +61,37 @@ void vec4_matmul(Mat4x4_double m, Vec4_double *v, Vec4_double *result)
 
 void mat4x4mul(Mat4x4_double a, Mat4x4_double b, Mat4x4_double c)
 {
-
+    for(int i = 0; i < 4; i++)
+    {
+	for(int j = 0; j < 4; j++)
+	{
+	    c[i][j] = a[i][0] * b[0][j] + a[i][1] * b[1][j] + a[i][2] * b[2][j] + a[i][3] * b[3][j]; 
+	}
+    }
 }
+
+/*
+  invt is the inverse of a transformation matrix
+  x, y
+  xd, yd
+  ray_d holds the direction vector for the perspective ray 
+
+void persp_ray_transform(Mat4x4_double invt, double x, double y, double xd, double yd, Vec4_double *ray_d)
+{
+    Mat4x4_double persp_trans =
+	{
+	    { 1.0, 0.0, x / xd, 0.0 },
+	    { 0.0, 1.0, y / yd, 0.0 },
+	    { 0.0, 0.0, 1.0,    0.0 },
+	    { 0.0, 0.0, 0.0,    1.0 },
+	};
+
+    Mat4x4_double combined_inv = {0.0};
+    mat4x4mul(invt, persp_trans, combined_inv);
+
+    vec4_matmul(combined_inv, ray_d, persp_ray_d);
+}
+*/
 
 uint8_t clamp_double(double v)
 {
@@ -266,7 +295,7 @@ NDArray *ndarray_vol_mip_uint8_t(NDArray *v, int image_width, int image_height, 
 
     /* precalculate 1/d to save on division ops */
     Vec4_double ray_obj_d_inv = { .x = 1.0 / ray_obj_d.x, .y = 1.0 / ray_obj_d.y, .z = 1.0 / ray_obj_d.z, .w = 1.0 };
-    
+
     /* step along image in y direction (rows) */
     for(int j = 0; j < image_height; j++)
     {
@@ -317,6 +346,8 @@ NDArray *ndarray_vol_mip_uint8_t(NDArray *v, int image_width, int image_height, 
 	    out_data[idx++] = maxval;
 	}
     }
+
+    ndarray_free(inv_trans);
     
     return out;
 }
@@ -327,7 +358,7 @@ NDArray *ndarray_vol_mip_uint8_t(NDArray *v, int image_width, int image_height, 
    'image_width', 'image_height', and 'samples' will generally match the dimensions of the volume
    'trans' is a 4x4 transformation matrix from object to view space
 */
-NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_height, int samples, NDArray *trans, grad_fun *grad, class_fun *classify, ClassifyInfo *cinfo, interp_fun *interpolate)
+NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_height, int samples, NDArray *trans, double persp_dist, grad_fun *grad, class_fun *classify, ClassifyInfo *cinfo, interp_fun *interpolate)
 {
     // 2D RGB image 
     NDArray *out = ndarray_new(3, (intptr_t []){image_height, image_width, 3}, 1, NULL);
@@ -367,7 +398,7 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
        translate the ray to obj space and calculate intersection with volume in obj space
        step along ray in obj space
     */
-    Vec4_double ray_o = { .x = 0.0, .y = 0.0, .z = 1024.0, .w = 1.0 };
+    Vec4_double ray_o = { .x = 0.0, .y = 0.0, .z = 512.0, .w = 1.0 };
     Vec4_double ray_d = { .x = 0.0, .y = 0.0, .z = -1.0, .w = 0.0 };
     Vec4_double ray_obj_o = { 0.0 };
     Vec4_double ray_obj_d = { 0.0 };
@@ -385,7 +416,7 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 
     /* precalculate 1/d to save on division ops */
     Vec4_double ray_obj_d_inv = { .x = 1.0 / ray_obj_d.x, .y = 1.0 / ray_obj_d.y, .z = 1.0 / ray_obj_d.z, .w = 1.0 };
-    
+
     /* step along image in y direction (rows) */
     for(int j = 0; j < image_height; j++)
     {
@@ -397,6 +428,23 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 	    ray_o.x = (double)i;
 	    vec4_matmul((double (*)[4])inv_trans->dataptr, &ray_o, &ray_obj_o);
 
+	    /* check for perspective projection */
+	    if(persp_dist > 0.0)
+	    {
+		/* update the ray direction in view space and transform to object space */
+		Vec4_double eye = { .x = image_width / 2, .y = image_height / 2, .z = persp_dist, .w = 1.0 };
+		ray_d.x = (ray_o.x - eye.x);
+		ray_d.y = (ray_o.y - eye.y);
+		ray_d.z = (ray_o.z - eye.z);
+		
+		vec4_matmul((double (*)[4])inv_trans->dataptr, &ray_d, &ray_obj_d);
+		vec4_normalize_double(&ray_obj_d);
+		
+		ray_obj_d_inv.x = 1.0 / ray_obj_d.x;
+		ray_obj_d_inv.y = 1.0 / ray_obj_d.y;
+		ray_obj_d_inv.z = 1.0 / ray_obj_d.z;
+	    }
+	    
 	    /* default to black */
 	    Rgba color = { .r = 0.0, .g = 0.0, .b = 0.0, .a = 0.0 };
 	    
@@ -417,10 +465,12 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 		//printf("obj_pos = (%f, %f, %f)\n", obj_pos.x, obj_pos.y, obj_pos.z);
 		
 		/* step back along ray towards front while sample point is within bounds of data. */
-		while( ((intptr_t)obj_pos.x > 0) && ((intptr_t)obj_pos.x < (w - 1)) &&
-		       ((intptr_t)obj_pos.y > 0) && ((intptr_t)obj_pos.y < (h - 1)) &&
-		       ((intptr_t)obj_pos.z > 0) && ((intptr_t)obj_pos.z < (d - 1)) )
+		while( ((intptr_t)obj_pos.x > 0) && ((intptr_t)(obj_pos.x + 0.5) < (w - 1)) &&
+		       ((intptr_t)obj_pos.y > 0) && ((intptr_t)(obj_pos.y + 0.5) < (h - 1)) &&
+		       ((intptr_t)obj_pos.z > 0) && ((intptr_t)(obj_pos.z + 0.5) < (d - 1)) )
 		{
+		    //printf("        (%f, %f, %f)\n", obj_pos.x, obj_pos.y, obj_pos.z);
+		    
 		    /* perform classification and shading operations per voxel */
 		    val = interpolate(v, &obj_pos);
 		    gradient = grad(v, obj_pos.x + 0.5, obj_pos.y + 0.5, obj_pos.z + 0.5);
@@ -460,6 +510,8 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 	    out_data[idx++] = clamp_double(color.b);
 	}
     }
+
+    ndarray_free(inv_trans);
     
     return out;
 }

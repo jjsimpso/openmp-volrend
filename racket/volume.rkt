@@ -64,7 +64,7 @@
                                                  -> (check-null p 'ndarray_vol_mip_uint8_t))
   #:wrap (allocator ndarray_free))
 
-(define-ndarray ndarray_vol_render_uint8_t (_fun _NDArray-pointer _int _int _int _NDArray-pointer _pointer _pointer _ClassifyInfo-pointer _pointer
+(define-ndarray ndarray_vol_render_uint8_t (_fun _NDArray-pointer _int _int _int _NDArray-pointer _double _pointer _pointer _ClassifyInfo-pointer _pointer
                                                  -> (p : _NDArray-pointer/null)
                                                  -> (check-null p 'ndarray_vol_render_uint8_t))
   #:wrap (allocator ndarray_free))
@@ -74,7 +74,7 @@
   (define shape (tensor-shape vol))
   (ndarray_vol_mip_uint8_t (tensor-ndarray vol) (vector-ref shape 2) (vector-ref shape 1) (vector-ref shape 0) (tensor-ndarray trans)))
 
-(define (tensor-vol-render vol trans mat-list)
+(define (tensor-vol-render vol trans persp-dist mat-list)
   (define shape (tensor-shape vol))
   (define mats (malloc _Material (length mat-list))) ;; 0 - 99 0.0, 100 - 170 0.1, 171 - 184 0.0, 185 - 235 0.9, 236 - 255 0.0
   (for ([e (in-list mat-list)]
@@ -82,7 +82,7 @@
     (ptr-set! mats _Material i e))
   (set-cpointer-tag! mats 'Material)
   (define cinfo (make-ClassifyInfo (length mat-list) mats))
-  (ndarray_vol_render_uint8_t (tensor-ndarray vol) (vector-ref shape 2) (vector-ref shape 1) (vector-ref shape 0) (tensor-ndarray trans)
+  (ndarray_vol_render_uint8_t (tensor-ndarray vol) (vector-ref shape 2) (vector-ref shape 1) (vector-ref shape 0) (tensor-ndarray trans) persp-dist
                               ndarray_vol_central_diff_uint8_t
                               ndarray_vol_classify_simple_uint8_t
                               cinfo
@@ -222,11 +222,11 @@
   (define vol-shape (tshape vol))
   (make-tensor (vector (vector-ref vol-shape 1) (vector-ref vol-shape 2) 3) (tensor-vol-mip vol trans)))
 
-(define (volume-render path trans mat-list)
+(define (volume-render path trans mat-list #:persp-dist [persp-dist 0.0])
   (define vol (read-volume path))
   (define vol-shape (tshape vol))
   ;; make tensor representing an RGB image of the rendered volume
-  (make-tensor (vector (vector-ref vol-shape 1) (vector-ref vol-shape 2) 3) (tensor-vol-render vol trans mat-list)))
+  (make-tensor (vector (vector-ref vol-shape 1) (vector-ref vol-shape 2) 3) (tensor-vol-render vol trans persp-dist mat-list)))
 
 (define trans
   (t** (tensor-translate-3d 128.0 128.0 55.0)
@@ -238,12 +238,16 @@
                   (t** (tensor-rotate-y-3d 90)
                        (tensor-translate-3d -128.0 -128.0 -55.0))))
 
+(define roty45 (t** (tensor-translate-3d 128.0 128.0 55.0)
+                    (t** (tensor-rotate-y-3d 45)
+                         (tensor-translate-3d -128.0 -128.0 -55.0))))
+
 (define engine-mats (list 
-                     (make-Material 0    99 0.1 0.9 0.0 0.0 0.0 0.0 0.0)
-                     (make-Material 100 170 0.1 0.9 0.0 0.5 0.5 0.5 0.05)
-                     ;(make-Material 171 184 0.1 0.9 0.0 0.0 0.0 0.0 0.0)
-                     (make-Material 171 235 0.1 0.9 0.0 0.5 0.0 0.0 0.9)
-                     (make-Material 236 255 0.1 0.9 0.0 0.0 0.0 0.0 0.0)))
+                     (make-Material 0    99 0.1 0.9 0.0 1.0 1.0 1.0 0.0)
+                     (make-Material 100 170 0.1 0.9 0.0 0.7 0.7 0.7 0.05)
+                     (make-Material 171 184 0.1 0.9 0.0 1.0 1.0 1.0 0.0)
+                     (make-Material 185 235 0.1 0.9 0.0 0.5 0.0 0.0 0.9)
+                     (make-Material 236 255 0.1 0.9 0.0 1.0 1.0 1.0 0.0)))
 
 (define cthead-mats (list
                      (make-Material 0    75 0.1 0.9 0.0 0.0 0.0 0.0 0.0)
@@ -257,6 +261,6 @@
                       (make-Material 106 255 0.1 0.9 0.0 0.0 0.0 0.0 0.0)))
 
 ;(draw-tensor (volume-mip "/home/jonathan/coding/volume_rendering/data/engine.vol" roty))
-;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" roty engine-mats))
+;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" roty45 engine-mats #:persp-dist 4096.0))
 ;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" (tensor-identity-3d)))
 ;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/physics/gvs/datasets/3dhead.vol" (tensor-identity-3d)))

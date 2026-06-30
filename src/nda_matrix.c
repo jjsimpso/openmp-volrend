@@ -699,6 +699,10 @@ NDArray *ndarray_mat_inverse_double(NDArray *a)
 	ndarray_lu_backsub_double(lu_a, row_perm, col);
 	for(int i = 0; i < n; i++) yd[ELEMENT(i, j, n)] = col[i];
     }
+
+    free(row_perm);
+    ndarray_free(lu_a);
+    free(col);
     
     return y;
 }

@@ -40,4 +40,4 @@ uint8_t ndarray_vol_interp_linear_uint8_t(NDArray *v, Vec4_double *p);
 
 
 NDArray *ndarray_vol_mip_uint8_t(NDArray *v, int image_width, int image_height, int samples, NDArray *trans);
-NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_height, int samples, NDArray *trans, grad_fun *grad, class_fun *classify, ClassifyInfo *cinfo, interp_fun *interpolate);
+NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_height, int samples, NDArray *trans, double persp_dist, grad_fun *grad, class_fun *classify, ClassifyInfo *cinfo, interp_fun *interpolate);
