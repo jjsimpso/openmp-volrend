@@ -133,6 +133,30 @@ bool slab_intersect(Vec4_double *o, Vec4_double *d_inv, Vec3_double *min, Vec3_d
     return false;
 }
 
+double classify_opacity(Material *mat, Vec3_double gradient, ClassifyInfo *cinfo)
+{
+    double gm = sqrt((gradient.x * gradient.x) + (gradient.y * gradient.y) + (gradient.z * gradient.z));
+    double sf = 0.0;
+    
+    /* divide gradient magnitude by 2 */
+    gm = gm / 2.0;
+    
+    if(gm <= cinfo->lev_threshold)
+    {
+	sf = 0.0;
+    }
+    else if(gm >= (cinfo->lev_threshold + cinfo->lev_width))
+    {
+	sf = 1.0;
+    }
+    else
+    {
+	sf = (gm - cinfo->lev_threshold) * (1.0 / cinfo->lev_width);
+    }
+
+    return mat->a * sf;
+}
+
 /*************************** gradient functions ***************************/
 Vec3_double ndarray_vol_central_diff_uint8_t(NDArray *v, intptr_t x, intptr_t y, intptr_t z)
 {
@@ -197,9 +221,11 @@ uint8_t ndarray_vol_interp_nearest_uint8_t(NDArray *v, Vec4_double *p)
 
 uint8_t ndarray_vol_interp_linear_uint8_t(NDArray *v, Vec4_double *p)
 {
-    uint8_t *data = (uint8_t *)NDARRAY_DATAPTR(v);
     intptr_t w = v->dims[2];
     intptr_t h = v->dims[1];
+    uint8_t (*data)[h][w];
+    data = (uint8_t (*)[h][w])NDARRAY_DATAPTR(v);
+
 
     intptr_t x = (int)p->x;
     intptr_t y = (int)p->y;
@@ -210,16 +236,16 @@ uint8_t ndarray_vol_interp_linear_uint8_t(NDArray *v, Vec4_double *p)
     double dz = p->z - z;
 
     /* interpolated values 1 and 2 are interpolated across the x-axis in the plane below the sample */
-    double iv1 = data[ELEMENT3D(x,   y, z,   w, h)];
-    iv1 +=      (data[ELEMENT3D(x+1, y, z,   w, h)] - iv1) * dx;
-    double iv2 = data[ELEMENT3D(x,   y, z+1, w, h)];
-    iv2 +=      (data[ELEMENT3D(x+1, y, z+1, w, h)] - iv2) * dx;
+    double iv1 = data[z][y][x];
+    iv1 +=      (data[z][y][x+1] - iv1) * dx;
+    double iv2 = data[z+1][y][x];
+    iv2 +=      (data[z+1][y][x+1] - iv2) * dx;
 
     /* interpolated values 3 and 4 are interpolated across the x-axis in the plane above the sample */
-    double iv3 = data[ELEMENT3D(x,   y+1, z,   w, h)];
-    iv3 +=      (data[ELEMENT3D(x+1, y+1, z,   w, h)] - iv3) * dx;
-    double iv4 = data[ELEMENT3D(x,   y+1, z+1, w, h)];
-    iv4 +=      (data[ELEMENT3D(x+1, y+1, z+1, w, h)] - iv4) * dx;
+    double iv3 = data[z][y+1][x];
+    iv3 +=      (data[z][y+1][x+1] - iv3) * dx;
+    double iv4 = data[z+1][y+1][x];
+    iv4 +=      (data[z+1][y+1][x+1] - iv4) * dx;
 
     /* interpolate between 1 and 3 and between 2 and 4 */
     double iv5 = ((iv3 - iv1) * dy) + iv1;
@@ -371,7 +397,7 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
     intptr_t w = v->dims[2];
     intptr_t h = v->dims[1];
     intptr_t d = v->dims[0];
-
+    
     uint8_t *out_data = (uint8_t *)NDARRAY_DATAPTR(out);
 
     /* shading parameters */
@@ -482,7 +508,7 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 			c.r = mat->r;
 			c.g = mat->g;
 			c.b = mat->b;
-			c.a = mat->a;
+			c.a = classify_opacity(mat, gradient, cinfo);
 			
 			vec3_normalize_double(&gradient);
 			attenuate = shade_simple(gradient, light, mat->amb, mat->diff);

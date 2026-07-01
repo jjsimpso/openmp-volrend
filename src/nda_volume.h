@@ -21,6 +21,7 @@ typedef struct {
 typedef struct {
     int num_mat;
     Material *mat;
+    double lev_threshold, lev_width;
 } ClassifyInfo;
 
 /* volume rendering function pointer types */

@@ -38,7 +38,9 @@
 
 (define-cstruct _ClassifyInfo
   ([num_mat _int]
-   [mat _Material-pointer]))
+   [mat _Material-pointer]
+   [lev_threshold _double]
+   [lev_width _double]))
 
 (define _grad_fun (_fun _NDArray-pointer _intptr _intptr _intptr -> _Vec3_double))
 (define _class_fun (_fun _int _Vec3_double _ClassifyInfo-pointer -> _Material-pointer/null))
@@ -81,7 +83,7 @@
         [i (in-naturals)])
     (ptr-set! mats _Material i e))
   (set-cpointer-tag! mats 'Material)
-  (define cinfo (make-ClassifyInfo (length mat-list) mats))
+  (define cinfo (make-ClassifyInfo (length mat-list) mats 5.0 15.0))
   (ndarray_vol_render_uint8_t (tensor-ndarray vol) (vector-ref shape 2) (vector-ref shape 1) (vector-ref shape 0) (tensor-ndarray trans) persp-dist
                               ndarray_vol_central_diff_uint8_t
                               ndarray_vol_classify_simple_uint8_t
