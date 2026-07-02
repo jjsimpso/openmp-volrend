@@ -3,6 +3,7 @@
 #include <malloc.h>
 #include <stdio.h>
 #include <math.h>
+#include <omp.h>
 
 #include "ndarray.h"
 #include "nda_matrix.h"
@@ -89,7 +90,6 @@ void persp_ray_transform(Mat4x4_double invt, double x, double y, double xd, doub
     Mat4x4_double combined_inv = {0.0};
     mat4x4mul(invt, persp_trans, combined_inv);
 
-    vec4_matmul(combined_inv, ray_d, persp_ray_d);
 }
 */
 
@@ -380,7 +380,7 @@ NDArray *ndarray_vol_mip_uint8_t(NDArray *v, int image_width, int image_height, 
 
 /* 
    Calculate a volume rendering of the volume 'v'
-   Uses a hard-coded orthographic projection
+   Uses an orthographic projection unless persp_dist != 0.0
    'image_width', 'image_height', and 'samples' will generally match the dimensions of the volume
    'trans' is a 4x4 transformation matrix from object to view space
 */
@@ -394,9 +394,9 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 	return NULL;
     }
 
-    intptr_t w = v->dims[2];
-    intptr_t h = v->dims[1];
-    intptr_t d = v->dims[0];
+    intptr_t const w = v->dims[2];
+    intptr_t const h = v->dims[1];
+    intptr_t const d = v->dims[0];
     
     uint8_t *out_data = (uint8_t *)NDARRAY_DATAPTR(out);
 
@@ -409,12 +409,12 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
        set the min/max range of the cube in obj space 
        use values one voxel inside the bounds of the cube to prevent sampling outside the memory block 
     */
-    int minx = 1;
-    int maxx = w - 2;
-    int miny = 1;
-    int maxy = h - 2;
-    int minz = 1;
-    int maxz = d - 2;
+    int const minx = 1;
+    int const maxx = w - 2;
+    int const miny = 1;
+    int const maxy = h - 2;
+    int const minz = 1;
+    int const maxz = d - 2;
 
     /* inverse transform to go from view space to object/voxel space */
     NDArray *inv_trans = ndarray_mat_inverse_double(trans);
@@ -430,11 +430,11 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
     Vec4_double ray_obj_d = { 0.0 };
 
     /* per voxel working values */
-    Vec3_double gradient;
-    uint8_t val;
-    double attenuate;
-    Material *mat;
-    Rgba c;
+    Vec3_double gradient= {0};
+    uint8_t val = 0;
+    double attenuate = 0.0;
+    Material *mat = NULL;
+    Rgba c = {0};
     
     /* calculate ray direction in object space and normalize it */
     vec4_matmul((double (*)[4])inv_trans->dataptr, &ray_d, &ray_obj_d);
@@ -444,6 +444,7 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
     Vec4_double ray_obj_d_inv = { .x = 1.0 / ray_obj_d.x, .y = 1.0 / ray_obj_d.y, .z = 1.0 / ray_obj_d.z, .w = 1.0 };
 
     /* step along image in y direction (rows) */
+    _Pragma("omp parallel for firstprivate(ray_o, ray_d, ray_obj_o, ray_obj_d, gradient, val, attenuate, mat, c, ray_obj_d_inv)")
     for(int j = 0; j < image_height; j++)
     {
 	ray_o.y = (double)j;

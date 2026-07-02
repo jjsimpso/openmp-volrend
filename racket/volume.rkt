@@ -264,5 +264,5 @@
 
 ;(draw-tensor (volume-mip "/home/jonathan/coding/volume_rendering/data/engine.vol" roty))
 ;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" roty45 engine-mats #:persp-dist 4096.0))
-;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" (tensor-identity-3d)))
+;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" (tensor-identity-3d) engine-mats))
 ;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/physics/gvs/datasets/3dhead.vol" (tensor-identity-3d)))
