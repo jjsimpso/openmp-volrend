@@ -76,15 +76,15 @@
   (define shape (tensor-shape vol))
   (ndarray_vol_mip_uint8_t (tensor-ndarray vol) (vector-ref shape 2) (vector-ref shape 1) (vector-ref shape 0) (tensor-ndarray trans)))
 
-(define (tensor-vol-render vol trans persp-dist mat-list)
+(define (tensor-vol-render vol image-width image-height trans persp-dist mat-list)
   (define shape (tensor-shape vol))
-  (define mats (malloc _Material (length mat-list))) ;; 0 - 99 0.0, 100 - 170 0.1, 171 - 184 0.0, 185 - 235 0.9, 236 - 255 0.0
+  (define mats (malloc _Material (length mat-list)))
   (for ([e (in-list mat-list)]
         [i (in-naturals)])
     (ptr-set! mats _Material i e))
   (set-cpointer-tag! mats 'Material)
   (define cinfo (make-ClassifyInfo (length mat-list) mats 5.0 15.0))
-  (ndarray_vol_render_uint8_t (tensor-ndarray vol) (vector-ref shape 2) (vector-ref shape 1) (vector-ref shape 0) (tensor-ndarray trans) persp-dist
+  (ndarray_vol_render_uint8_t (tensor-ndarray vol) image-width image-height (vector-ref shape 0) (tensor-ndarray trans) persp-dist
                               ndarray_vol_central_diff_uint8_t
                               ndarray_vol_classify_simple_uint8_t
                               cinfo
@@ -222,13 +222,15 @@
 (define (volume-mip path trans)
   (define vol (read-volume path))
   (define vol-shape (tshape vol))
-  (make-tensor (vector (vector-ref vol-shape 1) (vector-ref vol-shape 2) 3) (tensor-vol-mip vol trans)))
+  (make-tensor (vector (vector-ref vol-shape 2) (vector-ref vol-shape 1) 3) (tensor-vol-mip vol trans)))
 
-(define (volume-render path trans mat-list #:persp-dist [persp-dist 0.0])
+(define (volume-render path trans mat-list #:image-width [image-width #f] #:image-height [image-height #f] #:persp-dist [persp-dist 0.0])
   (define vol (read-volume path))
   (define vol-shape (tshape vol))
+  (define imgw (if image-width image-width (vector-ref vol-shape 2)))
+  (define imgh (if image-height image-height (vector-ref vol-shape 1)))
   ;; make tensor representing an RGB image of the rendered volume
-  (make-tensor (vector (vector-ref vol-shape 1) (vector-ref vol-shape 2) 3) (tensor-vol-render vol trans persp-dist mat-list)))
+  (make-tensor (vector imgh imgw 3) (tensor-vol-render vol imgw imgh trans persp-dist mat-list)))
 
 (define trans
   (t** (tensor-translate-3d 128.0 128.0 55.0)

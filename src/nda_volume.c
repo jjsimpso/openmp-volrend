@@ -397,6 +397,9 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
     intptr_t const w = v->dims[2];
     intptr_t const h = v->dims[1];
     intptr_t const d = v->dims[0];
+
+    double const image_xscale = (double)w / (double)image_width;
+    double const image_yscale = (double)h / (double)image_height;
     
     uint8_t *out_data = (uint8_t *)NDARRAY_DATAPTR(out);
 
@@ -447,19 +450,19 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
     _Pragma("omp parallel for firstprivate(ray_o, ray_d, ray_obj_o, ray_obj_d, gradient, val, attenuate, mat, c, ray_obj_d_inv)")
     for(int j = 0; j < image_height; j++)
     {
-	ray_o.y = (double)j;
+	ray_o.y = (double)j * image_yscale;
 	
 	/* step along image in x direction (columns) */
 	for(int i = 0; i < image_width; i++)
 	{
-	    ray_o.x = (double)i;
+	    ray_o.x = (double)i * image_xscale;
 	    vec4_matmul((double (*)[4])inv_trans->dataptr, &ray_o, &ray_obj_o);
 
 	    /* check for perspective projection */
 	    if(persp_dist > 0.0)
 	    {
 		/* update the ray direction in view space and transform to object space */
-		Vec4_double eye = { .x = image_width / 2, .y = image_height / 2, .z = persp_dist, .w = 1.0 };
+		Vec4_double eye = { .x = w / 2.0, .y = h / 2.0, .z = persp_dist, .w = 1.0 };
 		ray_d.x = (ray_o.x - eye.x);
 		ray_d.y = (ray_o.y - eye.y);
 		ray_d.z = (ray_o.z - eye.z);
