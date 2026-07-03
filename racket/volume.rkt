@@ -1,6 +1,7 @@
 #lang racket
 
 (require racket/gui/base
+         racket/runtime-path
          ffi/unsafe
          ffi/unsafe/alloc
          plot
@@ -264,7 +265,10 @@
                       (make-Material 91  105 0.1 0.9 0.0 0.0 0.7 0.0 0.5)
                       (make-Material 106 255 0.1 0.9 0.0 0.0 0.0 0.0 0.0)))
 
-;(draw-tensor (volume-mip "/home/jonathan/coding/volume_rendering/data/engine.vol" roty))
-;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" roty45 engine-mats #:persp-dist 4096.0))
-;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/data/engine.vol" (tensor-identity-3d) engine-mats))
-;(draw-tensor (volume-render "/home/jonathan/coding/volume_rendering/physics/gvs/datasets/3dhead.vol" (tensor-identity-3d)))
+(define-runtime-paths (engine-path cthead-path mrbrain-path 3dhead-path)
+  (values "../data/engine.vol" "../data/cthead.vol" "../data/mrbrain.vol" "../data/3dhead.vol"))
+
+;(draw-tensor (volume-mip engine-path roty))
+;(draw-tensor (volume-render engine-path roty45 engine-mats #:persp-dist 4096.0))
+;(draw-tensor (volume-render engine-path (tensor-identity-3d) engine-mats))
+;(draw-tensor (volume-render 3dhead-path (tensor-identity-3d)))
