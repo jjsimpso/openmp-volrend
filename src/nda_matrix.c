@@ -153,89 +153,6 @@ NDArray *ndarray_mat_transpose_double(NDArray *a)
 }
 */
 
-#define MAKE_NDARRAY_MATMUL_MP_FUNC(type)                                                                         \
-NDArray *ndarray_matmul_##type##_mp(NDArray *a, NDArray *b)                                                       \
-{                                                                                                                 \
-    /* allocate result array */                                                                                   \
-    NDArray *c = ndarray_new(a->ndim, (intptr_t []){a->dims[0], b->dims[1]}, a->elem_bytes, NULL);                \
-    if(!c)                                                                                                        \
-    {                                                                                                             \
-	return NULL;                                                                                              \
-    }                                                                                                             \
-                                                                                                                  \
-    ndarray_fill_##type(c, 0.0);                                                                                  \
-                                                                                                                  \
-    intptr_t a_cols = a->dims[1];                                                                                 \
-    intptr_t b_cols = b->dims[1];                                                                                 \
-    intptr_t c_cols = c->dims[1];                                                                                 \
-    intptr_t c_rows = c->dims[0];                                                                                 \
-    type *adata = (type *)NDARRAY_DATAPTR(a);                                                                     \
-    type *bdata = (type *)NDARRAY_DATAPTR(b);                                                                     \
-    type *cdata = (type *)NDARRAY_DATAPTR(c);                                                                     \
-                                                                                                                  \
-    _Pragma("omp parallel for")                                                                                   \
-    for (intptr_t i = 0; i < c_rows; i++)                                                                         \
-    {                                                                                                             \
-	for (intptr_t k = 0; k < a_cols; k++)                                                                     \
-        {                                                                                                         \
-	    for (intptr_t j = 0; j < c_cols; j++)                                                                 \
-            {                                                                                                     \
-                cdata[ELEMENT(i, j, c_cols)] += adata[ELEMENT(i, k, a_cols)] * bdata[ELEMENT(k, j, b_cols)];      \
-            }                                                                                                     \
-        }                                                                                                         \
-    }                                                                                                             \
-                                                                                                                  \
-    return c;                                                                                                     \
-}
-
-MAKE_NDARRAY_MATMUL_MP_FUNC(float)
-MAKE_NDARRAY_MATMUL_MP_FUNC(double)
-MAKE_NDARRAY_MATMUL_MP_FUNC(complex)
-MAKE_NDARRAY_MATMUL_MP_FUNC(int8_t)
-MAKE_NDARRAY_MATMUL_MP_FUNC(int16_t)
-MAKE_NDARRAY_MATMUL_MP_FUNC(int32_t)
-MAKE_NDARRAY_MATMUL_MP_FUNC(int64_t)
-MAKE_NDARRAY_MATMUL_MP_FUNC(uint8_t)
-MAKE_NDARRAY_MATMUL_MP_FUNC(uint16_t)
-MAKE_NDARRAY_MATMUL_MP_FUNC(uint32_t)
-MAKE_NDARRAY_MATMUL_MP_FUNC(uint64_t)
-
-/*
-NDArray *ndarray_matmul_double_mp(NDArray *a, NDArray *b)
-{
-    // allocate result array
-    NDArray *c = ndarray_new(a->ndim, (intptr_t []){a->dims[0], b->dims[1]}, a->elem_bytes, NULL);
-    if(!c)
-    {
-	return NULL;
-    }
-
-    ndarray_fill_double(c, 0.0);
-    
-    intptr_t a_cols = a->dims[1];
-    intptr_t b_cols = b->dims[1];
-    intptr_t c_cols = c->dims[1];
-    intptr_t c_rows = c->dims[0];
-    double *adata = (double *)NDARRAY_DATAPTR(a);
-    double *bdata = (double *)NDARRAY_DATAPTR(b);
-    double *cdata = (double *)NDARRAY_DATAPTR(c);
-
-    #pragma omp parallel for
-    for (intptr_t i = 0; i < c_rows; i++)
-    {
-	for (intptr_t k = 0; k < a_cols; k++)
-        {
-	    for (intptr_t j = 0; j < c_cols; j++)
-            {
-                cdata[ELEMENT(i, j, c_cols)] += adata[ELEMENT(i, k, a_cols)] * bdata[ELEMENT(k, j, b_cols)];
-            }
-        }
-    }
-
-    return c;
-}
-*/
-
 #define MAKE_NDARRAY_MATMUL_FUNC(type)                                                                           \
 NDArray *ndarray_matmul_##type(NDArray *a, NDArray *b)                                                           \
 {                                                                                                                \
@@ -244,11 +161,6 @@ NDArray *ndarray_matmul_##type(NDArray *a, NDArray *b)                          
        (a->dims[1] != b->dims[0]))                                                                               \
     {                                                                                                            \
 	return NULL;                                                                                             \
-    }                                                                                                            \
-                                                                                                                 \
-    if((a->num_elems > OPENMP_ELEM_THRESHOLD))                                                                   \
-    {                                                                                                            \
-        return ndarray_matmul_##type##_mp(a, b);                                                                 \
     }                                                                                                            \
                                                                                                                  \
     /* no broadcasting for matmul for now */                                                                     \
@@ -269,6 +181,7 @@ NDArray *ndarray_matmul_##type(NDArray *a, NDArray *b)                          
     type *bdata = (type *)NDARRAY_DATAPTR(b);                                                                    \
     type *cdata = (type *)NDARRAY_DATAPTR(c);                                                                    \
                                                                                                                  \
+    _Pragma("omp parallel for if(a->num_elems > OPENMP_ELEM_THRESHOLD)")                                         \
     for (intptr_t i = 0; i < c_rows; i++)                                                                        \
     {                                                                                                            \
 	for (intptr_t k = 0; k < a_cols; k++)                                                                    \
@@ -294,46 +207,7 @@ MAKE_NDARRAY_MATMUL_FUNC(uint8_t)
 MAKE_NDARRAY_MATMUL_FUNC(uint16_t)
 MAKE_NDARRAY_MATMUL_FUNC(uint32_t)
 MAKE_NDARRAY_MATMUL_FUNC(uint64_t)
-/*
-NDArray *ndarray_matmul_int64_t(NDArray *a, NDArray *b)
-{
-    if((a->ndim != 2) || (b->ndim != 2) || (a->dims[1] != b->dims[0]))
-    {
-	return ((void *)0);
-    }
-    if((a->num_elems > 10000))
-    {
-	return ndarray_matmul_int64_t_mp(a, b);
-    }
 
-    NDArray *c = ndarray_new(a->ndim, (intptr_t []){a->dims[0], b->dims[1]}, a->elem_bytes, ((void *)0));
-
-    if(!c)
-    {
-	return ((void *)0);
-    }
-    ndarray_fill_int64_t(c, 0.0);
-
-    intptr_t a_cols = a->dims[1];
-    intptr_t b_cols = b->dims[1];
-    intptr_t c_cols = c->dims[1];
-    intptr_t c_rows = c->dims[0];
-    int64_t *adata = (int64_t *)(a->dataptr);
-    int64_t *bdata = (int64_t *)(b->dataptr);
-    int64_t *cdata = (int64_t *)(c->dataptr);
-    
-    for (intptr_t i = 0; i < c_rows; i++)
-    {
-	for (intptr_t k = 0; k < a_cols; k++)
-	{
-	    for (intptr_t j = 0; j < c_cols; j++)
-	    {
-		cdata[((j) + ((i) * (c_cols)))] += adata[((k) + ((i) * (a_cols)))] * bdata[((j) + ((k) * (b_cols)))];
-	    }
-	}
-    } return c;
-}
-*/
 /* sample expansion
 NDArray *ndarray_matmul_double(NDArray *a, NDArray *b)
 {
@@ -344,11 +218,6 @@ NDArray *ndarray_matmul_double(NDArray *a, NDArray *b)
 	return NULL;
     }
     
-    if((a->num_elems > OPENMP_ELEM_THRESHOLD))
-    {
-        return ndarray_matmul_double_mp(a, b);
-    }
-
     // no broadcasting for matmul for now
     // allocate result array
     NDArray *c = ndarray_new(a->ndim, (intptr_t []){a->dims[0], b->dims[1]}, a->elem_bytes, NULL);
@@ -367,6 +236,7 @@ NDArray *ndarray_matmul_double(NDArray *a, NDArray *b)
     double *bdata = (double *)NDARRAY_DATAPTR(b);
     double *cdata = (double *)NDARRAY_DATAPTR(c);
     
+    _Pragma("omp parallel for if(a->num_elems > OPENMP_ELEM_THRESHOLD)")
     for (intptr_t i = 0; i < c_rows; i++)
     {
 	for (intptr_t k = 0; k < a_cols; k++)

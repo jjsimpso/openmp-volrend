@@ -383,9 +383,38 @@ bool ndarray_iter_equal_int16_t(NDArrayIter *a, NDArrayIter *b)
 #define MAKE_NDARRAY_OP_FUNC(name, op, type)	                                                 \
 NDArray *ndarray_##name##_##type(NDArray *a, NDArray *b)                                         \
 {                                                                                                \
-    if((a->num_elems > OPENMP_ELEM_THRESHOLD) && ndarray_shape_equal(a, b))                      \
+    /*                                                                                           \
+       If the NDArrays have the same shape, We don't need to use iterators since we won't be     \
+       broadcasting and NDArrays are contiguous.                                                 \
+    */                                                                                           \
+    if(ndarray_shape_equal(a, b))                                                                \
     {                                                                                            \
-        return ndarray_##name##_##type##_mp(a, b);                                               \
+        /* allocate result array */		                                                 \
+        NDArray *c = ndarray_new(a->ndim, a->dims, a->elem_bytes, NULL);                         \
+        if(!c)                                                                                   \
+        {                                                                                        \
+	    return NULL;                                                                         \
+        }                                                                                        \
+                                                                                                 \
+        intptr_t elem_stride = a->elem_bytes;                                                    \
+        /* stride of first dimension */                                                          \
+        intptr_t base_stride = (a->num_elems * elem_stride) / a->dims[0];                        \
+        /* number of elements within each iteration of 1st dimension*/                           \
+        intptr_t sub_len = base_stride / elem_stride;                                            \
+                                                                                                 \
+        _Pragma("omp parallel for if(a->num_elems > OPENMP_ELEM_THRESHOLD)")                     \
+        for(int i = 0; i < a->dims[0]; i++)                                                      \
+        {                                                                                        \
+	    type *result = (type *)(c->dataptr + (base_stride * i));                             \
+            type *acursor = (type *)(a->dataptr + (base_stride * i));                            \
+	    type *bcursor = (type *)(b->dataptr + (base_stride * i));                            \
+	    for(int j = 0; j < sub_len; j++)                                                     \
+	    {                                                                                    \
+	        result[j] = acursor[j] op bcursor[j];                                            \
+	    }                                                                                    \
+        }                                                                                        \
+                                                                                                 \
+        return c;                                                                                \
     }                                                                                            \
                                                                                                  \
     NDArrayMultiIter *mit = ndarray_multi_iter_new(2, a, b);                                     \
@@ -415,119 +444,6 @@ NDArray *ndarray_##name##_##type(NDArray *a, NDArray *b)                        
                                                                                                  \
     return c;                                                                                    \
 }
-
-/*
-  If the NDArrays have the same shape, we can use an algorithm accelerated by openmp. We
-  also don't need to use iterators since we won't be broadcasting and NDArrays are contiguous.
-*/
-#define MAKE_NDARRAY_OP_MP_FUNC(name, op, type)	                                                 \
-NDArray *ndarray_##name##_##type##_mp(NDArray *a, NDArray *b)                                    \
-{                                                                                                \
-    /* allocate result array */ 	                                                         \
-    NDArray *c = ndarray_new(a->ndim, a->dims, a->elem_bytes, NULL);                             \
-    if(!c)                                                                                       \
-    {                                                                                            \
-	return NULL;                                                                             \
-    }                                                                                            \
-                                                                                                 \
-    intptr_t elem_stride = a->elem_bytes;                                                        \
-    /* stride of first dimension */                                                              \
-    intptr_t base_stride = (a->num_elems * elem_stride) / a->dims[0];                            \
-    /* number of elements within each iteration of 1st dimension*/                               \
-    intptr_t sub_len = base_stride / elem_stride;                                                \
-                                                                                                 \
-    _Pragma("omp parallel for")                                                                  \
-    for(int i = 0; i < a->dims[0]; i++)                                                          \
-    {                                                                                            \
-	type *result = (type *)(c->dataptr + (base_stride * i));                                 \
-	type *acursor = (type *)(a->dataptr + (base_stride * i));                                \
-	type *bcursor = (type *)(b->dataptr + (base_stride * i));                                \
-	for(int j = 0; j < sub_len; j++)                                                         \
-	{                                                                                        \
-	    result[j] = acursor[j] op bcursor[j];                                                \
-	}                                                                                        \
-    }                                                                                            \
-                                                                                                 \
-    return c;                                                                                    \
-}
-
-/* sample expansion
-NDArray *ndarray_mul_double_mp(NDArray *a, NDArray *b)
-{
-    // allocate result array
-    NDArray *c = ndarray_new(a->ndim, a->dims, a->elem_bytes, NULL);
-    if(!c)
-    {
-	return NULL;
-    }
-
-    intptr_t elem_stride = a->elem_bytes;
-    intptr_t base_stride = (a->num_elems * elem_stride) / a->dims[0]; // stride of first dimension
-    intptr_t sub_len = base_stride / elem_stride; // number of elements within each iteration of 1st dimension
-
-    #pragma omp parallel for
-    for(int i = 0; i < a->dims[0]; i++)
-    {
-	double *result = (double *)(c->dataptr + (base_stride * i));
-	double *acursor = (double *)(a->dataptr + (base_stride * i));
-	double *bcursor = (double *)(b->dataptr + (base_stride * i));
-	for(int j = 0; j < sub_len; j++)
-	{
-	    result[j] = acursor[j] * bcursor[j];
-	}
-    }
-    
-    return c;
-}
-*/
-
-MAKE_NDARRAY_OP_MP_FUNC(mul, *, float)
-MAKE_NDARRAY_OP_MP_FUNC(mul, *, double)
-MAKE_NDARRAY_OP_MP_FUNC(mul, *, complex)
-MAKE_NDARRAY_OP_MP_FUNC(mul, *, int8_t)
-MAKE_NDARRAY_OP_MP_FUNC(mul, *, int16_t)
-MAKE_NDARRAY_OP_MP_FUNC(mul, *, int32_t)
-MAKE_NDARRAY_OP_MP_FUNC(mul, *, int64_t)
-MAKE_NDARRAY_OP_MP_FUNC(mul, *, uint8_t)
-MAKE_NDARRAY_OP_MP_FUNC(mul, *, uint16_t)
-MAKE_NDARRAY_OP_MP_FUNC(mul, *, uint32_t)
-MAKE_NDARRAY_OP_MP_FUNC(mul, *, uint64_t)
-
-MAKE_NDARRAY_OP_MP_FUNC(add, +, float)
-MAKE_NDARRAY_OP_MP_FUNC(add, +, double)
-MAKE_NDARRAY_OP_MP_FUNC(add, +, complex)
-MAKE_NDARRAY_OP_MP_FUNC(add, +, int8_t)
-MAKE_NDARRAY_OP_MP_FUNC(add, +, int16_t)
-MAKE_NDARRAY_OP_MP_FUNC(add, +, int32_t)
-MAKE_NDARRAY_OP_MP_FUNC(add, +, int64_t)
-MAKE_NDARRAY_OP_MP_FUNC(add, +, uint8_t)
-MAKE_NDARRAY_OP_MP_FUNC(add, +, uint16_t)
-MAKE_NDARRAY_OP_MP_FUNC(add, +, uint32_t)
-MAKE_NDARRAY_OP_MP_FUNC(add, +, uint64_t)
-
-MAKE_NDARRAY_OP_MP_FUNC(sub, -, float)
-MAKE_NDARRAY_OP_MP_FUNC(sub, -, double)
-MAKE_NDARRAY_OP_MP_FUNC(sub, -, complex)
-MAKE_NDARRAY_OP_MP_FUNC(sub, -, int8_t)
-MAKE_NDARRAY_OP_MP_FUNC(sub, -, int16_t)
-MAKE_NDARRAY_OP_MP_FUNC(sub, -, int32_t)
-MAKE_NDARRAY_OP_MP_FUNC(sub, -, int64_t)
-MAKE_NDARRAY_OP_MP_FUNC(sub, -, uint8_t)
-MAKE_NDARRAY_OP_MP_FUNC(sub, -, uint16_t)
-MAKE_NDARRAY_OP_MP_FUNC(sub, -, uint32_t)
-MAKE_NDARRAY_OP_MP_FUNC(sub, -, uint64_t)
-
-MAKE_NDARRAY_OP_MP_FUNC(div, /, float)
-MAKE_NDARRAY_OP_MP_FUNC(div, /, double)
-MAKE_NDARRAY_OP_MP_FUNC(div, /, complex)
-MAKE_NDARRAY_OP_MP_FUNC(div, /, int8_t)
-MAKE_NDARRAY_OP_MP_FUNC(div, /, int16_t)
-MAKE_NDARRAY_OP_MP_FUNC(div, /, int32_t)
-MAKE_NDARRAY_OP_MP_FUNC(div, /, int64_t)
-MAKE_NDARRAY_OP_MP_FUNC(div, /, uint8_t)
-MAKE_NDARRAY_OP_MP_FUNC(div, /, uint16_t)
-MAKE_NDARRAY_OP_MP_FUNC(div, /, uint32_t)
-MAKE_NDARRAY_OP_MP_FUNC(div, /, uint64_t)
 
 /* sample expansion
 NDArray *ndarray_mul_double(NDArray *a, NDArray *b)

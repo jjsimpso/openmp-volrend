@@ -657,7 +657,3 @@
                                           -> (check-null p 'ndarray_iter_expt_double))
   #:wrap (allocator ndarray_free))
 
-
-#;(define-ndarray ndarray_mul_double_mp (_fun _NDArray-pointer _NDArray-pointer -> _NDArray-pointer)
-  #:wrap (allocator ndarray_free))
-
