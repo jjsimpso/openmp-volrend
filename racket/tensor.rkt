@@ -13,6 +13,7 @@
 
 (provide make-tensor
          build-tensor
+         tensor-copy
          print-tensor
          tshape
          tlen
@@ -241,6 +242,12 @@
         [i (in-naturals 0)])
     (ptr-set! dataptr ctype i (proc i)))
   t)
+
+(define (tensor-copy t)
+  (define new-tensor (tensor (tensor-type t) (tensor-shape t) (ndarray_copy (tensor-ndarray t))))
+  (when (tensor-iter t)
+    (error "tensor-copy todo"))
+  new-tensor)
 
 ;; replace any empty slices with values representing the full slice before calling make-slice
 ;; (length slice-list) must equal nd

@@ -270,5 +270,5 @@
 
 ;(draw-tensor (volume-mip engine-path roty))
 ;(draw-tensor (volume-render engine-path roty45 engine-mats #:persp-dist 4096.0))
-;(draw-tensor (volume-render engine-path (tensor-identity-3d) engine-mats))
+;(time (draw-tensor (volume-render engine-path (tensor-identity-3d) engine-mats)))
 ;(draw-tensor (volume-render 3dhead-path (tensor-identity-3d)))
