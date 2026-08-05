@@ -1,4 +1,4 @@
-typedef double Mat4x4_double[4][4];
+#include "nda_types.h"
 
 typedef struct {
     double x, y, z;
