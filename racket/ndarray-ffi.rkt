@@ -228,6 +228,14 @@
                (+ (* i (dim-stride p 0))
                   (* j (dim-stride p 1)))
                v)]
+    [(ndarray-set! p type i j k v)
+     (ptr-set! (NDArray-dataptr p)
+               type
+               'abs
+               (+ (* i (dim-stride p 0))
+                  (* j (dim-stride p 1))
+                  (* k (dim-stride p 2)))
+               v)]
     [(ndarray-set! p type i ... v)
      (let* ([indices '(i ...)]
             [offset (for/fold ([sum 0])
