@@ -17,8 +17,12 @@
   (define shape (tensor-shape t2))
   (define width (vector-ref shape 1))
   (define height (vector-ref shape 0))
-  (define kernel (ffi2-malloc double_t 9))
-  (for ([i (in-range 0 9)])
+  (define kernel (ffi2-new double_t
+                           (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
+                           (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
+                           (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)))
+  ;(define kernel (ffi2-malloc double_t 9))
+  #;(for ([i (in-range 0 9)])
     (ffi2-set! kernel double_t i (exact->inexact 1/9)))
   (for* ([y (in-range 2 (- height 2))]
          [x (in-range 2 (- width 2))])
