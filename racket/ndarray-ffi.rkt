@@ -77,6 +77,7 @@
 (define-cstruct _NDArray
   ([ndim _int]
    [dims _intptr-pointer]
+   [strides _intptr-array-max-dims]
    [num_elems _intptr]
    [elem_bytes _intptr]
    [size _intptr]
@@ -183,10 +184,7 @@
 (define (dim-stride p n)
   (when (> (add1 n) (NDArray-ndim p))
     (error (format "dimension ~a exceeds NDArray's dimensions" n)))
-  (define elem-bytes (NDArray-elem_bytes p))
-  (for/fold ([sum elem-bytes])
-            ([i (in-range (sub1 (NDArray-ndim p)) n -1)])
-    (* (ndarray-dims p i) sum)))
+  (array-ref (NDArray-strides p) n))
 
 ;; calculate the number of elements of the subarray within/underneath dimension n
 (define (ndarray-sub-elems p n)

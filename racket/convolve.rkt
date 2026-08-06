@@ -19,9 +19,7 @@
 
 (define-ndarray ndarray_convolve2d_uint8_t (_fun _NDArray-pointer _cvector _int _int _intptr _intptr -> _uint8))
 
-(define-ndarray ndarray_convolve2d_vec3_uint8_t (_fun _NDArray-pointer _cvector _int _int _intptr _intptr [vec3 : (_bytes o 3)]
-                                                      -> [retval : _bytes]
-                                                      -> vec3))
+(define-ndarray ndarray_convolve2d_vec3_uint8_t (_fun _NDArray-pointer _cvector _int _int _intptr _intptr _pointer -> _pointer))
 
 
 (define (tensor-read-pgm path)
@@ -180,16 +178,17 @@
   (define shape (tensor-shape t2))
   (define width (vector-ref shape 1))
   (define height (vector-ref shape 0))
+  (define rgb (malloc _uint8 3))
   #;(define cursor (ptr-add (NDArray-dataptr (tensor-ndarray t2)) 0))
   (for* ([y (in-range 2 (- height 2))]
          [x (in-range 2 (- width 2))])
     #;(when (and (< y 5) (< x 5))
       (printf "~ax~a ~a -> ~a " x y (ndarray-ref (tensor-ndarray t) _uint8 y x) (ndarray_convolve2d_uint8_t (tensor-ndarray t2) kernel 3 3 x y)))
     #;(ptr-set! cursor _uint8 (ndarray_convolve2d_uint8_t (tensor-ndarray t) kernel 3 3 x y))
-    (define rgb (ndarray_convolve2d_vec3_uint8_t (tensor-ndarray t) kernel 3 3 x y))
-    (ndarray-set! (tensor-ndarray t2) _uint8 y x 0 (bytes-ref rgb 0))
-    (ndarray-set! (tensor-ndarray t2) _uint8 y x 1 (bytes-ref rgb 1))
-    (ndarray-set! (tensor-ndarray t2) _uint8 y x 2 (bytes-ref rgb 2))
+    (ndarray_convolve2d_vec3_uint8_t (tensor-ndarray t) kernel 3 3 x y rgb)
+    (ndarray-set! (tensor-ndarray t2) _uint8 y x 0 (ptr-ref rgb _uint8 0))
+    (ndarray-set! (tensor-ndarray t2) _uint8 y x 1 (ptr-ref rgb _uint8 1))
+    (ndarray-set! (tensor-ndarray t2) _uint8 y x 2 (ptr-ref rgb _uint8 2))
     #;(when (and (< y 5) (< x 5))
       (printf " actual=~a~n" (ndarray-ref (tensor-ndarray t2) _uint8 y x)))
     #;(ptr-add! cursor 1))

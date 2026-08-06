@@ -58,6 +58,12 @@ NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes, uint8_t *ptr)
     }
 
     memcpy(nda->dims, dims, n * sizeof(intptr_t));
+
+    nda->strides[n-1] = elem_bytes;
+    for(int i = n-2; i >= 0; i--)
+    {
+	nda->strides[i] = nda->dims[i+1] * nda->strides[i+1];
+    }
     
     return nda;
 }

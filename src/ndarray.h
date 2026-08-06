@@ -14,6 +14,8 @@ typedef struct {
     int ndim;
     // array containing number of elements in each dimension
     intptr_t *dims;
+    // stride of each dimension
+    intptr_t strides[MAX_DIMS];
     // total number of elements in the array
     intptr_t num_elems;
     // size of each element in bytes
