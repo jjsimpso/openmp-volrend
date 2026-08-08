@@ -102,6 +102,7 @@ NDArray *ndarray_copy(NDArray *nda)
 	return NULL;
     }
     memcpy(copy->dims, nda->dims, copy->ndim * sizeof(intptr_t));
+    memcpy(copy->strides, nda->strides, copy->ndim * sizeof(intptr_t));
     
     copy->num_elems = nda->num_elems;
     copy->elem_bytes = nda->elem_bytes;
