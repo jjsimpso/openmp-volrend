@@ -66,7 +66,17 @@
   (ndarray_fill_index_int32_t e)
   (ndarray_fill_index_int32_t f)
   (check-equal? (ndarray_equal e f) #f)
-  (check-equal? (ndarray_data_equal e f) #t))
+  (check-equal? (ndarray_data_equal e f) #t)
+
+  (define g (ndarray_new 3 (vector 4 3 2) (ctype-sizeof _int64) #f))
+  (ndarray_fill_index_int64_t g)
+  (define x 0)
+  (check-equal? (ndarray-ref g _int64 x 0 0) 0)
+  (check-equal? (ndarray-ref g _int64 1 1 0) 8)
+  (check-equal? (ndarray-ref g _int64 3 2 1) 23)
+  (ndarray-set! g _int64 1 1 0 42)
+  (ndarray-set! g _int64 3 2 1 43)
+  (check-equal? (ndarray-ref g _int64 3 2 1) 43))
 
 (define (test-simple-iterator)
   (define nda (ndarray_new 2 (vector 10 5) (ctype-sizeof _int) #f))

@@ -4,7 +4,8 @@
          ffi/unsafe/alloc
          ffi/unsafe/define
          ffi/unsafe/cvector
-         racket/flonum)
+         racket/flonum
+         (submod racket/performance-hint begin-encourage-inline))
 
 (require (for-syntax syntax/parse))
 
@@ -171,20 +172,16 @@
                                              -> (check-null p 'ndarray_multi_iter_new_from_iter))
   #:wrap (allocator ndarray_multi_iter_free))
 
+(begin-encourage-inline
+  ;; accessor function for NDArray dims array
+  ;; i is a 0-based index
+  (define (ndarray-dims p i)
+    (ptr-ref (NDArray-dims p) _intptr i))
 
-;; accessor function for NDArray dims array
-;; i is a 0-based index
-(define (ndarray-dims p i)
-  (when (> (add1 i) (NDArray-ndim p))
-    (error (format "dimension ~a exceeds NDArray's dimensions" i)))
-  (ptr-ref (NDArray-dims p) _intptr i))
-
-;; calculate the stride of dimension n
-;; n is a 0-based index
-(define (dim-stride p n)
-  (when (> (add1 n) (NDArray-ndim p))
-    (error (format "dimension ~a exceeds NDArray's dimensions" n)))
-  (array-ref (NDArray-strides p) n))
+  ;; calculate the stride of dimension n
+  ;; n is a 0-based index
+  (define (dim-stride p n)
+    (array-ref (NDArray-strides p) n)))
 
 ;; calculate the number of elements of the subarray within/underneath dimension n
 (define (ndarray-sub-elems p n)
@@ -205,9 +202,16 @@
               'abs
               (+ (* i (dim-stride p 0))
                  (* j (dim-stride p 1))))]
+    [(ndarray-ref p type i j k)
+     (ptr-ref (NDArray-dataptr p)
+              type
+              'abs
+              (+ (* i (dim-stride p 0))
+                 (* j (dim-stride p 1))
+                 (* k (dim-stride p 2))))]
     ;; this case duplicates work in stride calculation
     [(ndarray-ref p type i ...)
-     (let* ([indices '(i ...)]
+     (let* ([indices `(,i ...)]
             [offset (for/fold ([sum 0])
                               ([idx (in-list indices)]
                                [dim (in-naturals)])
@@ -235,7 +239,7 @@
                   (* k (dim-stride p 2)))
                v)]
     [(ndarray-set! p type i ... v)
-     (let* ([indices '(i ...)]
+     (let* ([indices `(,i ...)]
             [offset (for/fold ([sum 0])
                               ([idx (in-list indices)]
                                [dim (in-naturals)])
