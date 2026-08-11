@@ -59,6 +59,8 @@ NDArray *ndarray_new(int n, intptr_t *dims, intptr_t elem_bytes, uint8_t *ptr)
 
     memcpy(nda->dims, dims, n * sizeof(intptr_t));
 
+    /* safest to init the entire strides array, but is 0 a good value? */
+    memset(nda->strides, 0, sizeof(nda->strides));
     nda->strides[n-1] = elem_bytes;
     for(int i = n-2; i >= 0; i--)
     {
@@ -102,7 +104,7 @@ NDArray *ndarray_copy(NDArray *nda)
 	return NULL;
     }
     memcpy(copy->dims, nda->dims, copy->ndim * sizeof(intptr_t));
-    memcpy(copy->strides, nda->strides, copy->ndim * sizeof(intptr_t));
+    memcpy(copy->strides, nda->strides, sizeof(nda->strides));
     
     copy->num_elems = nda->num_elems;
     copy->elem_bytes = nda->elem_bytes;
