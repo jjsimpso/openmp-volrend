@@ -22,6 +22,7 @@
 (define-ndarray ndarray_convolve2d_point_vec3_uint8_t (_fun _NDArray-pointer _cvector _int _int _intptr _intptr _pointer -> _pointer))
 
 (define-ndarray ndarray_convolve2d_uint8_t (_fun _NDArray-pointer _cvector _int _int -> _NDArray-pointer/null))
+(define-ndarray ndarray_convolve2d_vec3_uint8_t (_fun _NDArray-pointer _cvector _int _int -> _NDArray-pointer/null))
 
 
 (define (tensor-read-pgm path)
@@ -203,5 +204,30 @@
                           (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
                           (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)))
   (make-tensor (tshape t) (ndarray_convolve2d_uint8_t (tensor-ndarray t) kernel 3 3) #:ctype _uint8))
+
+(define (image3-smooth-fast t)
+  (define kernel (cvector _double
+                          (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
+                          (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
+                          (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)))
+  (make-tensor (tshape t) (ndarray_convolve2d_vec3_uint8_t (tensor-ndarray t) kernel 3 3) #:ctype _uint8))
+
+(define (image-super-smooth-fast t)
+  (define kernel (cvector _double
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)))
+  (make-tensor (tshape t) (ndarray_convolve2d_uint8_t (tensor-ndarray t) kernel 5 5) #:ctype _uint8))
+
+(define (image3-super-smooth-fast t)
+  (define kernel (cvector _double
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)))
+  (make-tensor (tshape t) (ndarray_convolve2d_vec3_uint8_t (tensor-ndarray t) kernel 5 5) #:ctype _uint8))
 
 ;(image-smooth-fast (tensor-read-pgm "../data/dosboxes.pgm"))
