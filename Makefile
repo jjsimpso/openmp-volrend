@@ -19,9 +19,12 @@ LIB_NAME        := libvolrend
 #
 #---------------------------------------------------------------------------------
 CC = gcc
+#CC = /usr/lib64/rocm/llvm/bin/clang
 COMPILERFLAGS = -Wall -std=gnu11 -O3
 DEBUG_FLAGS = -g -O0
-OPENMP_FLAGS = -fopenmp
+OPENMP_FLAGS = -fopenmp -foffload-options=-march=gfx11-generic
+#OPENMP_FLAGS = -fopenmp -foffload=amdgcn-amdhsa="-march=gfx11-generic -mxnack=on"
+#OPENMP_FLAGS = -fopenmp --offload-arch=gfx1151 -B/usr/lib64/llvm22/lib64
 #SAN_FLAGS = -fsanitize=address -fno-omit-frame-pointer
 #MYFLAGS = -DVGA_DEBUG
 INCLUDE  = -I$(CURDIR)/$(INCDIR) -I$(CURDIR)/$(SRCDIR)

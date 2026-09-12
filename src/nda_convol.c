@@ -8,7 +8,6 @@
 #include "ndarray.h"
 #include "nda_types.h"
 
-
 /* 
 
 */
@@ -157,6 +156,9 @@ NDArray *ndarray_convolve2d_uint8_t(NDArray *base, double *kernel, int kw, int k
     }
     
     /* the rest */
+    _Pragma("omp parallel for")
+	//_Pragma("omp target map(tofrom: in_data[0:w*h], out_data[0:w*h], k[0:kw*kh])")
+	//_Pragma("omp loop")
     for(int y = jrange; y < (h - jrange); y++)
     {
 	for(int x = irange; x < (w - irange); x++)
