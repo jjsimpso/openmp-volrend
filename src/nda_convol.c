@@ -8,9 +8,65 @@
 #include "ndarray.h"
 #include "nda_types.h"
 
-/* 
+#define NDARRAY_CONVOLVE2D_POINT_FUNC(type, maxval)                                                              \
+type ndarray_convolve2d_point_##type(NDArray *base, double *kernel, int kw, int kh, intptr_t x, intptr_t y)   \
+{                                                                                                                \
+    intptr_t w = base->dims[1];                                                                                  \
+    type (*data)[w];                                                                                             \
+    data = (type (*)[w])NDARRAY_DATAPTR(base);                                                                   \
+                                                                                                                 \
+    double (*k)[kw] = (double (*)[kw])kernel;                                                                    \
+    double val = 0.0;                                                                                            \
+    int jrange = kh/2;                                                                                           \
+    int irange = kw/2;                                                                                           \
+                                                                                                                 \
+    for(int j = -jrange; j <= jrange; j++)                                                                       \
+    {                                                                                                            \
+        for(int i = -irange; i <= irange; i++)                                                                   \
+        {                                                                                                        \
+            val += (double)data[y+j][x+i] * k[j+jrange][i+irange];                                               \
+        }                                                                                                        \
+    }                                                                                                            \
+                                                                                                                 \
+    return (val < maxval) ? (type)((val < 0.0) ? 0 : val) : maxval;                                              \
+}
 
-*/
+NDARRAY_CONVOLVE2D_POINT_FUNC(uint8_t, UINT8_MAX)
+NDARRAY_CONVOLVE2D_POINT_FUNC(uint16_t, UINT16_MAX)
+
+#define NDARRAY_CONVOLVE2D_POINT_VEC_FUNC(type, maxval, vlen)                                                                    \
+void ndarray_convolve2d_point_vec3_##type(NDArray *base, double *kernel, int kw, int kh, intptr_t x, intptr_t y, type *retval)  \
+{                                                                                                                                \
+    intptr_t w = base->dims[1];                                                                                                  \
+    type (*data)[w][vlen];                                                                                                       \
+    data = (type (*)[w][vlen])NDARRAY_DATAPTR(base);                                                                             \
+                                                                                                                                 \
+    double (*k)[kw] = (double (*)[kw])kernel;                                                                                    \
+    double val[vlen] = { 0.0 };                                                                                                  \
+    int jrange = kh/2;                                                                                                           \
+    int irange = kw/2;                                                                                                           \
+                                                                                                                                 \
+    for(int j = -jrange; j <= jrange; j++)                                                                                       \
+    {                                                                                                                            \
+        for(int i = -irange; i <= irange; i++)                                                                                   \
+        {                                                                                                                        \
+            for(int z = 0; z < vlen; z++)                                                                                        \
+            {                                                                                                                    \
+                val[z] += (double)data[y+j][x+i][z] * k[j+jrange][i+irange];                                                     \
+            }                                                                                                                    \
+        }                                                                                                                        \
+    }                                                                                                                            \
+                                                                                                                                 \
+    for(int z = 0; z < vlen; z++)                                                                                                \
+    {                                                                                                                            \
+        retval[z] = (val[z] < maxval) ? (type)((val[z] < 0.0) ? 0 : val[z]) : maxval;                                            \
+    }                                                                                                                            \
+}
+
+NDARRAY_CONVOLVE2D_POINT_VEC_FUNC(uint8_t, UINT8_MAX, 3)
+NDARRAY_CONVOLVE2D_POINT_VEC_FUNC(uint16_t, UINT16_MAX, 3)
+
+/* 
 uint8_t ndarray_convolve2d_point_uint8_t(NDArray *base, double *kernel, int kw, int kh, intptr_t x, intptr_t y)
 {
     intptr_t w = base->dims[1];
@@ -60,6 +116,7 @@ uint8_t *ndarray_convolve2d_point_vec3_uint8_t(NDArray *base, double *kernel, in
     
     return retval;
 }
+*/
 
 #define MAKE_NDARRAY_CONVOLVE2D_FUNC(type, maxval)                                                       \
 NDArray *ndarray_convolve2d_##type(NDArray *base, double *kernel, int kw, int kh)                        \

@@ -8,22 +8,13 @@
          ffi/cvector
          plot
          "ndarray-ffi.rkt"
+         "ndarray-convolve-ffi.rkt"
          "tensor.rkt"
          "tensor-geom.rkt")
 
 (provide tensor-read-pgm
          tensor->argb-pixels
          draw-tensor)
-
-(define libvolrend (ffi-lib "../libvolrend"))
-
-(define-ndarray ndarray_convolve2d_point_uint8_t (_fun _NDArray-pointer _cvector _int _int _intptr _intptr -> _uint8))
-
-(define-ndarray ndarray_convolve2d_point_vec3_uint8_t (_fun _NDArray-pointer _cvector _int _int _intptr _intptr _pointer -> _pointer))
-
-(define-ndarray ndarray_convolve2d_uint8_t (_fun _NDArray-pointer _cvector _int _int -> _NDArray-pointer/null))
-(define-ndarray ndarray_convolve2d_vec3_uint8_t (_fun _NDArray-pointer _cvector _int _int -> _NDArray-pointer/null))
-
 
 (define (tensor-read-pgm path)
   (define (whitespace? b)
