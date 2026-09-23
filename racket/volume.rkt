@@ -7,7 +7,8 @@
          plot
          "ndarray-ffi.rkt"
          "tensor.rkt"
-         "tensor-geom.rkt")
+         "tensor-geom.rkt"
+         "tensor-image.rkt")
 
 (define-cstruct _Vec3_double
   ([x _double]
@@ -91,19 +92,6 @@
                               cinfo
                               ndarray_vol_interp_linear_uint8_t))
 
-(define (tensor->argb-pixels t)
-  (define shape (tensor-shape t))
-  (define width (vector-ref shape 1))
-  (define height (vector-ref shape 0))
-  (define argb-pixels (make-bytes (* width height 4) 0))
-  (define dataptr (ptr-add (NDArray-dataptr (tensor-ndarray t)) 0))
-  ;; increment through the destination byte string, copying RGB pixel data from the tensor. leave alpha value intact
-  (for ([off (in-range 0 (* height width 4) 4)])
-    (memcpy argb-pixels (add1 off) dataptr 0 3)
-    (ptr-add! dataptr 3))
-  (black-box t)
-  argb-pixels)
-  
 (define (draw-tensor t)
   (define shape (tensor-shape t))
   (define width (vector-ref shape 1))
@@ -111,52 +99,6 @@
   (define target (make-bitmap width height #f))
   (send target set-argb-pixels 0 0 width height (tensor->argb-pixels t))
   target)
-
-(define (tensor-read-ppm path)
-  (define (whitespace? b)
-    (if (eof-object? b)
-        #f
-        (or (= b 32)
-            (and (>= b 9) (<= b 13)))))
-  
-  (define (discard-whitespace in)
-    (when (whitespace? (peek-byte in))
-      (read-byte in)
-      (discard-whitespace in)))
-
-  (define (skip-whitespace in)
-    (define ws? (whitespace? (peek-byte in)))
-    (discard-whitespace in)
-    ws?)
-
-  (define in (open-input-file path))
-  (unless in
-    (error 'read-ppm2 "error reading ppm, ~a" "file not found/accessible"))
-  
-  (with-handlers ([exn:fail? (lambda (v)
-                               (close-input-port in)
-                               ((error-display-handler) (exn-message v) v)
-                               #f)])
-    (define magic (read-bytes 2 in))
-    (unless (and (bytes=? magic #"P6") (skip-whitespace in))
-      (error 'read-ppm2 "error reading ppm, ~a" "not a supported file"))
-    (define w (read in))
-    (unless (and (exact-integer? w) (skip-whitespace in))
-      (error 'read-ppm2 "error reading ppm, ~a" "no width read"))
-    (define h (read in))
-    (unless (and (exact-integer? h) (skip-whitespace in))
-      (error 'read-ppm2 "error reading ppm, ~a" "no height read"))
-    (define maxval (read in))
-    (unless (and (exact-integer? maxval) (skip-whitespace in))
-      (error 'read-ppm2 "error reading ppm, ~a" "no maxval read"))
-    (define data (read-bytes (* w h 3) in))
-    (unless (= (bytes-length data) (* w h 3))
-      (error 'read-ppm2 "error reading ppm, ~a" "incorrect number of bytes read"))
-
-    ;(printf "opened ppm ~ax~a, max ~a~n" w h maxval)
-    (define t (make-tensor (vector h w 3) data #:ctype _uint8))
-    (close-input-port in)
-    t))
 
 (define (read-volume path)
   (define (read-int in [signed? #t])
@@ -271,4 +213,4 @@
 ;(draw-tensor (volume-mip engine-path roty))
 ;(draw-tensor (volume-render engine-path roty45 engine-mats #:persp-dist 4096.0))
 ;(time (draw-tensor (volume-render engine-path (tensor-identity-3d) engine-mats)))
-;(draw-tensor (volume-render 3dhead-path (tensor-identity-3d)))
+;(draw-tensor (volume-render cthead-path (tensor-identity-3d) cthead-mats))

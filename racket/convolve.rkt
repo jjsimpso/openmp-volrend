@@ -10,129 +10,11 @@
          "ndarray-ffi.rkt"
          "ndarray-convolve-ffi.rkt"
          "tensor.rkt"
-         "tensor-geom.rkt")
+         "tensor-image.rkt"
+         "tensor-convolve.rkt")
 
-(provide tensor-read-pgm
-         tensor->argb-pixels
-         draw-tensor)
+(provide draw-tensor)
 
-(define (tensor-read-pgm path)
-  (define (whitespace? b)
-    (if (eof-object? b)
-        #f
-        (or (= b 32)
-            (and (>= b 9) (<= b 13)))))
-  
-  (define (discard-whitespace in)
-    (when (whitespace? (peek-byte in))
-      (read-byte in)
-      (discard-whitespace in)))
-
-  (define (skip-whitespace in)
-    (define ws? (whitespace? (peek-byte in)))
-    (discard-whitespace in)
-    ws?)
-
-  (define in (open-input-file path))
-  (unless in
-    (error 'read-pgm "error reading pgm, ~a" "file not found/accessible"))
-  
-  (with-handlers ([exn:fail? (lambda (v)
-                               (close-input-port in)
-                               ((error-display-handler) (exn-message v) v)
-                               #f)])
-    (define magic (read-bytes 2 in))
-    (unless (and (bytes=? magic #"P5") (skip-whitespace in))
-      (error 'read-pgm "error reading pgm, ~a" "not a supported file"))
-    (define w (read in))
-    (unless (and (exact-integer? w) (skip-whitespace in))
-      (error 'read-pgm "error reading pgm, ~a" "no width read"))
-    (define h (read in))
-    (unless (and (exact-integer? h) (skip-whitespace in))
-      (error 'read-pgm "error reading pgm, ~a" "no height read"))
-    (define maxval (read in))
-    (unless (and (exact-integer? maxval) (skip-whitespace in))
-      (error 'read-pgm "error reading pgm, ~a" "no maxval read"))
-    ;; assuming maxval of 255 or less, so 1 byte per pixel
-    (define data (read-bytes (* w h) in))
-    (unless (= (bytes-length data) (* w h))
-      (error 'read-pgm "error reading pgm, ~a" "incorrect number of bytes read"))
-
-    ;(printf "opened pgm ~ax~a, max ~a~n" w h maxval)
-    (define t (make-tensor (vector h w) data #:ctype _uint8))
-    (close-input-port in)
-    t))
-
-(define (tensor-read-ppm path)
-  (define (whitespace? b)
-    (if (eof-object? b)
-        #f
-        (or (= b 32)
-            (and (>= b 9) (<= b 13)))))
-  
-  (define (discard-whitespace in)
-    (when (whitespace? (peek-byte in))
-      (read-byte in)
-      (discard-whitespace in)))
-
-  (define (skip-whitespace in)
-    (define ws? (whitespace? (peek-byte in)))
-    (discard-whitespace in)
-    ws?)
-
-  (define in (open-input-file path))
-  (unless in
-    (error 'read-ppm2 "error reading ppm, ~a" "file not found/accessible"))
-  
-  (with-handlers ([exn:fail? (lambda (v)
-                               (close-input-port in)
-                               ((error-display-handler) (exn-message v) v)
-                               #f)])
-    (define magic (read-bytes 2 in))
-    (unless (and (bytes=? magic #"P6") (skip-whitespace in))
-      (error 'read-ppm2 "error reading ppm, ~a" "not a supported file"))
-    (define w (read in))
-    (unless (and (exact-integer? w) (skip-whitespace in))
-      (error 'read-ppm2 "error reading ppm, ~a" "no width read"))
-    (define h (read in))
-    (unless (and (exact-integer? h) (skip-whitespace in))
-      (error 'read-ppm2 "error reading ppm, ~a" "no height read"))
-    (define maxval (read in))
-    (unless (and (exact-integer? maxval) (skip-whitespace in))
-      (error 'read-ppm2 "error reading ppm, ~a" "no maxval read"))
-    (define data (read-bytes (* w h 3) in))
-    (unless (= (bytes-length data) (* w h 3))
-      (error 'read-ppm2 "error reading ppm, ~a" "incorrect number of bytes read"))
-
-    ;(printf "opened ppm ~ax~a, max ~a~n" w h maxval)
-    (define t (make-tensor (vector h w 3) data #:ctype _uint8))
-    (close-input-port in)
-    t))
-
-(define (tensor->argb-pixels t)
-  (define shape (tensor-shape t))
-  (define dims (vector-length shape))
-  (define width (vector-ref shape 1))
-  (define height (vector-ref shape 0))
-  (define argb-pixels (make-bytes (* width height 4) 0))
-  (define dataptr (ptr-add (NDArray-dataptr (tensor-ndarray t)) 0))
-  (cond
-    [(= dims 2)
-     ;; increment through the destination byte string, copying grayscale pixel data from the tensor. leave alpha value intact
-     (for ([off (in-range 0 (* height width 4) 4)])
-       (memcpy argb-pixels (+ off 1) dataptr 0 1)
-       (memcpy argb-pixels (+ off 2) dataptr 0 1)
-       (memcpy argb-pixels (+ off 3) dataptr 0 1)
-       (ptr-add! dataptr 1))]
-    [(and (= dims 3) (= (vector-ref shape 2) 3))
-     ;; increment through the destination byte string, copying RGB pixel data from the tensor. leave alpha value intact
-     (for ([off (in-range 0 (* height width 4) 4)])
-       (memcpy argb-pixels (add1 off) dataptr 0 3)
-       (ptr-add! dataptr 3))]
-    [else
-     (error 'tensor->argb-pixels "unsupported depth in source tensor")])
-  (black-box t)
-  argb-pixels)
 
 (define (draw-tensor t)
   (define shape (tensor-shape t))
@@ -143,6 +25,22 @@
   target)
 
 (define (image-smooth t)
+  (define kernel (cvector _double
+                          (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
+                          (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
+                          (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)))
+  (tensor-convolve2d t 3 3 kernel))
+
+(define (image-super-smooth t)
+  (define kernel (cvector _double
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
+                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)))
+  (tensor-convolve2d t 5 5 kernel))
+
+(define (image-smooth-slow t)
   (define kernel (cvector _double
                           (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
                           (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
@@ -163,7 +61,7 @@
     #;(ptr-add! cursor 1))
   t2)
 
-(define (image3-smooth t)
+(define (image3-smooth-slow t)
   (define kernel (cvector _double
                           (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
                           (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
@@ -189,36 +87,3 @@
 
 ;(image-smooth (tensor-read-pgm "../data/dosboxes.pgm"))
 
-(define (image-smooth-fast t)
-  (define kernel (cvector _double
-                          (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
-                          (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
-                          (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)))
-  (make-tensor (tshape t) (ndarray_convolve2d_uint8_t (tensor-ndarray t) kernel 3 3) #:ctype _uint8))
-
-(define (image3-smooth-fast t)
-  (define kernel (cvector _double
-                          (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
-                          (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
-                          (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)))
-  (make-tensor (tshape t) (ndarray_convolve2d_vec3_uint8_t (tensor-ndarray t) kernel 3 3) #:ctype _uint8))
-
-(define (image-super-smooth-fast t)
-  (define kernel (cvector _double
-                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
-                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
-                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
-                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
-                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)))
-  (make-tensor (tshape t) (ndarray_convolve2d_uint8_t (tensor-ndarray t) kernel 5 5) #:ctype _uint8))
-
-(define (image3-super-smooth-fast t)
-  (define kernel (cvector _double
-                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
-                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
-                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
-                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
-                          (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)))
-  (make-tensor (tshape t) (ndarray_convolve2d_vec3_uint8_t (tensor-ndarray t) kernel 5 5) #:ctype _uint8))
-
-;(image-smooth-fast (tensor-read-pgm "../data/dosboxes.pgm"))
