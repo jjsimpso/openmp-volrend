@@ -16,6 +16,7 @@
          tensor-copy
          print-tensor
          tshape
+         trank
          tlen
          tfill!
          tref
@@ -101,6 +102,9 @@
   #;(if (tensor-iter t)
       (iter-shape (tensor-iter t))
       (tensor-shape t)))
+
+(define (trank t)
+  (vector-length (tensor-shape t)))
 
 (define (tlen t [start-dim #f])
   (if (false? start-dim)
