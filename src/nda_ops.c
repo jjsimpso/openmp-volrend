@@ -17,7 +17,7 @@ NDArray *ndarray_new_result(NDArrayMultiIter *mit, intptr_t elem_bytes)
     intptr_t dims[MAX_DIMS] = {0};
     for(int i = 0; i <= mit->nd_m1; i++)
     {
-	dims[i] = mit->dims_m1[i] + 1;
+        dims[i] = mit->dims_m1[i] + 1;
     }
     
     return ndarray_new(mit->nd_m1 + 1, dims, elem_bytes, NULL);
@@ -31,7 +31,7 @@ NDArray *ndarray_new_result_single(NDArrayIter *it, intptr_t elem_bytes)
     intptr_t dims[MAX_DIMS] = {0};
     for(int i = 0; i <= it->nd_m1; i++)
     {
-	dims[i] = it->dims_m1[i] + 1;
+        dims[i] = it->dims_m1[i] + 1;
     }
     
     return ndarray_new(it->nd_m1 + 1, dims, elem_bytes, NULL);
@@ -40,24 +40,14 @@ NDArray *ndarray_new_result_single(NDArrayIter *it, intptr_t elem_bytes)
 /*
 
 */
-#define MAKE_NDARRAY_FILL_FUNC(type)	                             \
+#define MAKE_NDARRAY_FILL_FUNC(type)                                 \
 void ndarray_fill_##type(NDArray *a, type val)                       \
 {                                                                    \
     type *cursor = (type *)NDARRAY_DATAPTR(a);                       \
-    if(a->num_elems > OPENMP_ELEM_THRESHOLD)     		     \
+    _Pragma("omp parallel for shared(cursor) if(a->num_elems > OPENMP_ELEM_THRESHOLD)") \
+    for(int i = 0; i < a->num_elems; i++)                            \
     {                                                                \
-        _Pragma("omp parallel for shared(cursor)")                   \
-	for(int i = 0; i < a->num_elems; i++)                        \
-	{                                                            \
-	    cursor[i] = val;					     \
-	}                                                            \
-    }                                                                \
-    else                                                             \
-    {	                                                             \
-        for(int i = 0; i < a->num_elems; i++)                        \
-        {                                                            \
-	    *cursor++ = val;                                         \
-        }                                                            \
+        cursor[i] = val;                                             \
     }                                                                \
 }
 
@@ -82,7 +72,7 @@ void ndarray_fill_index_##type(NDArray *a)           \
     type *cursor = (type *)NDARRAY_DATAPTR(a);       \
     for(int i = 0; i < a->num_elems; i++)            \
     {                                                \
-	*cursor++ = (type)i;			     \
+        *cursor++ = (type)i;                         \
     }                                                \
 }
 
@@ -103,28 +93,15 @@ type ndarray_sum_##type(NDArray *a)                                  \
     type sum = 0.0;                                                  \
     type *data = (type *)NDARRAY_DATAPTR(a);                         \
                                                                      \
-    if(a->num_elems > OPENMP_ELEM_THRESHOLD)                         \
+    _Pragma("omp parallel for shared(data) reduction(+:sum) if(a->num_elems > OPENMP_ELEM_THRESHOLD)") \
+    for(int i = 0; i < a->num_elems; i++)                            \
     {                                                                \
-        _Pragma("omp parallel for shared(data) reduction(+:sum)")    \
-	for(int i = 0; i < a->num_elems; i++)                        \
-	{                                                            \
-	    sum += data[i];                                          \
-	}                                                            \
-    }                                                                \
-    else                                                             \
-    {	                                                             \
-	for(int i = 0; i < a->num_elems; i++)                        \
-	{                                                            \
-	    sum += data[i];                                          \
-	}                                                            \
+        sum += data[i];                                              \
     }                                                                \
                                                                      \
     return sum;                                                      \
 }
 
-MAKE_NDARRAY_SUM_FUNC(float)
-MAKE_NDARRAY_SUM_FUNC(double)
-MAKE_NDARRAY_SUM_FUNC(complex)
 MAKE_NDARRAY_SUM_FUNC(int32_t)
 MAKE_NDARRAY_SUM_FUNC(int64_t)
 MAKE_NDARRAY_SUM_FUNC(uint32_t)
@@ -139,22 +116,47 @@ double ndarray_sum_double(NDArray *a)
     if(a->num_elems > OPENMP_ELEM_THRESHOLD)
     {
         #pragma omp parallel for shared(data) reduction(+:sum)
-	for(int i = 0; i < a->num_elems; i++)
-	{
-	    sum += data[i];
-	}
+        for(int i = 0; i < a->num_elems; i++)
+        {
+            sum += data[i];
+        }
     }
     else
-    {	
-	for(int i = 0; i < a->num_elems; i++)
-	{
-	    sum += data[i];
-	}
+    {        
+        for(int i = 0; i < a->num_elems; i++)
+        {
+            sum += data[i];
+        }
     }
     
     return sum;
 }
 */
+
+/* Use Kahan summation algorithim */
+#define MAKE_NDARRAY_SUM_FLOAT_FUNC(type)                            \
+type ndarray_sum_##type(NDArray *a)                                  \
+{                                                                    \
+    type sum = 0.0;                                                  \
+    type c = 0.0;                                                    \
+    type y, s;                                                       \
+    type *data = (type *)NDARRAY_DATAPTR(a);                         \
+                                                                     \
+    _Pragma("omp parallel for shared(data) private(y, s) firstprivate(c) reduction(+:sum) if(a->num_elems > OPENMP_ELEM_THRESHOLD)") \
+    for(int i = 0; i < a->num_elems; i++)                            \
+    {                                                                \
+        y = data[i] - c;                                             \
+        s = sum + y;                                                 \
+        c = s - sum - y;                                             \
+        sum = s;                                                     \
+    }                                                                \
+                                                                     \
+    return sum;                                                      \
+}
+
+MAKE_NDARRAY_SUM_FLOAT_FUNC(float)
+MAKE_NDARRAY_SUM_FLOAT_FUNC(double)
+MAKE_NDARRAY_SUM_FLOAT_FUNC(complex)
 
 #define MAKE_NDARRAY_SUM_OVER_AXIS_FUNC(type)                                                      \
 NDArray *ndarray_sum_over_axis_##type(NDArray *a, int axis)                                        \
@@ -163,46 +165,46 @@ NDArray *ndarray_sum_over_axis_##type(NDArray *a, int axis)                     
     int cursor = 0;                                                                                \
     for(int i = 0; i < a->ndim; i++)                                                               \
     {                                                                                              \
-	if(i != axis)                                                                              \
-	{                                                                                          \
-	    result_dims[cursor++] = a->dims[i];                                                    \
-	}                                                                                          \
+        if(i != axis)                                                                              \
+        {                                                                                          \
+            result_dims[cursor++] = a->dims[i];                                                    \
+        }                                                                                          \
     }                                                                                              \
                                                                                                    \
     NDArray *result = ndarray_new(a->ndim - 1, (intptr_t *)&result_dims, a->elem_bytes, NULL);     \
     if(!result)                                                                                    \
     {                                                                                              \
-	return NULL;                                                                               \
+        return NULL;                                                                               \
     }                                                                                              \
     ndarray_fill_##type(result, 0);                                                                \
                                                                                                    \
     NDArrayIter *ait = ndarray_iter_new(a, NULL);                                                  \
     if(!ait)                                                                                       \
     {                                                                                              \
-	ndarray_free(result);                                                                      \
-	return NULL;                                                                               \
+        ndarray_free(result);                                                                      \
+        return NULL;                                                                               \
     }                                                                                              \
                                                                                                    \
     NDArrayIter *rit = ndarray_iter_new_add_axis(result, NULL, axis);                              \
     if(!rit)                                                                                       \
     {                                                                                              \
-	ndarray_free(result);                                                                      \
-	ndarray_iter_free(ait);                                                                    \
-	return NULL;                                                                               \
+        ndarray_free(result);                                                                      \
+        ndarray_iter_free(ait);                                                                    \
+        return NULL;                                                                               \
     }                                                                                              \
                                                                                                    \
     NDArrayMultiIter *mit = ndarray_multi_iter_new_from_iter(2, ait, rit);                         \
     if(!mit)                                                                                       \
     {                                                                                              \
-	ndarray_free(result);                                                                      \
-	ndarray_iter_free(ait);                                                                    \
-	ndarray_iter_free(rit);                                                                    \
-	return NULL;                                                                               \
+        ndarray_free(result);                                                                      \
+        ndarray_iter_free(ait);                                                                    \
+        ndarray_iter_free(rit);                                                                    \
+        return NULL;                                                                               \
     }                                                                                              \
                                                                                                    \
     do                                                                                             \
     {                                                                                              \
-	MULTI_ITER_LVAL(mit, 1, type) += MULTI_ITER_DATA(mit, 0, type);                            \
+        MULTI_ITER_LVAL(mit, 1, type) += MULTI_ITER_DATA(mit, 0, type);                            \
     } while(ndarray_multi_iter_next(mit));                                                         \
                                                                                                    \
     ndarray_iter_free(ait);                                                                        \
@@ -227,46 +229,46 @@ NDArray *ndarray_sum_over_axis_int32_t(NDArray *a, int axis)
     int cursor = 0;
     for(int i = 0; i < a->ndim; i++)
     {
-	if(i != axis)
-	{
-	    result_dims[cursor++] = a->dims[i];
-	}
+        if(i != axis)
+        {
+            result_dims[cursor++] = a->dims[i];
+        }
     }
     
     NDArray *result = ndarray_new(a->ndim - 1, (intptr_t *)&result_dims, a->elem_bytes, NULL);
     if(!result)
     {
-	return NULL;
+        return NULL;
     }
     ndarray_fill_int32_t(result, 0);
     
     NDArrayIter *ait = ndarray_iter_new(a, NULL);
     if(!ait)
     {
-	ndarray_free(result);
-	return NULL;
+        ndarray_free(result);
+        return NULL;
     }
     
     NDArrayIter *rit = ndarray_iter_new_add_axis(result, NULL, axis);
     if(!rit)
     {
-	ndarray_free(result);
-	ndarray_iter_free(ait);
-	return NULL;
+        ndarray_free(result);
+        ndarray_iter_free(ait);
+        return NULL;
     }
 
     NDArrayMultiIter *mit = ndarray_multi_iter_new_from_iter(2, ait, rit);
     if(!mit)
     {
-	ndarray_free(result);
-	ndarray_iter_free(ait);
-	ndarray_iter_free(rit);
-	return NULL;
+        ndarray_free(result);
+        ndarray_iter_free(ait);
+        ndarray_iter_free(rit);
+        return NULL;
     }
     
     do
     {
-	MULTI_ITER_LVAL(mit, 1, int32_t) += MULTI_ITER_DATA(mit, 0, int32_t);
+        MULTI_ITER_LVAL(mit, 1, int32_t) += MULTI_ITER_DATA(mit, 0, int32_t);
     } while(ndarray_multi_iter_next(mit));
 
     ndarray_iter_free(ait);
@@ -280,10 +282,10 @@ NDArray *ndarray_sum_over_axis_int32_t(NDArray *a, int axis)
 type ndarray_iter_sum_##type(NDArrayIter *a)                         \
 {                                                                    \
     type sum = 0.0;                                                  \
-        						             \
+                                                                     \
     do                                                               \
     {                                                                \
-	sum += ITER_DATA(a, type);                                   \
+        sum += ITER_DATA(a, type);                                   \
     } while(ndarray_iter_next(a));                                   \
                                                                      \
     return sum;                                                      \
@@ -308,31 +310,31 @@ bool ndarray_equal(NDArray *a, NDArray *b)
 }
 
 #define MAKE_NDARRAY_ITER_EQUAL_FUNC(type)                                 \
-bool ndarray_iter_equal_##type(NDArrayIter *a, NDArrayIter *b)	           \
+bool ndarray_iter_equal_##type(NDArrayIter *a, NDArrayIter *b)             \
 {                                                                          \
     if(a->nda->elem_bytes != b->nda->elem_bytes)                           \
     {                                                                      \
-	return false;                                                      \
+        return false;                                                      \
     }                                                                      \
                                                                            \
     NDArrayMultiIter *mit = ndarray_multi_iter_new_from_iter(2, a, b);     \
                                                                            \
     if(!mit)                                                               \
     {                                                                      \
-	return false;                                                      \
+        return false;                                                      \
     }                                                                      \
-             						                   \
+                                                                           \
     do                                                                     \
     {                                                                      \
-	if(MULTI_ITER_DATA(mit, 0, type) != MULTI_ITER_DATA(mit, 1, type)) \
-	{                                                                  \
-	    ndarray_multi_iter_free_except_iter(mit);                  	   \
-	    return false;                                                  \
-	}                                                                  \
+        if(MULTI_ITER_DATA(mit, 0, type) != MULTI_ITER_DATA(mit, 1, type)) \
+        {                                                                  \
+            ndarray_multi_iter_free_except_iter(mit);                      \
+            return false;                                                  \
+        }                                                                  \
     } while(ndarray_multi_iter_next(mit));                                 \
                                                                            \
     /* don't free the iterators that were passed in */                     \
-    ndarray_multi_iter_free_except_iter(mit);                  		   \
+    ndarray_multi_iter_free_except_iter(mit);                              \
                                                                            \
     return true;                                                           \
 }
@@ -353,22 +355,22 @@ bool ndarray_iter_equal_int16_t(NDArrayIter *a, NDArrayIter *b)
 {
     if(a->nda->elem_bytes != b->nda->elem_bytes)
     {
-	return false;
+        return false;
     }
 
     NDArrayMultiIter *mit = ndarray_multi_iter_new_from_iter(2, a, b);
     if(!mit)
     {
-	return false;
+        return false;
     }
 
     do
     {
-	if((*((int16_t *)mit->iter[0]->cursor)) != (*((int16_t *)mit->iter[1]->cursor)))
-	{
-	    ndarray_multi_iter_free_except_iter(mit);
-	    return false;
-	}
+        if((*((int16_t *)mit->iter[0]->cursor)) != (*((int16_t *)mit->iter[1]->cursor)))
+        {
+            ndarray_multi_iter_free_except_iter(mit);
+            return false;
+        }
     } while(ndarray_multi_iter_next(mit));
     
     ndarray_multi_iter_free_except_iter(mit);
@@ -380,7 +382,7 @@ bool ndarray_iter_equal_int16_t(NDArrayIter *a, NDArrayIter *b)
 /* 
    allocates an NDArray to store the result and returns a pointer to it
 */
-#define MAKE_NDARRAY_OP_FUNC(name, op, type)	                                                 \
+#define MAKE_NDARRAY_OP_FUNC(name, op, type)                                                     \
 NDArray *ndarray_##name##_##type(NDArray *a, NDArray *b)                                         \
 {                                                                                                \
     /*                                                                                           \
@@ -389,11 +391,11 @@ NDArray *ndarray_##name##_##type(NDArray *a, NDArray *b)                        
     */                                                                                           \
     if(ndarray_shape_equal(a, b))                                                                \
     {                                                                                            \
-        /* allocate result array */		                                                 \
+        /* allocate result array */                                                              \
         NDArray *c = ndarray_new(a->ndim, a->dims, a->elem_bytes, NULL);                         \
         if(!c)                                                                                   \
         {                                                                                        \
-	    return NULL;                                                                         \
+            return NULL;                                                                         \
         }                                                                                        \
                                                                                                  \
         intptr_t elem_stride = a->elem_bytes;                                                    \
@@ -405,13 +407,13 @@ NDArray *ndarray_##name##_##type(NDArray *a, NDArray *b)                        
         _Pragma("omp parallel for if(a->num_elems > OPENMP_ELEM_THRESHOLD)")                     \
         for(int i = 0; i < a->dims[0]; i++)                                                      \
         {                                                                                        \
-	    type *result = (type *)(c->dataptr + (base_stride * i));                             \
+            type *result = (type *)(c->dataptr + (base_stride * i));                             \
             type *acursor = (type *)(a->dataptr + (base_stride * i));                            \
-	    type *bcursor = (type *)(b->dataptr + (base_stride * i));                            \
-	    for(int j = 0; j < sub_len; j++)                                                     \
-	    {                                                                                    \
-	        result[j] = acursor[j] op bcursor[j];                                            \
-	    }                                                                                    \
+            type *bcursor = (type *)(b->dataptr + (base_stride * i));                            \
+            for(int j = 0; j < sub_len; j++)                                                     \
+            {                                                                                    \
+                result[j] = acursor[j] op bcursor[j];                                            \
+            }                                                                                    \
         }                                                                                        \
                                                                                                  \
         return c;                                                                                \
@@ -421,23 +423,23 @@ NDArray *ndarray_##name##_##type(NDArray *a, NDArray *b)                        
                                                                                                  \
     if(!mit)                                                                                     \
     {                                                                                            \
-	return NULL;                                                                             \
+        return NULL;                                                                             \
     }                                                                                            \
                                                                                                  \
     /* todo: add assert to check A and B elem_bytes are equal to sizeof(type) */                 \
                                                                                                  \
-    /* allocate result array */			                                 	         \
+    /* allocate result array */                                                                  \
     NDArray *c = ndarray_new_result(mit, sizeof(type));                                          \
     if(!c)                                                                                       \
     {                                                                                            \
-	ndarray_multi_iter_free(mit);                                                            \
-	return NULL;                                                                             \
+        ndarray_multi_iter_free(mit);                                                            \
+        return NULL;                                                                             \
     }                                                                                            \
                                                                                                  \
     type *result = (type *) NDARRAY_DATAPTR(c);                                                  \
     do                                                                                           \
     {                                                                                            \
-	*result++ = MULTI_ITER_DATA(mit, 0, type) op MULTI_ITER_DATA(mit, 1, type);              \
+        *result++ = MULTI_ITER_DATA(mit, 0, type) op MULTI_ITER_DATA(mit, 1, type);              \
     } while(ndarray_multi_iter_next(mit));                                                       \
                                                                                                  \
     ndarray_multi_iter_free(mit);                                                                \
@@ -457,7 +459,7 @@ NDArray *ndarray_mul_double(NDArray *a, NDArray *b)
 
     if(!mit)
     {
-	return NULL;
+        return NULL;
     }
 
     // todo: add assert to check A and B elem_bytes are equal to sizeof(double)
@@ -466,14 +468,14 @@ NDArray *ndarray_mul_double(NDArray *a, NDArray *b)
     NDArray *c = ndarray_new_result(mit, sizeof(double));
     if(!c)
     {
-	ndarray_multi_iter_free(mit);
-	return NULL;
+        ndarray_multi_iter_free(mit);
+        return NULL;
     }
 
     double *result = (double *) NDARRAY_DATAPTR(c);
     do
     {
-	*result++ = MULTI_ITER_DATA(mit, 0, double) * MULTI_ITER_DATA(mit, 1, double);
+        *result++ = MULTI_ITER_DATA(mit, 0, double) * MULTI_ITER_DATA(mit, 1, double);
     } while(ndarray_multi_iter_next(mit));
 
     ndarray_multi_iter_free(mit);
@@ -533,14 +535,14 @@ MAKE_NDARRAY_OP_FUNC(div, /, uint64_t)
 /* 
    allocates an NDArray to store the result and returns a pointer to it
 */
-#define MAKE_NDARRAY_ITER_OP_FUNC(name, op, type)	                                         \
+#define MAKE_NDARRAY_ITER_OP_FUNC(name, op, type)                                                \
 NDArray *ndarray_iter_##name##_##type(NDArrayIter *a, NDArrayIter *b)                            \
 {                                                                                                \
     NDArrayMultiIter *mit = ndarray_multi_iter_new_from_iter(2, a, b);                           \
                                                                                                  \
     if(!mit)                                                                                     \
     {                                                                                            \
-	return NULL;                                                                             \
+        return NULL;                                                                             \
     }                                                                                            \
                                                                                                  \
     /* todo: add assert to check A and B elem_bytes are equal to sizeof(type) */                 \
@@ -549,18 +551,18 @@ NDArray *ndarray_iter_##name##_##type(NDArrayIter *a, NDArrayIter *b)           
     NDArray *c = ndarray_new_result(mit, sizeof(type));                                          \
     if(!c)                                                                                       \
     {                                                                                            \
-	ndarray_multi_iter_free_except_iter(mit);                                                \
-	return NULL;                                                                             \
+        ndarray_multi_iter_free_except_iter(mit);                                                \
+        return NULL;                                                                             \
     }                                                                                            \
                                                                                                  \
     type *result = (type *) NDARRAY_DATAPTR(c);                                                  \
     do                                                                                           \
     {                                                                                            \
-	*result++ = MULTI_ITER_DATA(mit, 0, type) op MULTI_ITER_DATA(mit, 1, type);              \
+        *result++ = MULTI_ITER_DATA(mit, 0, type) op MULTI_ITER_DATA(mit, 1, type);              \
     } while(ndarray_multi_iter_next(mit));                                                       \
                                                                                                  \
     /* don't free the iterators that were passed in */                                           \
-    ndarray_multi_iter_free_except_iter(mit);                  					 \
+    ndarray_multi_iter_free_except_iter(mit);                                                    \
                                                                                                  \
     return c;                                                                                    \
 }
@@ -573,7 +575,7 @@ NDArray *ndarray_iter_mul_double(NDArrayIter *a, NDArrayIter *b)
     
     if(!mit)
     {
-	return NULL;
+        return NULL;
     }
 
     // todo: add assert to check A and B elem_bytes are equal to sizeof(double)
@@ -582,14 +584,14 @@ NDArray *ndarray_iter_mul_double(NDArrayIter *a, NDArrayIter *b)
     NDArray *c = ndarray_new_result(mit, sizeof(double));
     if(!c)
     {
-	ndarray_multi_iter_free_except_iter(mit);
-	return NULL;
+        ndarray_multi_iter_free_except_iter(mit);
+        return NULL;
     }
 
     double *result = (double *) NDARRAY_DATAPTR(c);
     do
     {
-	*result++ = MULTI_ITER_DATA(mit, 0, double) * MULTI_ITER_DATA(mit, 1, double);
+        *result++ = MULTI_ITER_DATA(mit, 0, double) * MULTI_ITER_DATA(mit, 1, double);
     } while(ndarray_multi_iter_next(mit));
 
     // don't free the iterators that were passed in
@@ -657,7 +659,7 @@ NDArray *ndarray_##name##_##type(NDArray *a)                               \
     NDArray *c = ndarray_new(a->ndim, a->dims, sizeof(type), NULL);        \
     if(!c)                                                                 \
     {                                                                      \
-	return NULL;                                                       \
+        return NULL;                                                       \
     }                                                                      \
                                                                            \
     type *data = (type *)NDARRAY_DATAPTR(a);                               \
@@ -666,17 +668,17 @@ NDArray *ndarray_##name##_##type(NDArray *a)                               \
     if(a->num_elems > OPENMP_ELEM_THRESHOLD)                               \
     {                                                                      \
         _Pragma("omp parallel for shared(data)")                           \
-	for(int i = 0; i < a->num_elems; i++)                              \
-	{                                                                  \
-	    result[i] = fun(data[i]);                                      \
-	}                                                                  \
+        for(int i = 0; i < a->num_elems; i++)                              \
+        {                                                                  \
+            result[i] = fun(data[i]);                                      \
+        }                                                                  \
     }                                                                      \
     else                                                                   \
-    {	                                                                   \
-	for(int i = 0; i < a->num_elems; i++)                              \
-	{                                                                  \
-	    result[i] = fun(data[i]);                                      \
-	}                                                                  \
+    {                                                                      \
+        for(int i = 0; i < a->num_elems; i++)                              \
+        {                                                                  \
+            result[i] = fun(data[i]);                                      \
+        }                                                                  \
     }                                                                      \
                                                                            \
     return c;                                                              \
@@ -695,13 +697,13 @@ NDArray *ndarray_iter_##name##_##type(NDArrayIter *a)                      \
     NDArray *c = ndarray_new_result_single(a, sizeof(type));               \
     if(!c)                                                                 \
     {                                                                      \
-	return NULL;                                                       \
+        return NULL;                                                       \
     }                                                                      \
                                                                            \
     type *result = (type *) NDARRAY_DATAPTR(c);                            \
     do                                                                     \
     {                                                                      \
-	*result++ = fun(ITER_DATA(a, type));                               \
+        *result++ = fun(ITER_DATA(a, type));                               \
     } while(ndarray_iter_next(a));                                         \
                                                                            \
     return c;                                                              \
@@ -720,7 +722,7 @@ NDArray *ndarray_##name##_##type(NDArray *a, type y)                       \
     NDArray *c = ndarray_new(a->ndim, a->dims, sizeof(type), NULL);        \
     if(!c)                                                                 \
     {                                                                      \
-	return NULL;                                                       \
+        return NULL;                                                       \
     }                                                                      \
                                                                            \
     type *data = (type *)NDARRAY_DATAPTR(a);                               \
@@ -729,17 +731,17 @@ NDArray *ndarray_##name##_##type(NDArray *a, type y)                       \
     if(a->num_elems > OPENMP_ELEM_THRESHOLD)                               \
     {                                                                      \
         _Pragma("omp parallel for shared(data)")                           \
-	for(int i = 0; i < a->num_elems; i++)                              \
-	{                                                                  \
-	    result[i] = fun(data[i], y);                                   \
-	}                                                                  \
+        for(int i = 0; i < a->num_elems; i++)                              \
+        {                                                                  \
+            result[i] = fun(data[i], y);                                   \
+        }                                                                  \
     }                                                                      \
     else                                                                   \
-    {	                                                                   \
-	for(int i = 0; i < a->num_elems; i++)                              \
-	{                                                                  \
-	    result[i] = fun(data[i], y);                                   \
-	}                                                                  \
+    {                                                                      \
+        for(int i = 0; i < a->num_elems; i++)                              \
+        {                                                                  \
+            result[i] = fun(data[i], y);                                   \
+        }                                                                  \
     }                                                                      \
                                                                            \
     return c;                                                              \
@@ -753,7 +755,7 @@ NDArray *ndarray_pow_double(NDArray *a, double y)
     NDArray *c = ndarray_new(a->ndim, a->dims, sizeof(double), NULL);
     if(!c)
     {
-	return NULL;
+        return NULL;
     }
     
     double *data = (double *)NDARRAY_DATAPTR(a);
@@ -762,17 +764,17 @@ NDArray *ndarray_pow_double(NDArray *a, double y)
     if(a->num_elems > OPENMP_ELEM_THRESHOLD)
     {
         #pragma omp parallel for shared(data)
-	for(int i = 0; i < a->num_elems; i++)
-	{
-	    result[i] = pow(data[i], y);
-	}
+        for(int i = 0; i < a->num_elems; i++)
+        {
+            result[i] = pow(data[i], y);
+        }
     }
     else
-    {	
-	for(int i = 0; i < a->num_elems; i++)
-	{
-	    result[i] = pow(data[i], y);
-	}
+    {        
+        for(int i = 0; i < a->num_elems; i++)
+        {
+            result[i] = pow(data[i], y);
+        }
     }
     
     return c;
@@ -792,13 +794,13 @@ NDArray *ndarray_iter_##name##_##type(NDArrayIter *a, type y)              \
     NDArray *c = ndarray_new_result_single(a, sizeof(type));               \
     if(!c)                                                                 \
     {                                                                      \
-	return NULL;                                                       \
+        return NULL;                                                       \
     }                                                                      \
                                                                            \
     type *result = (type *) NDARRAY_DATAPTR(c);                            \
     do                                                                     \
     {                                                                      \
-	*result++ = fun(ITER_DATA(a, type), y);                            \
+        *result++ = fun(ITER_DATA(a, type), y);                            \
     } while(ndarray_iter_next(a));                                         \
                                                                            \
     return c;                                                              \

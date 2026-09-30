@@ -77,10 +77,10 @@ void ndarray_set_freedata(NDArray *nda, bool freedata)
 
 void ndarray_free(NDArray *nda)
 {
-    printf("ndarray_free\n");
+    //printf("ndarray_free\n");
     if(nda)
     {
-	printf("ndarray_free do it!\n");
+	//printf("ndarray_free do it!\n");
     	if(nda->free_data && nda->dataptr) free(nda->dataptr);
 	if(nda->dims) free(nda->dims);
 	free(nda);
