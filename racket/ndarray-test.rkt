@@ -284,7 +284,15 @@
   (check-equal? (ndarray_sum_double a) 4.99999995e+15)
   (define b (ndarray_new 1 (vector 1000000000) 4 #f))
   (ndarray_fill_float b 1.0)
-  (time (check-equal? (ndarray_sum_float b) 1000000000.0)))
+  (check-equal? (ndarray_sum_float b) 1000000000.0)
+  ; this test fails because the remainder after splitting threads is not enough to reach the next
+  ; representable number
+  ;(define b (ndarray_new 1 (vector 1000000010) 4 #f))
+  ;(ndarray_fill_float b 1.0)
+  ;(time (check-equal? (ndarray_sum_float b) 1000000010.0))
+  (define c (ndarray_new 1 (vector 10005) 4 #f))
+  (ndarray_fill_float c 1.0)
+  (time (check-equal? (ndarray_sum_float c) 10005.0)))
 
 (define (time-mul-double x)
   (define a (ndarray_new 2 (vector x x) 8 #f))

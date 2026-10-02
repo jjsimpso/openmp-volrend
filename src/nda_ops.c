@@ -133,25 +133,55 @@ double ndarray_sum_double(NDArray *a)
 }
 */
 
-/* Use Kahan summation algorithim */
+/* Use Kahan summation algorithim 
+   Need to use it for summation within and between threads 
+*/
 #define MAKE_NDARRAY_SUM_FLOAT_FUNC(type)                            \
 type ndarray_sum_##type(NDArray *a)                                  \
 {                                                                    \
     type sum = 0.0;                                                  \
-    type c = 0.0;                                                    \
-    type y, s;                                                       \
+    type final_sum = 0.0;                                            \
+    type final_c = 0.0;                                              \
+    int remaining = 0;                                               \
     type *data = (type *)NDARRAY_DATAPTR(a);                         \
                                                                      \
-    _Pragma("omp parallel for shared(data) private(y, s) firstprivate(c) reduction(+:sum) if(a->num_elems > OPENMP_ELEM_THRESHOLD)") \
-    for(int i = 0; i < a->num_elems; i++)                            \
+    _Pragma("omp parallel shared(data, final_sum, final_c, remaining) firstprivate(sum) if(a->num_elems > OPENMP_ELEM_THRESHOLD)") \
     {                                                                \
-        y = data[i] - c;                                             \
-        s = sum + y;                                                 \
-        c = s - sum - y;                                             \
-        sum = s;                                                     \
+        int i;                                                       \
+        int id = omp_get_thread_num();                               \
+	int numthreads = omp_get_num_threads();                      \
+        int chunk_size = a->num_elems / numthreads;                  \
+        type c = 0.0;                                                \
+        type y, s;                                                   \
+        for(i = id * chunk_size; i < ((id+1) * chunk_size); i++)     \
+        {                                                            \
+            y = data[i] - c;                                         \
+            s = sum + y;                                             \
+            c = s - sum - y;                                         \
+            sum = s;                                                 \
+        }                                                            \
+        _Pragma("omp critical")                                      \
+        {                                                            \
+            y = sum - final_c;                                       \
+            s = final_sum + y;                                       \
+            final_c = s - final_sum - y;                             \
+            final_sum = s;                                           \
+        }                                                            \
+        _Pragma("omp single")                                        \
+            remaining = a->num_elems - (chunk_size * numthreads);    \
     }                                                                \
                                                                      \
-    return sum;                                                      \
+    type y, s;                                                       \
+    for(int i = a->num_elems - remaining; i < a->num_elems; i++)     \
+    {                                                                \
+        /*printf("final_sum = %2f, final_c = %2f\n", final_sum, final_c);*/  \
+        y = data[i] - final_c;                                       \
+        s = final_sum + y;                                           \
+        final_c = s - final_sum - y;                                 \
+        final_sum = s;                                               \
+    }                                                                \
+                                                                     \
+    return final_sum;                                                \
 }
 
 MAKE_NDARRAY_SUM_FLOAT_FUNC(float)
