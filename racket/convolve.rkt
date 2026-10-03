@@ -29,7 +29,7 @@
                           (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
                           (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)
                           (exact->inexact 1/9) (exact->inexact 1/9) (exact->inexact 1/9)))
-  (tensor-convolve2d t 3 3 kernel))
+  (tensor-convolve2d t 3 3 kernel #:mode 'NDARRAY_CONVOLVE_CLAMP))
 
 (define (image-super-smooth t)
   (define kernel (cvector _double
@@ -38,7 +38,7 @@
                           (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
                           (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)
                           (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25) (exact->inexact 1/25)))
-  (tensor-convolve2d t 5 5 kernel))
+  (tensor-convolve2d t 5 5 kernel #:mode 'NDARRAY_CONVOLVE_CLAMP))
 
 (define (image-smooth-slow t)
   (define kernel (cvector _double
