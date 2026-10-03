@@ -488,7 +488,7 @@ NDArray *ndarray_convolve2d_vec##vlen##_##type(NDArray *base, double *kernel, in
                 }                                                                                               \
                 for(int z = 0; z < vlen; z++)                                                                   \
                 {                                                                                               \
-                    out_data[y][x][z] = (val[z] < maxval) ? (type)((val[z] < 0.0) ? 0 : val[z]) : maxval;       \
+                    out_data[y][cx][z] = (val[z] < maxval) ? (type)((val[z] < 0.0) ? 0 : val[z]) : maxval;       \
                 }                                                                                               \
                                                                                                                 \
                 /* bottom left */                                                                               \
@@ -509,7 +509,7 @@ NDArray *ndarray_convolve2d_vec##vlen##_##type(NDArray *base, double *kernel, in
                 }                                                                                               \
                 for(int z = 0; z < vlen; z++)                                                                   \
                 {                                                                                               \
-                    out_data[y][x][z] = (val[z] < maxval) ? (type)((val[z] < 0.0) ? 0 : val[z]) : maxval;       \
+                    out_data[cy][x][z] = (val[z] < maxval) ? (type)((val[z] < 0.0) ? 0 : val[z]) : maxval;       \
                 }                                                                                               \
                                                                                                                 \
                 /* bottom right */                                                                              \
@@ -530,7 +530,7 @@ NDArray *ndarray_convolve2d_vec##vlen##_##type(NDArray *base, double *kernel, in
                 }                                                                                               \
                 for(int z = 0; z < vlen; z++)                                                                   \
                 {                                                                                               \
-                    out_data[y][x][z] = (val[z] < maxval) ? (type)((val[z] < 0.0) ? 0 : val[z]) : maxval;       \
+                    out_data[cy][cx][z] = (val[z] < maxval) ? (type)((val[z] < 0.0) ? 0 : val[z]) : maxval;       \
                 }                                                                                               \
             }                                                                                                   \
         }                                                                                                       \
