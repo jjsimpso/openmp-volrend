@@ -1003,3 +1003,30 @@ NDArray *ndarray_convolve2d_vec3_uint8_t(NDArray *base, double *kernel, int kw, 
 }
 
 */
+
+uint8_t ndarray_convolve3d_point_uint8_t(NDArray *base, double *kernel, int kw, int kh, int kd, intptr_t x, intptr_t y, intptr_t z)
+{
+    intptr_t h = base->dims[1];
+    intptr_t w = base->dims[2];
+    uint8_t (*data)[h][w];
+    data = (uint8_t (*)[h][w])NDARRAY_DATAPTR(base);
+
+    double (*k)[kh][kw] = (double (*)[kh][kw])kernel;
+    double val = 0.0;
+    int mrange = kd/2;
+    int jrange = kh/2;
+    int irange = kw/2;
+
+    for(int m = -mrange; m <= mrange; m++)
+    {
+        for(int j = -jrange; j <= jrange; j++)
+        {
+            for(int i = -irange; i <= irange; i++)
+            {
+                val += (double)data[z+m][y+j][x+i] * k[m+mrange][j+jrange][i+irange];
+            }
+        }
+    }
+    
+    return (val < UINT8_MAX) ? (uint8_t)((val < 0.0) ? 0 : val) : UINT8_MAX;
+}

@@ -51,6 +51,7 @@
 ;; get the addresses of these functions to use as function pointers
 (define libvolrend (ffi-lib "../libvolrend"))
 (define ndarray_vol_central_diff_uint8_t (get-ffi-obj "ndarray_vol_central_diff_uint8_t" libvolrend _fpointer))
+(define ndarray_vol_sobel_uint8_t (get-ffi-obj "ndarray_vol_sobel_uint8_t" libvolrend _fpointer))
 (define ndarray_vol_classify_simple_uint8_t (get-ffi-obj "ndarray_vol_classify_simple_uint8_t" libvolrend _fpointer))
 (define ndarray_vol_interp_nearest_uint8_t (get-ffi-obj "ndarray_vol_interp_nearest_uint8_t" libvolrend _fpointer))
 (define ndarray_vol_interp_linear_uint8_t (get-ffi-obj "ndarray_vol_interp_linear_uint8_t" libvolrend _fpointer))
@@ -87,7 +88,7 @@
   (set-cpointer-tag! mats 'Material)
   (define cinfo (make-ClassifyInfo (length mat-list) mats 5.0 15.0))
   (ndarray_vol_render_uint8_t (tensor-ndarray vol) image-width image-height (vector-ref shape 0) (tensor-ndarray trans) persp-dist
-                              ndarray_vol_central_diff_uint8_t
+                              ndarray_vol_sobel_uint8_t
                               ndarray_vol_classify_simple_uint8_t
                               cinfo
                               ndarray_vol_interp_linear_uint8_t))

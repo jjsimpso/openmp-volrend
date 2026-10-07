@@ -7,6 +7,7 @@
 
 #include "ndarray.h"
 #include "nda_matrix.h"
+#include "nda_convol.h"
 #include "nda_volume.h"
 
 #define ELEMENT3D(x, y, z, w, h) ((x) + ((y) * (w)) + ((z) * (w) * (h)))
@@ -168,6 +169,53 @@ Vec3_double ndarray_vol_central_diff_uint8_t(NDArray *v, intptr_t x, intptr_t y,
     gradient.x = data[ELEMENT3D(x-1, y, z, w, h)] - data[ELEMENT3D(x+1, y, z, w, h)];
     gradient.y = data[ELEMENT3D(x, y-1, z, w, h)] - data[ELEMENT3D(x, y+1, z, w, h)];
     gradient.z = data[ELEMENT3D(x, y, z-1, w, h)] - data[ELEMENT3D(x, y, z+1, w, h)];
+    
+    return gradient;
+}
+
+Vec3_double ndarray_vol_sobel_uint8_t(NDArray *v, intptr_t x, intptr_t y, intptr_t z)
+{
+    Vec3_double gradient;
+
+    double kx[3][3][3] = { { { -2.0, 0.0, 2.0 },
+                             { -3.0, 0.0, 3.0 },
+                             { -2.0, 0.0, 2.0 } },
+                           
+                           { { -3.0, 0.0, 3.0 },
+                             { -6.0, 0.0, 6.0 },
+                             { -3.0, 0.0, 3.0 } },
+                           
+                           { { -2.0, 0.0, 2.0 },
+                             { -3.0, 0.0, 3.0 },
+                             { -2.0, 0.0, 2.0 } } };
+    
+    double ky[3][3][3] = { { {  2.0,  3.0,  2.0 },
+                             {  0.0,  0.0,  0.0 },
+                             { -2.0, -3.0, -2.0 } },
+
+                           { {  3.0,  6.0,  3.0 },
+                             {  0.0,  0.0,  0.0 },
+                             { -3.0, -6.0, -3.0 } },
+
+                           { {  2.0,  3.0,  2.0 },
+                             {  0.0,  0.0,  0.0 },
+                             { -2.0, -3.0, -2.0 } } };
+                           
+    double kz[3][3][3] = { { { 2.0, 3.0, 2.0 },
+                             { 3.0, 6.0, 3.0 },
+                             { 2.0, 3.0, 2.0 } },
+
+                           { { 0.0, 0.0, 0.0 },
+                             { 0.0, 0.0, 0.0 },
+                             { 0.0, 0.0, 0.0 } },
+
+                           { { -2.0, -3.0, -2.0 },
+                             { -3.0, -6.0, -3.0 },
+                             { -2.0, -3.0, -2.0 } } };
+    
+    gradient.x = ndarray_convolve3d_point_uint8_t(v, (double *)kx, 3, 3, 3, x, y, z);
+    gradient.y = ndarray_convolve3d_point_uint8_t(v, (double *)ky, 3, 3, 3, x, y, z);
+    gradient.z = ndarray_convolve3d_point_uint8_t(v, (double *)kz, 3, 3, 3, x, y, z);
     
     return gradient;
 }

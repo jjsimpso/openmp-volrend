@@ -14,3 +14,5 @@ NDArray *ndarray_convolve2d_uint16_t(NDArray *base, double *kernel, int kw, int 
 
 NDArray *ndarray_convolve2d_vec3_uint8_t(NDArray *base, double *kernel, int kw, int kh, NDArrayConvolveMode mode);
 NDArray *ndarray_convolve2d_vec3_uint16_t(NDArray *base, double *kernel, int kw, int kh, NDArrayConvolveMode mode);
+
+uint8_t ndarray_convolve3d_point_uint8_t(NDArray *base, double *kernel, int kw, int kh, int kd, intptr_t x, intptr_t y, intptr_t z);
