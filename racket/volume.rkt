@@ -183,7 +183,7 @@
                  (tensor-translate-3d -128.0 -128.0 -55.0)))))
 
 (define roty (t** (tensor-translate-3d 128.0 128.0 55.0)
-                  (t** (tensor-rotate-y-3d 90)
+                  (t** (tensor-rotate-y-3d 44)
                        (tensor-translate-3d -128.0 -128.0 -55.0))))
 
 (define roty45 (t** (tensor-translate-3d 128.0 128.0 55.0)
@@ -213,5 +213,6 @@
 
 ;(draw-tensor (volume-mip engine-path roty))
 ;(draw-tensor (volume-render engine-path roty45 engine-mats #:persp-dist 4096.0))
-;(time (draw-tensor (volume-render engine-path (tensor-identity-3d) engine-mats)))
+;(draw-tensor (volume-render engine-path (tensor-identity-3d) engine-mats))
+;(draw-tensor (volume-render engine-path roty engine-mats))
 ;(draw-tensor (volume-render cthead-path (tensor-identity-3d) cthead-mats))
