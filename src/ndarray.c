@@ -130,7 +130,8 @@ bool valid_slice(Slice *slice, int dim_size)
     if(!slice ||
        (slice->stride <= 0) ||
        (slice->start < 0) ||
-       (slice->end >= dim_size))
+       (slice->end >= dim_size) ||
+       (slice->start > slice->end))
 	return false;
 
     return true;
@@ -356,7 +357,9 @@ NDArrayIter *ndarray_iter_new_add_axis(NDArray *nda, Slice *slices, int axis)
 
     if(slices)
     {
-
+	// not implemented
+	printf("ndarray_iter_new_add_axis: slices arg not implemented!\n");
+	return NULL;
     }
     else
     {
@@ -431,7 +434,7 @@ void ndarray_iter_reset(NDArrayIter *it)
     else
     {
 	it->index = 0;
-	memset(it->coords, 0, it->nda->ndim);
+	memset(it->coords, 0, sizeof(it->coords));
 	it->cursor = it->nda->dataptr;
 	
 	intptr_t nda_strides[MAX_DIMS] = {0};
