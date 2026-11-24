@@ -275,6 +275,7 @@ uint8_t ndarray_vol_interp_linear_uint8_t(NDArray *v, Vec4_double *p)
     data = (uint8_t (*)[h][w])NDARRAY_DATAPTR(v);
 
 
+    /* these values are rounded down */
     intptr_t x = (int)p->x;
     intptr_t y = (int)p->y;
     intptr_t z = (int)p->z;
@@ -541,17 +542,21 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 		obj_pos.w = 1.0;
 
 		//printf("obj_pos = (%f, %f, %f)\n", obj_pos.x, obj_pos.y, obj_pos.z);
-		
+
+                intptr_t int_obj_pos_x =  obj_pos.x + 0.5;
+                intptr_t int_obj_pos_y =  obj_pos.y + 0.5;
+                intptr_t int_obj_pos_z =  obj_pos.z + 0.5;
+                
 		/* step back along ray towards front while sample point is within bounds of data. */
-		while( ((intptr_t)obj_pos.x > 0) && ((intptr_t)(obj_pos.x + 0.5) < (w - 1)) &&
-		       ((intptr_t)obj_pos.y > 0) && ((intptr_t)(obj_pos.y + 0.5) < (h - 1)) &&
-		       ((intptr_t)obj_pos.z > 0) && ((intptr_t)(obj_pos.z + 0.5) < (d - 1)) )
+		while( (int_obj_pos_x > 0) && (int_obj_pos_x < (w - 1)) &&
+		       (int_obj_pos_y > 0) && (int_obj_pos_y < (h - 1)) &&
+		       (int_obj_pos_z > 0) && (int_obj_pos_z < (d - 1)) )
 		{
 		    //printf("        (%f, %f, %f)\n", obj_pos.x, obj_pos.y, obj_pos.z);
 		    
 		    /* perform classification and shading operations per voxel */
 		    val = interpolate(v, &obj_pos);
-		    gradient = grad(v, obj_pos.x + 0.5, obj_pos.y + 0.5, obj_pos.z + 0.5);
+		    gradient = grad(v, int_obj_pos_x, int_obj_pos_y, int_obj_pos_z);
 		    mat = classify(val, gradient, cinfo);
 
 		    /* classify should return a material if there aren't any gaps in the material table, but just in case */
@@ -578,6 +583,10 @@ NDArray *ndarray_vol_render_uint8_t(NDArray *v, int image_width, int image_heigh
 		    obj_pos.x -= ray_obj_d.x;
 		    obj_pos.y -= ray_obj_d.y;
 		    obj_pos.z -= ray_obj_d.z;
+
+                    int_obj_pos_x =  obj_pos.x + 0.5;
+                    int_obj_pos_y =  obj_pos.y + 0.5;
+                    int_obj_pos_z =  obj_pos.z + 0.5;
 		}
 	    }
 
